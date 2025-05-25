@@ -1,0 +1,9 @@
+# Variables de entorno para AlmacenNaval
+
+# URL base de la API
+NEXT_PUBLIC_API_BASE_URL=http://82.25.97.207:8080/almacen
+
+# URL para la autenticación (login)
+NEXT_PUBLIC_API_LOGIN_URL=http://82.25.97.207:8080/almacen/api/login
+
+# Nota: Renombra este archivo a .env y ajusta las URLs según corresponda a tu entorno

@@ -1,0 +1,73 @@
+import { NextResponse } from 'next/server';
+
+export async function POST(request: Request) {
+  try {
+    // Obtener los datos de la petición
+    const body = await request.json();
+    
+    // Log para depuración
+    console.log('Datos enviados al servidor:', body);
+    
+    // URL del endpoint de login real
+    const loginUrl = process.env.NEXT_PUBLIC_API_LOGIN_URL;
+    
+    // Verificar que la URL existe
+    if (!loginUrl) {
+      return NextResponse.json(
+        { success: false, message: 'URL de login no configurada en variables de entorno' },
+        { status: 500 }
+      );
+    }
+    
+    // Reenviar la petición al servidor real
+    const response = await fetch(loginUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(body),
+    });
+    
+    // Si la respuesta no es exitosa, devolver un error
+    if (!response.ok) {
+      return NextResponse.json(
+        { success: false, message: `Error: ${response.status} ${response.statusText}` },
+        { status: response.status }
+      );
+    }
+    
+    // Obtener los datos de la respuesta
+    const data = await response.json();
+    
+    // Log para depuración
+    console.log('Respuesta del servidor de login:', data);
+    console.log('Tipo de respuesta:', typeof data);
+    console.log('Propiedades de la respuesta:', Object.keys(data));
+    
+    // Verificar si la respuesta contiene un token (con o sin espacio)
+    const tokenValue = data && (data.token || data['token ']);
+    
+    if (tokenValue) {
+      // Normalizar la respuesta para que siempre tenga la propiedad 'token' sin espacio
+      return NextResponse.json({ token: tokenValue, success: true });
+    } else if (data && typeof data === 'string') {
+      // Si la respuesta es un string, podría ser el token directamente
+      return NextResponse.json({ token: data, success: true });
+    } else {
+      // Intentar buscar el token en otras propiedades
+      const possibleToken = data?.accessToken || data?.access_token || data?.auth_token || data?.authToken;
+      if (possibleToken) {
+        return NextResponse.json({ token: possibleToken, success: true });
+      } else {
+        // No se encontró un token, devolver la respuesta tal cual
+        return NextResponse.json(data);
+      }
+    }
+  } catch (error) {
+    console.error('Error en el endpoint de login:', error);
+    return NextResponse.json(
+      { success: false, message: 'Error interno del servidor' },
+      { status: 500 }
+    );
+  }
+}
