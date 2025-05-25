@@ -130,7 +130,7 @@ export default function ProductosTable() {
   const fetchProductos = async () => {
     try {
       setLoading(true)
-      console.log('Obteniendo productos desde la API...')
+      // console.log('Obteniendo productos desde la API...')
       
       // Usar el proxy local para evitar problemas de CORS
       const response = await fetch('/api/get/productos')
@@ -140,7 +140,7 @@ export default function ProductosTable() {
       }
       
       const data = await response.json()
-      console.log('Productos obtenidos:', data)
+      // console.log('Productos obtenidos:', data)
       
       // Procesar los datos para agregar el estado basado en la fecha de expiración
       const productosConEstado = data.map((producto: Producto) => {
@@ -159,7 +159,7 @@ export default function ProductosTable() {
       console.error('Error al obtener productos:', err)
       setError(`No se pudieron cargar los productos: ${err instanceof Error ? err.message : 'Error desconocido'}`)
       // Usar datos de respaldo en caso de error
-      console.log('Usando datos de respaldo para productos')
+      // console.log('Usando datos de respaldo para productos')
       setProductos(productosRespaldo)
     } finally {
       setLoading(false)

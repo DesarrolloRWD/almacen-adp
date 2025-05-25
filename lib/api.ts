@@ -47,6 +47,23 @@ export interface Movimiento {
   }
 }
 
+export interface User {
+  id?: number
+  correo: string
+  nombre: string
+  apdPaterno: string
+  apdMaterno: string
+  usuario: string
+  curp: string
+  telefono: string
+  rfc: string
+  image?: string | null
+  roles: { nombre: string }[]
+  pswd?: string
+  fechaUltimoAcceso?: string
+  estatus?: boolean
+}
+
 import { authGet, authPost, authPut } from "./auth-fetch"
 
 // Funciones para interactuar con la API
@@ -139,7 +156,7 @@ export async function login(credentials: LoginCredentials): Promise<LoginRespons
     const data = await response.json()
     
     // Log para depuración
-    console.log('Respuesta procesada en api.ts:', data)
+    // console.log('Respuesta procesada en api.ts:', data)
     
     // Verificar si la respuesta contiene un token (con o sin espacio)
     const tokenValue = data && (data.token || data['token ']);
@@ -166,4 +183,112 @@ export async function login(credentials: LoginCredentials): Promise<LoginRespons
       message: "Error de autenticación. Por favor verifique sus credenciales." 
     }
   }
+}
+
+// Funciones para gestionar usuarios
+export async function getAllUsers(): Promise<User[]> {
+  try {
+    // Usar el endpoint proxy local en lugar del servidor externo directamente
+    const response = await authGet(`/api/users`)
+    return response || []
+  } catch (error) {
+    console.error("Error al obtener usuarios:", error)
+    return []
+  }
+}
+
+export async function createUser(user: User): Promise<{ success: boolean; message: string }> {
+  try {
+    // Usar el endpoint proxy local en lugar del servidor externo directamente
+    await authPost(`/api/users/create`, user)
+    return { success: true, message: "Usuario creado exitosamente" }
+  } catch (error) {
+    console.error("Error al crear usuario:", error)
+    return { success: false, message: "Error al crear el usuario" }
+  }
+}
+
+export const getSpecificUser = async (username: string) => {
+  try {
+    const response = await authPost(`/api/users/specific`, { value: username })
+    return response
+  } catch (error) {
+    console.error('Error al obtener usuario específico:', error)
+    throw error
+  }
+}
+
+export const updateUserStatus = async (username: string, status: boolean) => {
+  try {
+    // Usar el endpoint local como proxy para evitar problemas de CORS
+    const response = await authPost(`/api/users/update-status`, { 
+      value: username,
+      status: status
+    })
+    return response
+  } catch (error) {
+    console.error('Error al actualizar estado del usuario:', error)
+    throw error
+  }
+}
+
+export const updateUserImage = async (username: string, imageBase64: string) => {
+  try {
+    // Usar el endpoint local como proxy para evitar problemas de CORS
+    const response = await authPost(`/api/users/update-image`, { 
+      value: username,
+      image: imageBase64
+    })
+    return response
+  } catch (error) {
+    console.error('Error al actualizar imagen del usuario:', error)
+    throw error
+  }
+}
+
+// Interfaz para la información del usuario a actualizar
+export interface UserInformationUpdate {
+  correo?: string;
+  pswd?: string;
+  nombre?: string;
+  apdPaterno?: string;
+  apdMaterno?: string;
+  usuario?: string;
+  curp?: string;
+  telefono?: string;
+  rfc?: string;
+  image?: string;
+  roles?: { nombre: string }[];
+}
+
+// Función para actualizar toda la información del usuario
+export const updateUserInformation = async (username: string, userInfo: UserInformationUpdate) => {
+  try {
+    // Usar el endpoint local como proxy para evitar problemas de CORS
+    const response = await authPost(`/api/users/update-information`, { 
+      valueSearch: username,
+      usuarioInformationRequest: userInfo
+    })
+    return response
+  } catch (error) {
+    console.error('Error al actualizar información del usuario:', error)
+    throw error
+  }
+}
+
+// Exportar todas las funciones como un objeto API
+export const api = {
+  getProductos,
+  saveProducto,
+  updateProducto,
+  getProductosActivos,
+  saveProductoActivo,
+  entregarProducto,
+  login,
+  getAllUsers,
+  createUser,
+  getSpecificUser,
+  updateUserStatus,
+  updateUserImage,
+  updateUserInformation
 }

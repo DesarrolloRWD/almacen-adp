@@ -76,7 +76,7 @@ export default function ActivarLoteDialog({
         unidadesPorEntregar: Number(values.unidadesPorEntregar),
       }
       
-      console.log('Activando producto con datos simplificados:', dataToSend)
+      // console.log('Activando producto con datos simplificados:', dataToSend)
       
       // Enviamos los datos a la API usando el endpoint correcto
       const response = await fetch(`/api/save/active/producto`, {

@@ -98,7 +98,7 @@ export default function CajasActivas() {
         const controller = new AbortController()
         const timeoutId = setTimeout(() => controller.abort(), 15000) // 15 segundos de timeout
         
-        console.log('Obteniendo productos activos de la API...')
+        // console.log('Obteniendo productos activos de la API...')
         
         // Intentamos obtener los datos de la API usando la URL correcta
         const response = await fetch('/api/get/productos/activos', {
@@ -116,9 +116,9 @@ export default function CajasActivas() {
           throw new Error(`Error ${response.status}: ${response.statusText}`)
         }
         
-        console.log('Respuesta recibida correctamente')
+        // console.log('Respuesta recibida correctamente')
         const data = await response.json()
-        console.log('Datos recibidos:', data)
+        // console.log('Datos recibidos:', data)
         
         // Procesamos los datos recibidos
         let productosFormateados: ProductoActivo[] = []
@@ -142,12 +142,12 @@ export default function CajasActivas() {
           }
         }
         
-        console.log('Productos procesados:', productosFormateados)
+        // console.log('Productos procesados:', productosFormateados)
         
         if (productosFormateados.length > 0) {
           setProductosActivos(productosFormateados)
         } else {
-          console.log('No se encontraron productos activos en la API, mostrando datos de respaldo')
+          // console.log('No se encontraron productos activos en la API, mostrando datos de respaldo')
           setProductosActivos(productosActivosRespaldo)
           toast({
             title: 'Sin productos activos',
@@ -213,7 +213,7 @@ export default function CajasActivas() {
         const controller = new AbortController()
         const timeoutId = setTimeout(() => controller.abort(), 15000) // 15 segundos de timeout
         
-        console.log('Obteniendo productos activos de la API...')
+        // console.log('Obteniendo productos activos de la API...')
         
         // Intentamos obtener los datos de la API usando la URL correcta
         const response = await fetch('/api/get/productos/activos', {
@@ -256,7 +256,7 @@ export default function CajasActivas() {
         if (productosFormateados.length > 0) {
           setProductosActivos(productosFormateados)
         } else {
-          console.log('No se encontraron productos activos en la API, mostrando datos de respaldo')
+          // console.log('No se encontraron productos activos en la API, mostrando datos de respaldo')
           setProductosActivos(productosActivosRespaldo)
         }
       } catch (err) {

@@ -154,7 +154,7 @@ export function RecentActivity() {
           throw new Error('URL de API no configurada')
         }
         
-        console.log('Intentando conectar a:', `${apiUrl}/api/get/movimientos`)
+        // console.log('Intentando conectar a:', `${apiUrl}/api/get/movimientos`)
         
         // Establecer un timeout para la petición
         const controller = new AbortController()
@@ -179,7 +179,7 @@ export function RecentActivity() {
         console.error('Error al obtener movimientos:', err)
         setError(`No se pudieron cargar los datos de actividad reciente: ${err instanceof Error ? err.message : 'Error desconocido'}`)
         // Usar datos de respaldo en caso de error
-        console.log('Usando datos de respaldo para movimientos')
+        // console.log('Usando datos de respaldo para movimientos')
         setActivityData(fallbackData as any)
       } finally {
         setLoading(false)

@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import { useAuth } from "@/hooks"
+import Link from "next/link"
 import { Bell, Search, User, HelpCircle, Settings, LogOut } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -71,9 +72,11 @@ export default function Header() {
               <User className="mr-2 h-4 w-4" />
               <span>Mi Perfil</span>
             </DropdownMenuItem>
-            <DropdownMenuItem>
-              <Settings className="mr-2 h-4 w-4" />
-              <span>Configuración</span>
+            <DropdownMenuItem asChild>
+              <Link href="/configuracion" className="flex cursor-pointer items-center">
+                <Settings className="mr-2 h-4 w-4" />
+                <span>Configuración</span>
+              </Link>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem className="text-red-500 focus:text-red-500" onClick={logout}>

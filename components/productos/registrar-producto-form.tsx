@@ -79,7 +79,7 @@ export default function RegistrarProductoForm() {
 
     try {
       // Preparar los datos para enviar a la API
-      console.log("Enviando datos originales:", values)
+      // console.log("Enviando datos originales:", values)
       
       // Asegurarnos de que los campos numéricos se envíen como números y no como cadenas
       const formattedValues = {
@@ -91,8 +91,8 @@ export default function RegistrarProductoForm() {
         fechaExpiracion: values.fechaExpiracion.toISOString()
       }
       
-      console.log('Intentando conectar a través del proxy local')
-      console.log('Datos formateados para envío:', formattedValues)
+      // console.log('Intentando conectar a través del proxy local')
+      // console.log('Datos formateados para envío:', formattedValues)
       
       // Usar el proxy local para evitar problemas de CORS
       const response = await fetch(`/api/save/information`, {
@@ -109,7 +109,7 @@ export default function RegistrarProductoForm() {
       }
       
       const responseData = await response.json()
-      console.log('Respuesta de la API:', responseData)
+      // console.log('Respuesta de la API:', responseData)
 
       // Mostrar mensaje de éxito
       toast({

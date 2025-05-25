@@ -98,10 +98,10 @@ export default function EntregarProductoDialog({
         : null
       
       if (productoEncontrado) {
-        console.log('Información del producto encontrada:', productoEncontrado)
+        // console.log('Información del producto encontrada:', productoEncontrado)
         setProductoInfo(productoEncontrado)
       } else {
-        console.log('Producto no encontrado en la respuesta')
+        // console.log('Producto no encontrado en la respuesta')
         setErrorInfo('No se encontró información detallada del producto')
       }
     } catch (error) {
@@ -130,7 +130,7 @@ export default function EntregarProductoDialog({
         unidadesPorEntregar: Number(values.unidadesPorEntregar),
       }
       
-      console.log('Entregando producto con datos:', dataToSend)
+      // console.log('Entregando producto con datos:', dataToSend)
       
       // Enviamos los datos a la API usando el endpoint relativo y el método POST
       const response = await fetch(`/api/save/active/entrega/producto`, {

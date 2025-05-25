@@ -67,7 +67,7 @@ export function BoxStatus() {
           throw new Error('URL de API no configurada')
         }
         
-        console.log('Intentando conectar a:', `${apiUrl}/api/get/cajas`)
+        // console.log('Intentando conectar a:', `${apiUrl}/api/get/cajas`)
         
         // Establecer un timeout para la petición
         const controller = new AbortController()
@@ -92,7 +92,7 @@ export function BoxStatus() {
         console.error('Error al obtener cajas:', err)
         setError(`No se pudieron cargar los datos de lotes: ${err instanceof Error ? err.message : 'Error desconocido'}`)
         // Usar datos de respaldo en caso de error
-        console.log('Usando datos de respaldo para cajas')
+        // console.log('Usando datos de respaldo para cajas')
         setBoxesData(fallbackData as any)
       } finally {
         setLoading(false)
