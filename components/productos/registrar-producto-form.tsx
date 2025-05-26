@@ -6,7 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
 import { format } from "date-fns"
 import { es } from "date-fns/locale"
-import { CalendarIcon, Stethoscope, PackageOpen } from "lucide-react"
+import { CalendarIcon, Stethoscope, PackageOpen, PlusCircle, Trash2 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
@@ -18,8 +18,19 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { cn } from "@/lib/utils"
 import { toast } from "@/components/ui/use-toast"
 import { Card, CardContent } from "@/components/ui/card"
+import { Separator } from "@/components/ui/separator"
+import { toast as sonnerToast } from "sonner"
 
-// Esquema de validación
+// Esquema para las presentaciones
+const presentacionSchema = z.object({
+  codigo: z.string().min(1, { message: "El código es requerido" }),
+  tipoPresentacion: z.string().min(1, { message: "El tipo de presentación es requerido" }),
+  descripcionPresentacion: z.string().min(1, { message: "La descripción es requerida" }),
+  cantidad: z.coerce.number().min(1, { message: "Debe ser al menos 1" }),
+  equivalenciaEnBase: z.coerce.number().min(1, { message: "Debe ser al menos 1" })
+});
+
+// Esquema de validación principal
 const formSchema = z.object({
   codigo: z.string().min(3, {
     message: "El código debe tener al menos 3 caracteres.",
@@ -27,29 +38,41 @@ const formSchema = z.object({
   descripcion: z.string().min(5, {
     message: "La descripción debe tener al menos 5 caracteres.",
   }),
-  catalogo: z.string().min(1, {
-    message: "Debe seleccionar un catálogo.",
-  }),
-  unidad: z.string().min(1, {
-    message: "Debe seleccionar una unidad.",
-  }),
-  pzsPorUnidad: z.coerce.number().min(1, {
-    message: "Debe ser al menos 1.",
-  }),
-  piezas: z.coerce.number().min(1, {
-    message: "Debe ser al menos 1.",
-  }),
   marca: z.string().min(2, {
     message: "La marca debe tener al menos 2 caracteres.",
+  }),
+  unidadBase: z.string().min(1, {
+    message: "La unidad base es requerida.",
+  }),
+  division: z.string().min(1, {
+    message: "La división es requerida.",
+  }),
+  linea: z.string().min(1, {
+    message: "La línea es requerida.",
+  }),
+  sublinea: z.string().min(1, {
+    message: "La sublínea es requerida.",
+  }),
+  lote: z.string().min(1, {
+    message: "El lote es requerido.",
   }),
   fechaExpiracion: z.date({
     required_error: "La fecha de expiración es requerida.",
   }),
-  tipoMovimiento: z.string().min(1, {
-    message: "Debe seleccionar un tipo de movimiento.",
+  minimos: z.coerce.number().min(0, {
+    message: "El valor mínimo debe ser 0 o mayor.",
   }),
-  movimientoArea: z.string().min(1, {
-    message: "Debe seleccionar un área de movimiento.",
+  maximos: z.coerce.number().min(0, {
+    message: "El valor máximo debe ser 0 o mayor.",
+  }),
+  creadoPor: z.string().min(1, {
+    message: "El creador es requerido.",
+  }),
+  cantidadNeta: z.coerce.number().min(0, {
+    message: "La cantidad neta debe ser 0 o mayor.",
+  }),
+  presentaciones: z.array(presentacionSchema).min(1, {
+    message: "Debe agregar al menos una presentación.",
   }),
 })
 
@@ -62,72 +85,229 @@ export default function RegistrarProductoForm() {
     defaultValues: {
       codigo: "",
       descripcion: "",
-      catalogo: "",
-      unidad: "",
-      pzsPorUnidad: 1,
-      piezas: 1,
       marca: "",
+      unidadBase: "",
+      division: "",
+      linea: "",
+      sublinea: "",
+      lote: "",
       fechaExpiracion: new Date(),
-      tipoMovimiento: "Entrada",
-      movimientoArea: "Almacén Principal",
+      minimos: 0,
+      maximos: 0,
+      creadoPor: "",
+      cantidadNeta: 0,
+      presentaciones: [
+        {
+          codigo: "",
+          tipoPresentacion: "",
+          descripcionPresentacion: "",
+          cantidad: 1,
+          equivalenciaEnBase: 1
+        }
+      ],
     },
   })
 
   // Manejar envío del formulario
-  async function onSubmit(values: z.infer<typeof formSchema>) {
+  const onSubmit = async (values: z.infer<typeof formSchema>) => {
     setIsSubmitting(true)
-
     try {
-      // Preparar los datos para enviar a la API
-      // console.log("Enviando datos originales:", values)
-      
-      // Asegurarnos de que los campos numéricos se envíen como números y no como cadenas
+      // Formatear los valores del formulario según la estructura requerida por la API
       const formattedValues = {
-        ...values,
-        // Convertir explícitamente a números para asegurar que se envíen correctamente
-        pzsPorUnidad: Number(values.pzsPorUnidad),
-        piezas: Number(values.piezas),
-        // Formatear la fecha para que coincida con el formato esperado por la API
-        fechaExpiracion: values.fechaExpiracion.toISOString()
+        codigo: values.codigo,
+        descripcion: values.descripcion,
+        marca: values.marca,
+        unidadBase: values.unidadBase,
+        division: values.division,
+        linea: values.linea,
+        sublinea: values.sublinea,
+        lote: values.lote,
+        // Usar exactamente el formato que funciona en Postman
+        fechaExpiracion: `${values.fechaExpiracion.getFullYear()}-${String(values.fechaExpiracion.getMonth() + 1).padStart(2, '0')}-${String(values.fechaExpiracion.getDate()).padStart(2, '0')}T00:00:00.000Z`,
+        minimos: Number(values.minimos),
+        maximos: Number(values.maximos),
+        creadoPor: values.creadoPor,
+        cantidadNeta: Number(values.cantidadNeta),
+        presentaciones: values.presentaciones.map(p => ({
+          codigo: p.codigo,
+          tipoPresentacion: p.tipoPresentacion,
+          descripcionPresentacion: p.descripcionPresentacion,
+          cantidad: Number(p.cantidad),
+          equivalenciaEnBase: Number(p.equivalenciaEnBase)
+        }))
       }
       
-      // console.log('Intentando conectar a través del proxy local')
-      // console.log('Datos formateados para envío:', formattedValues)
+      // Obtener la URL del endpoint desde las variables de entorno
+      const apiUrl = process.env.NEXT_PUBLIC_API_SAVE_PRODUCT || ""
+      
+      // Obtener el token de autenticación del localStorage
+      const token = localStorage.getItem('token')
       
       // Usar el proxy local para evitar problemas de CORS
-      const response = await fetch(`/api/save/information`, {
+      const response = await fetch(`/api/save/product`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': token ? `Bearer ${token}` : ''
         },
         body: JSON.stringify(formattedValues),
       })
       
       if (!response.ok) {
         const errorData = await response.text()
+        
+        // Intentar parsear el error como JSON
+        let parsedError;
+        try {
+          parsedError = JSON.parse(errorData);
+        } catch (e) {
+          // Si no es JSON, usar el texto tal cual
+          parsedError = { error: errorData };
+        }
+        
+        // Verificar si es un error de token expirado
+        if (response.status === 401 && 
+            (parsedError.error === "Token expirado" || 
+             (parsedError.details && parsedError.details.includes("JWT expired")))) {
+          
+          // Mostrar mensaje específico para token expirado
+          toast({
+            title: "Sesión expirada",
+            description: "Tu sesión ha expirado. Por favor, inicia sesión nuevamente.",
+            variant: "destructive",
+          })
+          
+          // Redirigir a la página de inicio de sesión
+          // Si tienes un componente de redirección, úsalo aquí
+          // Por ejemplo: router.push('/login')
+          
+          // Alternativamente, puedes limpiar el token expirado
+          localStorage.removeItem('token')
+          
+          return // Salir de la función
+        }
+        
+        // Verificar si es un error de fecha de expiración
+        if (response.status === 400 && 
+            ((parsedError.details && parsedError.details.includes("Error en la fecha de expiracion")) ||
+             (typeof parsedError.details === 'string' && 
+              (() => {
+                try {
+                  const detailsObj = JSON.parse(parsedError.details);
+                  return detailsObj.message && detailsObj.message.includes("Error en la fecha de expiracion");
+                } catch (e) {
+                  return false;
+                }
+              })()))) {
+          
+          // Mostrar mensaje específico para error de fecha
+          toast({
+            title: "Error en la fecha de expiración",
+            description: "El formato de la fecha de expiración no es válido. Por favor, verifica que la fecha sea correcta.",
+            variant: "destructive",
+          })
+          
+          return // Salir de la función
+        }
+        
         throw new Error(`Error ${response.status}: ${errorData}`)
       }
       
       const responseData = await response.json()
-      // console.log('Respuesta de la API:', responseData)
 
-      // Mostrar mensaje de éxito
+      // Mostrar mensaje de éxito con toast normal
       toast({
-        title: "Insumo registrado",
-        description: `El insumo ${values.codigo} ha sido registrado exitosamente.`,
+        title: "Producto registrado",
+        description: `El producto ${values.codigo} ha sido registrado exitosamente.`,
       })
+      
+      // Mostrar notificación tipo SweetAlert con sonner
+      sonnerToast.success(
+        `Producto registrado exitosamente`,
+        {
+          description: `El producto ${values.codigo} ha sido registrado correctamente en el sistema.`,
+          duration: 5000,
+          position: 'top-center',
+          style: { 
+            backgroundColor: '#10b981', 
+            color: 'white',
+            border: 'none',
+            fontSize: '16px',
+            padding: '16px',
+            borderRadius: '8px',
+            boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)'
+          },
+          icon: '✅',
+          closeButton: true
+        }
+      )
 
       // Resetear formulario
       form.reset()
     } catch (error) {
-      console.error("Error al registrar insumo:", error)
+      console.error("Error al registrar producto:", error)
+      
+      // Toast normal para error
       toast({
-        title: "Error al registrar insumo",
-        description: `Ocurrió un error al intentar registrar el insumo: ${error instanceof Error ? error.message : 'Error desconocido'}`,
+        title: "Error al registrar producto",
+        description: `Ocurrió un error al intentar registrar el producto: ${error instanceof Error ? error.message : 'Error desconocido'}`,
         variant: "destructive",
       })
+      
+      // Notificación tipo SweetAlert para error con sonner
+      sonnerToast.error(
+        `Error al registrar producto`,
+        {
+          description: `Ocurrió un error al intentar registrar el producto. Por favor, verifica los datos e intenta nuevamente.`,
+          duration: 5000,
+          position: 'top-center',
+          style: { 
+            backgroundColor: '#ef4444', 
+            color: 'white',
+            border: 'none',
+            fontSize: '16px',
+            padding: '16px',
+            borderRadius: '8px',
+            boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)'
+          },
+          icon: '⚠️',
+          closeButton: true
+        }
+      )
     } finally {
       setIsSubmitting(false)
+    }
+  }
+
+  // Función para agregar una nueva presentación
+  const addPresentacion = () => {
+    const presentaciones = form.getValues("presentaciones") || []
+    form.setValue("presentaciones", [
+      ...presentaciones,
+      {
+        codigo: "",
+        tipoPresentacion: "",
+        descripcionPresentacion: "",
+        cantidad: 1,
+        equivalenciaEnBase: 1
+      }
+    ])
+  }
+
+  // Función para eliminar una presentación
+  const removePresentacion = (index: number) => {
+    const presentaciones = form.getValues("presentaciones")
+    if (presentaciones.length > 1) {
+      form.setValue(
+        "presentaciones",
+        presentaciones.filter((_, i) => i !== index)
+      )
+    } else {
+      toast({
+        title: "No se puede eliminar",
+        description: "Debe haber al menos una presentación.",
+        variant: "destructive",
+      })
     }
   }
 
@@ -138,7 +318,7 @@ export default function RegistrarProductoForm() {
           <CardContent className="pt-6">
             <div className="flex items-center gap-2 mb-4 text-naval-700">
               <Stethoscope className="h-5 w-5" />
-              <h3 className="font-medium">Información del Insumo Médico</h3>
+              <h3 className="font-medium">Información del Producto</h3>
             </div>
 
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
@@ -150,7 +330,7 @@ export default function RegistrarProductoForm() {
                     <FormLabel className="text-naval-700">Código</FormLabel>
                     <FormControl>
                       <Input
-                        placeholder="Ej. INS-001"
+                        placeholder="Ej. PROD-001"
                         {...field}
                         className="border-naval-200 focus-visible:ring-naval-500"
                       />
@@ -186,7 +366,7 @@ export default function RegistrarProductoForm() {
                     <FormLabel className="text-naval-700">Descripción</FormLabel>
                     <FormControl>
                       <Textarea
-                        placeholder="Descripción detallada del insumo médico"
+                        placeholder="Descripción detallada del producto"
                         {...field}
                         className="border-naval-200 focus-visible:ring-naval-500"
                       />
@@ -198,13 +378,13 @@ export default function RegistrarProductoForm() {
 
               <FormField
                 control={form.control}
-                name="catalogo"
+                name="unidadBase"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-naval-700">Catálogo</FormLabel>
+                    <FormLabel className="text-naval-700">Unidad Base</FormLabel>
                     <FormControl>
                       <Input
-                        placeholder="Ej. 6679684190"
+                        placeholder="Ej. PIEZA"
                         {...field}
                         className="border-naval-200 focus-visible:ring-naval-500"
                       />
@@ -216,13 +396,13 @@ export default function RegistrarProductoForm() {
 
               <FormField
                 control={form.control}
-                name="unidad"
+                name="lote"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-naval-700">Unidad</FormLabel>
+                    <FormLabel className="text-naval-700">Lote</FormLabel>
                     <FormControl>
                       <Input
-                        placeholder="Ej. CAJA2X 6PBAS"
+                        placeholder="Ej. LOT-2025-001"
                         {...field}
                         className="border-naval-200 focus-visible:ring-naval-500"
                       />
@@ -239,20 +419,19 @@ export default function RegistrarProductoForm() {
           <CardContent className="pt-6">
             <div className="flex items-center gap-2 mb-4 text-naval-700">
               <PackageOpen className="h-5 w-5" />
-              <h3 className="font-medium">Información de Inventario</h3>
+              <h3 className="font-medium">Clasificación y Detalles</h3>
             </div>
 
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <FormField
                 control={form.control}
-                name="pzsPorUnidad"
+                name="division"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-naval-700">Piezas por Unidad</FormLabel>
+                    <FormLabel className="text-naval-700">División</FormLabel>
                     <FormControl>
                       <Input
-                        type="number"
-                        min="1"
+                        placeholder="Ej. Insumos Médicos"
                         {...field}
                         className="border-naval-200 focus-visible:ring-naval-500"
                       />
@@ -264,14 +443,31 @@ export default function RegistrarProductoForm() {
 
               <FormField
                 control={form.control}
-                name="piezas"
+                name="linea"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-naval-700">Cantidad Total (Piezas)</FormLabel>
+                    <FormLabel className="text-naval-700">Línea</FormLabel>
                     <FormControl>
                       <Input
-                        type="number"
-                        min="1"
+                        placeholder="Ej. Material de Curación"
+                        {...field}
+                        className="border-naval-200 focus-visible:ring-naval-500"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="sublinea"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-naval-700">Sublínea</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="Ej. Guantes"
                         {...field}
                         className="border-naval-200 focus-visible:ring-naval-500"
                       />
@@ -317,26 +513,32 @@ export default function RegistrarProductoForm() {
                   </FormItem>
                 )}
               />
+            </div>
+          </CardContent>
+        </Card>
 
+        <Card className="bg-naval-50/50 border-naval-100">
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-2 mb-4 text-naval-700">
+              <PackageOpen className="h-5 w-5" />
+              <h3 className="font-medium">Información de Inventario</h3>
+            </div>
+
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <FormField
                 control={form.control}
-                name="tipoMovimiento"
+                name="minimos"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-naval-700">Tipo de Movimiento</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                      <FormControl>
-                        <SelectTrigger className="border-naval-200 focus-visible:ring-naval-500">
-                          <SelectValue placeholder="Seleccionar tipo" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="Entrada">Entrada</SelectItem>
-                        <SelectItem value="Salida">Salida</SelectItem>
-                        <SelectItem value="Traslado">Traslado</SelectItem>
-                        <SelectItem value="Ajuste">Ajuste</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    <FormLabel className="text-naval-700">Cantidad Mínima</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        min="0"
+                        {...field}
+                        className="border-naval-200 focus-visible:ring-naval-500"
+                      />
+                    </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -344,26 +546,55 @@ export default function RegistrarProductoForm() {
 
               <FormField
                 control={form.control}
-                name="movimientoArea"
+                name="maximos"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-naval-700">Área de Movimiento</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                      <FormControl>
-                        <SelectTrigger className="border-naval-200 focus-visible:ring-naval-500">
-                          <SelectValue placeholder="Seleccionar área" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="Almacén Principal">Flebotomia</SelectItem>
-                        <SelectItem value="Farmacia">Coagulacion</SelectItem>
-                        <SelectItem value="Quirófano">Inmunohematologia</SelectItem>
-                        <SelectItem value="Emergencias">Serologia</SelectItem>
-                        <SelectItem value="Hospitalización">Fraccionammiento</SelectItem>
-                        <SelectItem value="Consulta Externa">Fraccionammiento</SelectItem>
-                        <SelectItem value="Laboratorio">NAT</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    <FormLabel className="text-naval-700">Cantidad Máxima</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        min="0"
+                        {...field}
+                        className="border-naval-200 focus-visible:ring-naval-500"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="cantidadNeta"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-naval-700">Cantidad Neta</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        min="0"
+                        {...field}
+                        className="border-naval-200 focus-visible:ring-naval-500"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="creadoPor"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-naval-700">Creado Por</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="Nombre del usuario"
+                        {...field}
+                        className="border-naval-200 focus-visible:ring-naval-500"
+                      />
+                    </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -372,9 +603,143 @@ export default function RegistrarProductoForm() {
           </CardContent>
         </Card>
 
+        <Card className="bg-naval-50/50 border-naval-100">
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2 text-naval-700">
+                <PackageOpen className="h-5 w-5" />
+                <h3 className="font-medium">Presentaciones</h3>
+              </div>
+              <Button 
+                type="button" 
+                variant="outline" 
+                size="sm" 
+                onClick={addPresentacion}
+                className="text-naval-600 border-naval-200 hover:bg-naval-100"
+              >
+                <PlusCircle className="h-4 w-4 mr-2" />
+                Agregar Presentación
+              </Button>
+            </div>
+
+            {form.watch("presentaciones").map((_, index) => (
+              <div key={index} className="mb-6">
+                <div className="flex items-center justify-between mb-2">
+                  <h4 className="text-sm font-medium text-naval-600">Presentación {index + 1}</h4>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => removePresentacion(index)}
+                    className="h-8 px-2 text-red-500 hover:text-red-700 hover:bg-red-50"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2 p-4 border border-naval-100 rounded-md bg-white">
+                  <FormField
+                    control={form.control}
+                    name={`presentaciones.${index}.codigo`}
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-naval-700">Código</FormLabel>
+                        <FormControl>
+                          <Input
+                            placeholder="Ej. PRES-001"
+                            {...field}
+                            className="border-naval-200 focus-visible:ring-naval-500"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name={`presentaciones.${index}.tipoPresentacion`}
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-naval-700">Tipo de Presentación</FormLabel>
+                        <FormControl>
+                          <Input
+                            placeholder="Ej. Caja"
+                            {...field}
+                            className="border-naval-200 focus-visible:ring-naval-500"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name={`presentaciones.${index}.descripcionPresentacion`}
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-naval-700">Descripción</FormLabel>
+                        <FormControl>
+                          <Input
+                            placeholder="Ej. Caja con 100 unidades"
+                            {...field}
+                            className="border-naval-200 focus-visible:ring-naval-500"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name={`presentaciones.${index}.cantidad`}
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-naval-700">Cantidad</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            min="1"
+                            {...field}
+                            className="border-naval-200 focus-visible:ring-naval-500"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name={`presentaciones.${index}.equivalenciaEnBase`}
+                    render={({ field }) => (
+                      <FormItem className="md:col-span-2">
+                        <FormLabel className="text-naval-700">Equivalencia en Unidad Base</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            min="1"
+                            {...field}
+                            className="border-naval-200 focus-visible:ring-naval-500"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+                {index < form.watch("presentaciones").length - 1 && (
+                  <Separator className="my-4" />
+                )}
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+
         <div className="flex justify-end">
           <Button type="submit" disabled={isSubmitting} className="bg-naval-600 hover:bg-naval-700">
-            {isSubmitting ? "Registrando..." : "Registrar Insumo Médico"}
+            {isSubmitting ? "Registrando..." : "Registrar Producto"}
           </Button>
         </div>
       </form>

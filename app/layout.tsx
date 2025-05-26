@@ -5,6 +5,7 @@ import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
 import { AuthProvider } from "@/hooks"
 import AppLayout from "@/components/app-layout"
+import { Toaster } from "sonner"
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -29,6 +30,8 @@ export default function RootLayout({
             </AppLayout>
           </AuthProvider>
         </ThemeProvider>
+        {/* Componente Toaster para mostrar notificaciones de sonner */}
+        <Toaster richColors closeButton position="top-center" />
       </body>
     </html>
   )
