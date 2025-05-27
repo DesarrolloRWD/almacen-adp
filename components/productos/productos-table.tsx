@@ -25,125 +25,78 @@ import {
 import { EditarProductoDialog } from "./editar-producto-dialog"
 import { ActivarProductoDialog } from "./activar-producto-dialog"
 
-// Definimos la interfaz para los productos
-interface Producto {
-  id?: number
+// Definimos la interfaz para los productos según la estructura de la API
+interface ProductoAPI {
   codigo: string
   descripcion: string
-  catalogo: string
-  unidad: string
-  pzsPorUnidad: number
-  piezas: number
   marca: string
+  unidadBase: string
+  division: string
+  linea: string
+  sublinea: string
+  lote: string
   fechaExpiracion: string
-  fechaIngreso?: string
-  tipoMovimiento: string
-  movimientoArea: string
-  totalPiezas?: number
+  minimos: number
+  maximos: number
+  cantidadNeta: number
+  creadoPor: string
   estado?: string
 }
 
-// Datos de respaldo en caso de que la API no esté disponible
-const productosRespaldo = [
-  {
-    id: 1,
-    codigo: "INS-001",
-    descripcion: "Guantes de Nitrilo Talla M",
-    catalogo: "Protección",
-    unidad: "Caja",
-    pzsPorUnidad: 100,
-    piezas: 50,
-    marca: "MedGuard",
-    fechaExpiracion: "2026-01-15",
-    tipoMovimiento: "Entrada",
-    movimientoArea: "Almacén Principal",
-    estado: "normal",
-  },
-  {
-    id: 2,
-    codigo: "INS-002",
-    descripcion: "Jeringas Desechables 5ml",
-    catalogo: "Inyección",
-    unidad: "Paquete",
-    pzsPorUnidad: 50,
-    piezas: 200,
-    marca: "MediTech",
-    fechaExpiracion: "2027-05-20",
-    tipoMovimiento: "Entrada",
-    movimientoArea: "Almacén Principal",
-    estado: "normal",
-  },
-  {
-    id: 3,
-    codigo: "INS-003",
-    descripcion: "Vendas Elásticas 10cm",
-    catalogo: "Curación",
-    unidad: "Rollo",
-    pzsPorUnidad: 1,
-    piezas: 75,
-    marca: "HealFast",
-    fechaExpiracion: "2025-08-10",
-    tipoMovimiento: "Entrada",
-    movimientoArea: "Emergencias",
-    estado: "normal",
-  },
-  {
-    id: 4,
-    codigo: "INS-004",
-    descripcion: "Mascarillas Quirúrgicas",
-    catalogo: "Protección",
-    unidad: "Caja",
-    pzsPorUnidad: 50,
-    piezas: 100,
-    marca: "SafeBreath",
-    fechaExpiracion: "2025-06-25",
-    tipoMovimiento: "Entrada",
-    movimientoArea: "Almacén Principal",
-    estado: "porExpirar",
-  },
-  {
-    id: 5,
-    codigo: "INS-005",
-    descripcion: "Batas Desechables",
-    catalogo: "Protección",
-    unidad: "Paquete",
-    pzsPorUnidad: 10,
-    piezas: 30,
-    marca: "MedCover",
-    fechaExpiracion: "2025-07-01",
-    tipoMovimiento: "Entrada",
-    movimientoArea: "Quirófano",
-    estado: "porExpirar",
-  },
-]
+// Interfaz para los componentes de diálogo - Ahora coincide con la estructura de la API
+interface Producto {
+  codigo: string
+  descripcion: string
+  marca: string
+  unidadBase: string
+  division: string
+  linea: string
+  sublinea: string
+  lote: string
+  fechaExpiracion: string
+  minimos: number
+  maximos: number
+  cantidadNeta: number
+  creadoPor: string
+  estado?: string
+}
 
 export default function ProductosTable() {
   const [searchQuery, setSearchQuery] = useState("")
-  const [productos, setProductos] = useState<Producto[]>([])
+  const [productos, setProductos] = useState<ProductoAPI[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [editarDialogOpen, setEditarDialogOpen] = useState(false)
   const [activarDialogOpen, setActivarDialogOpen] = useState(false)
   const [productoSeleccionado, setProductoSeleccionado] = useState<Producto | null>(null)
+  const [currentPage, setCurrentPage] = useState(1)
+  const [itemsPerPage] = useState(10)
 
-  // Función para obtener los productos de la API
+  // Función para obtener los productos de la API usando el proxy local
   const fetchProductos = async () => {
     try {
       setLoading(true)
-      // console.log('Obteniendo productos desde la API...')
       
-      // Usar el proxy local para evitar problemas de CORS
-      const response = await fetch('/api/get/productos')
+      // Usamos el endpoint proxy local para evitar problemas de CORS
+      const apiUrl = '/api/get/productos'
+      const response = await fetch(apiUrl)
       
       if (!response.ok) {
         throw new Error(`Error: ${response.status}`)
       }
       
       const data = await response.json()
-      // console.log('Productos obtenidos:', data)
+      
+      // Verificar si hay datos y si es un array
+      if (!data || !Array.isArray(data)) {
+        console.error('Formato de datos inesperado:', data)
+        throw new Error('Formato de datos inesperado')
+      }
+      
+      console.log('Datos recibidos:', data.length, 'productos')
       
       // Procesar los datos para agregar el estado basado en la fecha de expiración
-      const productosConEstado = data.map((producto: Producto) => {
+      const productosConEstado = data.map((producto: ProductoAPI) => {
         const fechaExp = new Date(producto.fechaExpiracion)
         const hoy = new Date()
         const diferenciaDias = Math.ceil((fechaExp.getTime() - hoy.getTime()) / (1000 * 60 * 60 * 24))
@@ -158,9 +111,7 @@ export default function ProductosTable() {
     } catch (err) {
       console.error('Error al obtener productos:', err)
       setError(`No se pudieron cargar los productos: ${err instanceof Error ? err.message : 'Error desconocido'}`)
-      // Usar datos de respaldo en caso de error
-      // console.log('Usando datos de respaldo para productos')
-      setProductos(productosRespaldo)
+      setProductos([])
     } finally {
       setLoading(false)
     }
@@ -176,18 +127,31 @@ export default function ProductosTable() {
     (producto) =>
       producto.codigo.toLowerCase().includes(searchQuery.toLowerCase()) ||
       producto.descripcion.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      producto.marca.toLowerCase().includes(searchQuery.toLowerCase()),
+      producto.marca.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (producto.division && producto.division.toLowerCase().includes(searchQuery.toLowerCase()))
   )
   
+  // Paginación
+  const indexOfLastItem = currentPage * itemsPerPage
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage
+  const currentItems = filteredProductos.slice(indexOfFirstItem, indexOfLastItem)
+  const totalPages = Math.ceil(filteredProductos.length / itemsPerPage)
+  
   // Función para manejar la acción de editar un producto
-  const handleEditarProducto = (producto: Producto) => {
-    setProductoSeleccionado(producto)
+  const handleEditarProducto = (productoAPI: ProductoAPI) => {
+    // Pasar directamente el producto de la API al diálogo de edición
+    // ya que ahora el formulario espera la misma estructura que la API
+    console.log('Editando producto:', productoAPI)
+    setProductoSeleccionado(productoAPI as unknown as Producto)
     setEditarDialogOpen(true)
   }
   
   // Función para manejar la acción de activar un producto
-  const handleActivarProducto = (producto: Producto) => {
-    setProductoSeleccionado(producto)
+  const handleActivarProducto = (productoAPI: ProductoAPI) => {
+    // Pasar directamente el producto de la API al diálogo de activación
+    // ya que ahora el formulario espera la misma estructura que la API
+    console.log('Activando producto:', productoAPI)
+    setProductoSeleccionado(productoAPI as unknown as Producto)
     setActivarDialogOpen(true)
   }
   
@@ -195,6 +159,23 @@ export default function ProductosTable() {
   const handleSuccess = () => {
     // Recargar los productos desde la API
     fetchProductos()
+  }
+  
+  // Funciones para la paginación
+  const goToFirstPage = () => {
+    setCurrentPage(1)
+  }
+  
+  const goToLastPage = () => {
+    setCurrentPage(totalPages)
+  }
+  
+  const goToPreviousPage = () => {
+    setCurrentPage((prev) => Math.max(prev - 1, 1))
+  }
+  
+  const goToNextPage = () => {
+    setCurrentPage((prev) => Math.min(prev + 1, totalPages))
   }
 
   return (
@@ -204,7 +185,7 @@ export default function ProductosTable() {
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
             type="search"
-            placeholder="Buscar por código, descripción o marca..."
+            placeholder="Buscar por código, descripción, marca o división..."
             className="pl-8"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
@@ -228,23 +209,25 @@ export default function ProductosTable() {
               <TableRow>
                 <TableHead className="text-naval-700">Código</TableHead>
                 <TableHead className="text-naval-700">Descripción</TableHead>
-                <TableHead className="text-naval-700">Catálogo</TableHead>
+                <TableHead className="text-naval-700">División</TableHead>
+                <TableHead className="text-naval-700">Unidad Base</TableHead>
+                <TableHead className="text-naval-700">Mínimos</TableHead>
+                <TableHead className="text-naval-700">Cantidad Neta</TableHead>
                 <TableHead className="text-naval-700">Marca</TableHead>
-                <TableHead className="text-naval-700">Unidad</TableHead>
-                <TableHead className="text-naval-700">Piezas</TableHead>
                 <TableHead className="text-naval-700">Fecha Exp.</TableHead>
+                <TableHead className="text-naval-700">Estado</TableHead>
                 <TableHead className="text-right text-naval-700">Acciones</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredProductos.length === 0 ? (
+              {currentItems.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={8} className="h-24 text-center">
+                  <TableCell colSpan={10} className="h-24 text-center">
                     No se encontraron insumos médicos.
                   </TableCell>
                 </TableRow>
               ) : (
-                filteredProductos.map((producto) => (
+                currentItems.map((producto) => (
                   <TableRow key={producto.codigo} className="hover:bg-naval-50">
                     <TableCell className="font-medium">{producto.codigo}</TableCell>
                     <TableCell>
@@ -253,51 +236,42 @@ export default function ProductosTable() {
                         {producto.descripcion}
                       </div>
                     </TableCell>
-                    <TableCell>
-                      <Badge variant="outline" className="bg-naval-50 text-naval-700 border-naval-200">
-                        {producto.catalogo}
-                      </Badge>
-                    </TableCell>
+                    <TableCell>{producto.division}</TableCell>
+                    <TableCell>{producto.unidadBase}</TableCell>
+                    <TableCell>{producto.minimos}</TableCell>
+                    <TableCell>{producto.cantidadNeta}</TableCell>
                     <TableCell>{producto.marca}</TableCell>
                     <TableCell>
-                      {producto.unidad} ({producto.pzsPorUnidad} pzs)
+                      {new Date(producto.fechaExpiracion).toLocaleDateString()}
                     </TableCell>
                     <TableCell>
-                      <Badge
-                        variant={producto.piezas < 30 ? "secondary" : "outline"}
-                        className={
-                          producto.piezas < 30
-                            ? "bg-amber-100 text-amber-800 border-amber-200 hover:bg-amber-200"
-                            : "bg-green-50 text-green-700 border-green-200"
-                        }
-                      >
-                        {producto.piezas}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <div className={producto.estado === "porExpirar" ? "text-amber-600 font-medium" : ""}>
-                        {new Date(producto.fechaExpiracion).toLocaleDateString()}
-                      </div>
+                      {producto.estado === "porExpirar" ? (
+                        <Badge variant="outline" className="bg-amber-100 text-amber-800 border-amber-200">
+                          Por Expirar
+                        </Badge>
+                      ) : (
+                        <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                          Normal
+                        </Badge>
+                      )}
                     </TableCell>
                     <TableCell className="text-right">
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="text-naval-600 hover:text-naval-700 hover:bg-naval-50"
-                          >
-                            <MoreHorizontal className="h-4 w-4" />
+                          <Button variant="ghost" className="h-8 w-8 p-0">
                             <span className="sr-only">Abrir menú</span>
+                            <MoreHorizontal className="h-4 w-4" />
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                           <DropdownMenuLabel>Acciones</DropdownMenuLabel>
-                          <DropdownMenuItem>Ver detalles</DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleEditarProducto(producto)}>Editar insumo</DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleEditarProducto(producto)}>
+                            Editar producto
+                          </DropdownMenuItem>
                           <DropdownMenuSeparator />
-                          <DropdownMenuItem onClick={() => handleActivarProducto(producto)}>Activar producto</DropdownMenuItem>
-                          <DropdownMenuItem>Registrar salida</DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleActivarProducto(producto)}>
+                            Activar producto
+                          </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </TableCell>
@@ -306,67 +280,71 @@ export default function ProductosTable() {
               )}
             </TableBody>
           </Table>
+          
+          {/* Paginación */}
+          {filteredProductos.length > 0 && (
+            <div className="flex items-center justify-between px-4 py-2 border-t">
+              <div className="text-sm text-muted-foreground">
+                Mostrando {indexOfFirstItem + 1}-{Math.min(indexOfLastItem, filteredProductos.length)} de {filteredProductos.length} productos
+              </div>
+              <div className="flex items-center space-x-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={goToFirstPage}
+                  disabled={currentPage === 1}
+                >
+                  <ChevronsLeft className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={goToPreviousPage}
+                  disabled={currentPage === 1}
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <span className="text-sm">
+                  Página {currentPage} de {totalPages}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={goToNextPage}
+                  disabled={currentPage === totalPages}
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={goToLastPage}
+                  disabled={currentPage === totalPages}
+                >
+                  <ChevronsRight className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
-      {!loading && !error && (
-        <div className="flex items-center justify-between space-x-2 py-4">
-          <div className="text-sm text-muted-foreground">
-            Mostrando <span className="font-medium">{filteredProductos.length}</span> de{" "}
-            <span className="font-medium">{productos.length}</span> insumos
-          </div>
-          <div className="flex items-center space-x-2">
-            <Button
-              variant="outline"
-              size="icon"
-              className="h-8 w-8 text-naval-600 hover:text-naval-700 hover:bg-naval-50"
-              disabled
-            >
-              <ChevronsLeft className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="outline"
-              size="icon"
-              className="h-8 w-8 text-naval-600 hover:text-naval-700 hover:bg-naval-50"
-              disabled
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="outline"
-              size="icon"
-              className="h-8 w-8 text-naval-600 hover:text-naval-700 hover:bg-naval-50"
-              disabled
-            >
-              <ChevronRight className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="outline"
-              size="icon"
-              className="h-8 w-8 text-naval-600 hover:text-naval-700 hover:bg-naval-50"
-              disabled
-            >
-              <ChevronsRight className="h-4 w-4" />
-            </Button>
-          </div>
-        </div>
+      {productoSeleccionado && (
+        <>
+          <EditarProductoDialog
+            producto={productoSeleccionado}
+            open={editarDialogOpen}
+            onOpenChange={setEditarDialogOpen}
+            onSuccess={handleSuccess}
+          />
+          <ActivarProductoDialog
+            producto={productoSeleccionado}
+            open={activarDialogOpen}
+            onOpenChange={setActivarDialogOpen}
+            onSuccess={handleSuccess}
+          />
+        </>
       )}
-
-      {/* Diálogo para editar productos */}
-      <EditarProductoDialog
-        producto={productoSeleccionado}
-        open={editarDialogOpen}
-        onOpenChange={setEditarDialogOpen}
-        onSuccess={handleSuccess}
-      />
-
-      {/* Diálogo para activar productos */}
-      <ActivarProductoDialog
-        producto={productoSeleccionado}
-        open={activarDialogOpen}
-        onOpenChange={setActivarDialogOpen}
-        onSuccess={handleSuccess}
-      />
     </div>
   )
 }

@@ -6,7 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
 import { format } from "date-fns"
 import { es } from "date-fns/locale"
-import { CalendarIcon, Stethoscope, PackageOpen, PlusCircle, Trash2 } from "lucide-react"
+import { CalendarIcon, Stethoscope, PackageOpen, PlusCircle, Trash2, QrCode } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
@@ -20,6 +20,7 @@ import { toast } from "@/components/ui/use-toast"
 import { Card, CardContent } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
 import { toast as sonnerToast } from "sonner"
+import QrScanner from "./qr-scanner"
 
 // Esquema para las presentaciones
 const presentacionSchema = z.object({
@@ -78,6 +79,7 @@ const formSchema = z.object({
 
 export default function RegistrarProductoForm() {
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [showQrScanner, setShowQrScanner] = useState(false)
 
   // Inicializar formulario
   const form = useForm<z.infer<typeof formSchema>>({
@@ -311,9 +313,166 @@ export default function RegistrarProductoForm() {
     }
   }
 
+  // Función para procesar los datos del QR escaneado
+  const handleQrScanSuccess = (qrData: Record<string, any>) => {
+    try {
+      // Actualizar los campos del formulario con los datos del QR
+      if (qrData.codigo) {
+        form.setValue("codigo", qrData.codigo);
+      }
+      // Verificar que los datos tienen la estructura esperada
+      if (!qrData || typeof qrData !== 'object') {
+        sonnerToast.error("Formato de QR inválido", {
+          description: "El código QR no contiene un objeto JSON válido."
+        });
+        return;
+      }
+      
+      // Limpiar el formulario antes de llenarlo con nuevos datos
+      form.reset({
+        ...form.getValues(),
+        codigo: "",
+        descripcion: "",
+        marca: "",
+        unidadBase: "",
+        division: "",
+        linea: "",
+        sublinea: "",
+        lote: "",
+        creadoPor: "",
+        minimos: 0,
+        maximos: 0,
+        cantidadNeta: 0
+      });
+      
+      // Actualizar el formulario con los datos del QR
+      // Código
+      if (qrData.codigo) {
+        form.setValue("codigo", String(qrData.codigo).trim());
+      }
+      
+      // Descripción
+      if (qrData.descripcion) {
+        form.setValue("descripcion", String(qrData.descripcion).trim());
+      }
+      
+      // Marca
+      if (qrData.marca) {
+        form.setValue("marca", String(qrData.marca).trim());
+      }
+      
+      // Unidad Base
+      if (qrData.unidadBase) {
+        form.setValue("unidadBase", String(qrData.unidadBase).trim());
+      }
+      
+      // División
+      if (qrData.division) {
+        form.setValue("division", String(qrData.division).trim());
+      }
+      
+      // Línea
+      if (qrData.linea) {
+        form.setValue("linea", String(qrData.linea).trim());
+      }
+      
+      // Sublínea
+      if (qrData.sublinea) {
+        form.setValue("sublinea", String(qrData.sublinea).trim());
+      }
+      
+      // Lote
+      if (qrData.lote) {
+        form.setValue("lote", String(qrData.lote).trim());
+      }
+      
+      // Creado Por
+      if (qrData.creadoPor) {
+        form.setValue("creadoPor", String(qrData.creadoPor).trim());
+      }
+      
+      // Actualizar campos numéricos - asegurar que sean números
+      if (qrData.minimos !== undefined) {
+        const minimos = typeof qrData.minimos === 'string' ? parseInt(qrData.minimos) : Number(qrData.minimos);
+        form.setValue("minimos", isNaN(minimos) ? 0 : minimos);
+      }
+      
+      if (qrData.maximos !== undefined) {
+        const maximos = typeof qrData.maximos === 'string' ? parseInt(qrData.maximos) : Number(qrData.maximos);
+        form.setValue("maximos", isNaN(maximos) ? 0 : maximos);
+      }
+      
+      if (qrData.cantidadNeta !== undefined) {
+        const cantidadNeta = typeof qrData.cantidadNeta === 'string' ? parseInt(qrData.cantidadNeta) : Number(qrData.cantidadNeta);
+        form.setValue("cantidadNeta", isNaN(cantidadNeta) ? 0 : cantidadNeta);
+      }
+      
+      // Manejar la fecha de expiración si existe
+      if (qrData.fechaExpiracion) {
+        try {
+          const fecha = new Date(qrData.fechaExpiracion);
+          if (!isNaN(fecha.getTime())) {
+            form.setValue("fechaExpiracion", fecha);
+          }
+        } catch (error) {
+          console.error("Error al procesar la fecha:", error);
+        }
+      }
+      
+      // No actualizamos las presentaciones, como se solicitó
+      
+      setShowQrScanner(false); // Ocultar el escáner después de escanear
+      
+      sonnerToast.success("Datos cargados correctamente", {
+        description: `Se ha cargado la información del producto ${qrData.codigo}.`,
+        duration: 5000,
+        position: 'top-center',
+        style: { 
+          backgroundColor: '#10b981', 
+          color: 'white',
+          border: 'none',
+          fontSize: '16px',
+          padding: '16px',
+          borderRadius: '8px',
+          boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)'
+        },
+        icon: '✅',
+        closeButton: true
+      });
+    } catch (error) {
+      console.error("Error al procesar los datos del QR:", error);
+      sonnerToast.error("Error al procesar el código QR", {
+        description: "El formato del código QR no es válido."
+      });
+    }
+  };
+
+  // Función para alternar la visibilidad del escáner QR
+  const toggleQrScanner = () => {
+    setShowQrScanner(!showQrScanner);
+  };
+
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+        <div className="flex justify-end mb-2">
+          <Button 
+            type="button" 
+            variant="outline" 
+            onClick={toggleQrScanner}
+            className="text-naval-600 border-naval-200 hover:bg-naval-100"
+          >
+            <QrCode className="h-4 w-4 mr-2" />
+            {showQrScanner ? "Ocultar Escáner QR" : "Escanear QR"}
+          </Button>
+        </div>
+        
+        {showQrScanner && (
+          <QrScanner 
+            onScanSuccess={handleQrScanSuccess} 
+            onCancel={() => setShowQrScanner(false)}
+          />
+        )}
         <Card className="bg-naval-50/50 border-naval-100">
           <CardContent className="pt-6">
             <div className="flex items-center gap-2 mb-4 text-naval-700">

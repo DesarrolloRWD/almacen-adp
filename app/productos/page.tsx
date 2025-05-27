@@ -16,12 +16,7 @@ export default function ProductosPage() {
         <p className="text-muted-foreground">Administre el inventario de insumos médicos del Hospital Naval.</p>
       </div>
 
-      <div className="flex justify-end">
-        <Button className="bg-naval-600 hover:bg-naval-700">
-          <PlusCircle className="mr-2 h-4 w-4" />
-          Registrar Insumo
-        </Button>
-      </div>
+      {/* Se eliminó el botón de Registrar Insumo */}
 
       <Tabs defaultValue="listado" className="w-full">
         <TabsList className="bg-naval-50 text-naval-700 w-full md:w-[400px]">

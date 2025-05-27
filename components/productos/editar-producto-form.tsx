@@ -30,7 +30,7 @@ import { toast } from "@/components/ui/use-toast"
 import { Textarea } from "@/components/ui/textarea"
 import { cn } from "@/lib/utils"
 
-// Definimos el esquema de validación simplificado con solo los campos necesarios
+// Definimos el esquema de validación completo con todos los campos necesarios para la API
 const formSchema = z.object({
   codigo: z.string().min(1, {
     message: "El código es requerido.",
@@ -38,47 +38,50 @@ const formSchema = z.object({
   descripcion: z.string().min(1, {
     message: "La descripción es requerida.",
   }),
-  catalogo: z.string().min(1, {
-    message: "El catálogo es requerido.",
-  }),
-  unidad: z.string().min(1, {
-    message: "La unidad es requerida.",
-  }),
-  pzsPorUnidad: z.coerce.number().min(1, {
-    message: "Debe ser al menos 1.",
-  }),
-  piezas: z.coerce.number().min(0, {
-    message: "No puede ser negativo.",
-  }),
   marca: z.string().min(1, {
     message: "La marca es requerida.",
   }),
+  unidadBase: z.string().min(1, {
+    message: "La unidad base es requerida.",
+  }),
+  division: z.string().min(1, {
+    message: "La división es requerida.",
+  }),
+  linea: z.string().min(1, {
+    message: "La línea es requerida.",
+  }),
+  sublinea: z.string().optional(),
+  lote: z.string().optional(),
   fechaExpiracion: z.date({
     required_error: "La fecha de expiración es requerida.",
   }),
-  tipoMovimiento: z.string().min(1, {
-    message: "El tipo de movimiento es requerido.",
+  minimos: z.coerce.number().min(0, {
+    message: "No puede ser negativo.",
   }),
-  movimientoArea: z.string().min(1, {
-    message: "El área de movimiento es requerida.",
+  maximos: z.coerce.number().min(0, {
+    message: "No puede ser negativo.",
   }),
+  cantidadNeta: z.coerce.number().min(0, {
+    message: "No puede ser negativo.",
+  }),
+  creadoPor: z.string().optional(),
 })
 
-// Definimos la interfaz para los productos
+// Definimos la interfaz para los productos según el formato de la API
 interface Producto {
-  id?: number
   codigo: string
   descripcion: string
-  catalogo: string
-  unidad: string
-  pzsPorUnidad: number
-  piezas: number
   marca: string
+  unidadBase: string
+  division: string
+  linea: string
+  sublinea?: string
+  lote?: string
   fechaExpiracion: string
-  fechaIngreso?: string
-  tipoMovimiento: string
-  movimientoArea: string
-  totalPiezas?: number
+  minimos: number
+  maximos: number
+  cantidadNeta: number
+  creadoPor?: string
   estado?: string
 }
 
@@ -101,14 +104,17 @@ export function EditarProductoForm({ producto, onSuccess, onCancel }: EditarProd
     defaultValues: {
       codigo: producto.codigo || "",
       descripcion: producto.descripcion || "",
-      catalogo: producto.catalogo || "",
-      unidad: producto.unidad || "",
-      pzsPorUnidad: producto.pzsPorUnidad || 0,
-      piezas: producto.piezas || 0,
       marca: producto.marca || "",
+      unidadBase: producto.unidadBase || "",
+      division: producto.division || "",
+      linea: producto.linea || "",
+      sublinea: producto.sublinea || "",
+      lote: producto.lote || "",
       fechaExpiracion: fechaExpiracion,
-      tipoMovimiento: producto.tipoMovimiento || "Actualización",
-      movimientoArea: producto.movimientoArea || "",
+      minimos: producto.minimos || 0,
+      maximos: producto.maximos || 0,
+      cantidadNeta: producto.cantidadNeta || 0,
+      creadoPor: producto.creadoPor || "sistema",
     },
   })
 
@@ -116,29 +122,45 @@ export function EditarProductoForm({ producto, onSuccess, onCancel }: EditarProd
     try {
       setIsSubmitting(true)
 
+      // Identificar solo los campos que han cambiado
+      const changedFields: Record<string, any> = {}
+      
+      // Comparar con los valores originales del producto
+      if (values.descripcion !== producto.descripcion) changedFields.descripcion = values.descripcion
+      if (values.marca !== producto.marca) changedFields.marca = values.marca
+      if (values.unidadBase !== producto.unidadBase) changedFields.unidadBase = values.unidadBase
+      if (values.division !== producto.division) changedFields.division = values.division
+      if (values.linea !== producto.linea) changedFields.linea = values.linea
+      if (values.sublinea !== producto.sublinea) changedFields.sublinea = values.sublinea
+      
+      // Para la fecha, comparar los valores en formato ISO
+      const originalDate = producto.fechaExpiracion ? new Date(producto.fechaExpiracion).toISOString() : ""
+      const newDate = values.fechaExpiracion.toISOString()
+      if (newDate !== originalDate) changedFields.fechaExpiracion = newDate
+      
+      // Para los campos numéricos, convertir a número para comparar
+      if (Number(values.minimos) !== producto.minimos) changedFields.minimos = Number(values.minimos)
+      if (Number(values.maximos) !== producto.maximos) changedFields.maximos = Number(values.maximos)
+      if (Number(values.cantidadNeta) !== producto.cantidadNeta) changedFields.cantidadNeta = Number(values.cantidadNeta)
+      if (values.creadoPor !== producto.creadoPor) changedFields.creadoPor = values.creadoPor || "sistema"
+      
       // Formatear los datos exactamente en el formato requerido por la API
       const formattedValues = {
-        codigo: values.codigo,
-        object: {
-          codigo: values.codigo,
-          descripcion: values.descripcion,
-          catalogo: values.catalogo,
-          unidad: values.unidad,
-          // Aseguramos que los campos numéricos se envíen como números
-          pzsPorUnidad: Number(values.pzsPorUnidad),
-          piezas: Number(values.piezas),
-          marca: values.marca,
-          fechaExpiracion: values.fechaExpiracion.toISOString(),
-          tipoMovimiento: values.tipoMovimiento,
-          movimientoArea: values.movimientoArea
+        "codigo": values.codigo,
+        "lote": values.lote || "1",
+        "itemInformation": {
+          // No incluir código ni lote dentro de itemInformation
+          ...changedFields  // Solo incluir los campos que han cambiado
         }
       }
 
       // console.log('Actualizando insumo con datos:', formattedValues)
 
+      console.log('Enviando datos:', JSON.stringify(formattedValues, null, 2))
+      
       // Usar el proxy local para evitar problemas de CORS
       const response = await fetch(`/api/update/producto`, {
-        method: 'PUT',  // Usamos PUT para actualizar recursos
+        method: 'POST',  // El proxy local usa POST, pero internamente hace un PUT a la API
         headers: {
           'Content-Type': 'application/json',
         },
@@ -204,12 +226,12 @@ export function EditarProductoForm({ producto, onSuccess, onCancel }: EditarProd
 
           <FormField
             control={form.control}
-            name="catalogo"
+            name="division"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Catálogo</FormLabel>
+                <FormLabel>División</FormLabel>
                 <FormControl>
-                  <Input placeholder="Ej. 6679684190" {...field} />
+                  <Input placeholder="Ej. Farmacia" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -232,12 +254,12 @@ export function EditarProductoForm({ producto, onSuccess, onCancel }: EditarProd
 
           <FormField
             control={form.control}
-            name="unidad"
+            name="unidadBase"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Unidad</FormLabel>
+                <FormLabel>Unidad Base</FormLabel>
                 <FormControl>
-                  <Input placeholder="Ej. CAJA2X 6PBAS" {...field} />
+                  <Input placeholder="Ej. CAJA" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -246,12 +268,20 @@ export function EditarProductoForm({ producto, onSuccess, onCancel }: EditarProd
 
           <FormField
             control={form.control}
-            name="pzsPorUnidad"
+            name="maximos"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Piezas por Unidad</FormLabel>
+                <FormLabel>Máximos</FormLabel>
                 <FormControl>
-                  <Input type="number" min="1" {...field} />
+                  <Input 
+                    type="number" 
+                    min="0" 
+                    value={field.value} 
+                    onChange={(e) => field.onChange(Number(e.target.value))}
+                    onBlur={field.onBlur}
+                    name={field.name}
+                    ref={field.ref}
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -260,12 +290,20 @@ export function EditarProductoForm({ producto, onSuccess, onCancel }: EditarProd
 
           <FormField
             control={form.control}
-            name="piezas"
+            name="cantidadNeta"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Piezas Disponibles</FormLabel>
+                <FormLabel>Cantidad Neta</FormLabel>
                 <FormControl>
-                  <Input type="number" min="0" {...field} />
+                  <Input 
+                    type="number" 
+                    min="0" 
+                    value={field.value} 
+                    onChange={(e) => field.onChange(Number(e.target.value))}
+                    onBlur={field.onBlur}
+                    name={field.name}
+                    ref={field.ref}
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -314,12 +352,12 @@ export function EditarProductoForm({ producto, onSuccess, onCancel }: EditarProd
 
           <FormField
             control={form.control}
-            name="tipoMovimiento"
+            name="linea"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Tipo de Movimiento</FormLabel>
+                <FormLabel>Línea</FormLabel>
                 <FormControl>
-                  <Input {...field} readOnly />
+                  <Input placeholder="Ej. Medicamentos" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -328,12 +366,62 @@ export function EditarProductoForm({ producto, onSuccess, onCancel }: EditarProd
 
           <FormField
             control={form.control}
-            name="movimientoArea"
+            name="sublinea"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Área de Movimiento</FormLabel>
+                <FormLabel>Sublínea</FormLabel>
                 <FormControl>
-                  <Input placeholder="Ej. Almacén Principal" {...field} />
+                  <Input placeholder="Ej. Analgésicos" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="lote"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Lote</FormLabel>
+                <FormControl>
+                  <Input placeholder="Ej. LOT123456" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="minimos"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Mínimos</FormLabel>
+                <FormControl>
+                  <Input 
+                    type="number" 
+                    min="0" 
+                    value={field.value} 
+                    onChange={(e) => field.onChange(Number(e.target.value))}
+                    onBlur={field.onBlur}
+                    name={field.name}
+                    ref={field.ref}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="creadoPor"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Creado Por</FormLabel>
+                <FormControl>
+                  <Input placeholder="Ej. sistema" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -341,12 +429,7 @@ export function EditarProductoForm({ producto, onSuccess, onCancel }: EditarProd
           />
         </div>
 
-        <div className="border-t pt-4">
-          <h3 className="text-lg font-medium mb-4">Información Adicional</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Los campos de activación se han eliminado ya que no son necesarios para la actualización */}
-          </div>
-        </div>
+        {/* No se requiere sección de información adicional para esta versión */}
 
         <div className="flex justify-end space-x-2">
           <Button variant="outline" type="button" onClick={onCancel}>

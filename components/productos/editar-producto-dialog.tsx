@@ -10,21 +10,21 @@ import {
 } from "@/components/ui/dialog"
 import { EditarProductoForm } from "./editar-producto-form"
 
-// Definimos la interfaz para los productos
+// Definimos la interfaz para los productos según el formato de la API
 interface Producto {
-  id?: number
   codigo: string
   descripcion: string
-  catalogo: string
-  unidad: string
-  pzsPorUnidad: number
-  piezas: number
   marca: string
+  unidadBase: string
+  division: string
+  linea: string
+  sublinea: string
+  lote: string
   fechaExpiracion: string
-  fechaIngreso?: string
-  tipoMovimiento: string
-  movimientoArea: string
-  totalPiezas?: number
+  minimos: number
+  maximos: number
+  cantidadNeta: number
+  creadoPor: string
   estado?: string
 }
 

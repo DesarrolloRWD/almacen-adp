@@ -9,21 +9,21 @@ import {
 } from "@/components/ui/dialog"
 import { ActivarProductoForm } from "./activar-producto-form"
 
-// Definimos la interfaz para los productos
+// Definimos la interfaz para los productos según el formato de la API
 interface Producto {
-  id?: number
   codigo: string
   descripcion: string
-  catalogo: string
-  unidad: string
-  pzsPorUnidad: number
-  piezas: number
   marca: string
+  unidadBase: string
+  division: string
+  linea: string
+  sublinea: string
+  lote: string
   fechaExpiracion: string
-  fechaIngreso?: string
-  tipoMovimiento: string
-  movimientoArea: string
-  totalPiezas?: number
+  minimos: number
+  maximos: number
+  cantidadNeta: number
+  creadoPor: string
   estado?: string
 }
 
@@ -50,10 +50,10 @@ export function ActivarProductoDialog({
         <DialogHeader>
           <DialogTitle>Activar Producto</DialogTitle>
           <DialogDescription>
-            Activar una unidad de {producto.descripcion} ({producto.unidad}) para entrega de piezas.
+            Activar una unidad de {producto.descripcion} ({producto.unidadBase}) para entrega de piezas.
           </DialogDescription>
           <div className="mt-2 text-sm text-muted-foreground">
-            <p>Al activar este producto, se abrirá una unidad ({producto.unidad}) que contiene {producto.pzsPorUnidad} piezas.</p>
+            <p>Al activar este producto, se abrirá una unidad ({producto.unidadBase}) que contiene {producto.maximos} piezas.</p>
             <p className="mt-1 font-medium text-amber-600">No se podrá activar otra unidad del mismo producto hasta que se terminen todas las piezas de esta unidad.</p>
           </div>
         </DialogHeader>
