@@ -149,18 +149,15 @@ export function RecentActivity() {
   useEffect(() => {
     async function fetchMovimientos() {
       try {
-        const apiUrl = process.env.NEXT_PUBLIC_API_BASE_URL || ''
-        if (!apiUrl) {
-          throw new Error('URL de API no configurada')
-        }
-        
-        // console.log('Intentando conectar a:', `${apiUrl}/api/get/movimientos`)
+        // Ya no necesitamos obtener la URL del endpoint desde las variables de entorno
+        // Usamos el endpoint local configurado en next.config.mjs
         
         // Establecer un timeout para la petición
         const controller = new AbortController()
         const timeoutId = setTimeout(() => controller.abort(), 5000) // 5 segundos de timeout
         
-        const response = await fetch(`${apiUrl}/api/get/movimientos`, {
+        // Usar el endpoint local configurado en next.config.mjs
+        const response = await fetch('/api/productos/movimientos', {
           signal: controller.signal
         }).catch(error => {
           console.error('Error de conexión:', error)

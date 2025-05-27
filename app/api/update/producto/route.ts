@@ -7,14 +7,16 @@ export async function POST(request: NextRequest) {
     console.log('Datos recibidos:', JSON.stringify(data, null, 2));
     
     // URL de la API externa para actualizar productos
-    const apiUrl = process.env.NEXT_PUBLIC_API_UPDATE_PRODUCT;
-    if (!apiUrl) {
-      console.error('Error: Variable de entorno NEXT_PUBLIC_API_UPDATE_PRODUCT no configurada');
+    const baseUrl = process.env.NEXT_PUBLIC_ALMACEN_API_URL;
+    if (!baseUrl) {
+      console.error('Error: Variable de entorno NEXT_PUBLIC_ALMACEN_API_URL no configurada');
       return NextResponse.json(
         { error: 'Error de configuración: URL de API no disponible' },
         { status: 500 }
       );
     }
+    
+    const apiUrl = `${baseUrl}/api/update/product`;
     
     console.log('Enviando a URL:', apiUrl);
     

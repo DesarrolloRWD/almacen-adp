@@ -139,8 +139,8 @@ export default function RegistrarProductoForm() {
         }))
       }
       
-      // Obtener la URL del endpoint desde las variables de entorno
-      const apiUrl = process.env.NEXT_PUBLIC_API_SAVE_PRODUCT || ""
+      // Ya no necesitamos obtener la URL del endpoint desde las variables de entorno
+      // Usamos el endpoint local configurado en next.config.mjs
       
       // Obtener el token de autenticación del localStorage
       const token = localStorage.getItem('token')

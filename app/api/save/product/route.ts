@@ -68,15 +68,17 @@ export async function POST(request: NextRequest) {
     }
     
     // URL del endpoint real
-    const apiUrl = process.env.NEXT_PUBLIC_API_SAVE_PRODUCT
+    const baseUrl = process.env.NEXT_PUBLIC_ALMACEN_API_URL
     
-    if (!apiUrl) {
-      console.error("URL de API no configurada")
+    if (!baseUrl) {
+      console.error("URL de API de almacén no configurada")
       return NextResponse.json(
-        { error: "URL de API no configurada" },
+        { error: "URL de API de almacén no configurada" },
         { status: 500 }
       )
     }
+    
+    const apiUrl = `${baseUrl}/api/save/product`
     
     console.log("Enviando solicitud a:", apiUrl)
     console.log("Con token:", token ? "[TOKEN PRESENTE]" : "[SIN TOKEN]")

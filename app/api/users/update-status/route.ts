@@ -19,14 +19,16 @@ export async function POST(request: NextRequest) {
     }
 
     // Obtener la URL del endpoint desde las variables de entorno
-    const apiUrl = process.env.NEXT_PUBLIC_API_UPDATE_STATUS
+    const baseUrl = process.env.NEXT_PUBLIC_USUARIOS_API_URL
 
-    if (!apiUrl) {
+    if (!baseUrl) {
       return NextResponse.json(
-        { error: 'URL de API no configurada' },
+        { error: 'URL de API de usuarios no configurada' },
         { status: 500 }
       )
     }
+    
+    const apiUrl = `${baseUrl}/api/update/status`
 
     // console.log('Enviando solicitud a:', apiUrl)
     // console.log('Datos:', body)

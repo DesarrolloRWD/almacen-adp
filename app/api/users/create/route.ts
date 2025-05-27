@@ -16,14 +16,16 @@ export async function POST(request: Request) {
     const userData = await request.json()
     
     // URL del endpoint real
-    const createUserUrl = process.env.NEXT_PUBLIC_API_SAVE_INFORMATION
+    const baseUrl = process.env.NEXT_PUBLIC_USUARIOS_API_URL
     
-    if (!createUserUrl) {
+    if (!baseUrl) {
       return NextResponse.json(
-        { error: "URL del API no configurada" },
+        { error: "URL del API de usuarios no configurada" },
         { status: 500 }
       )
     }
+    
+    const createUserUrl = `${baseUrl}/api/save/information`
     
     // Realizar la solicitud al servidor real
     const response = await fetch(createUserUrl, {

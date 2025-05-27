@@ -65,11 +65,12 @@ export interface User {
 }
 
 import { authGet, authPost, authPut } from "./auth-fetch"
+import { API_ENDPOINTS } from "./config"
 
 // Funciones para interactuar con la API
 export async function getProductos(): Promise<Producto[]> {
   try {
-    return await authGet(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/get/productos`)
+    return await authGet(API_ENDPOINTS.GET_PRODUCTOS)
   } catch (error) {
     console.error("Error al obtener productos:", error)
     return []
@@ -78,7 +79,7 @@ export async function getProductos(): Promise<Producto[]> {
 
 export async function saveProducto(producto: Producto): Promise<{ success: boolean; message: string }> {
   try {
-    await authPost(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/save/information`, producto)
+    await authPost(API_ENDPOINTS.SAVE_PRODUCTO, producto)
     return { success: true, message: "Producto guardado exitosamente" }
   } catch (error) {
     console.error("Error al guardar producto:", error)
@@ -88,7 +89,7 @@ export async function saveProducto(producto: Producto): Promise<{ success: boole
 
 export async function updateProducto(producto: Producto): Promise<{ success: boolean; message: string }> {
   try {
-    await authPut(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/update/producto`, producto)
+    await authPut(API_ENDPOINTS.UPDATE_PRODUCTO, producto)
     return { success: true, message: "Producto actualizado exitosamente" }
   } catch (error) {
     console.error("Error al actualizar producto:", error)
@@ -98,7 +99,7 @@ export async function updateProducto(producto: Producto): Promise<{ success: boo
 
 export async function getProductosActivos(): Promise<Producto[]> {
   try {
-    return await authPost(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/get/productos/activos`, {})
+    return await authPost(API_ENDPOINTS.GET_PRODUCTOS_ACTIVOS, {})
   } catch (error) {
     console.error("Error al obtener productos activos:", error)
     return []
@@ -107,7 +108,7 @@ export async function getProductosActivos(): Promise<Producto[]> {
 
 export async function saveProductoActivo(producto: Producto): Promise<{ success: boolean; message: string }> {
   try {
-    await authPost(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/save/active/producto`, producto)
+    await authPost(API_ENDPOINTS.ACTIVAR_PRODUCTO, producto)
     return { success: true, message: "Producto activo guardado exitosamente" }
   } catch (error) {
     console.error("Error al guardar producto activo:", error)
@@ -117,7 +118,7 @@ export async function saveProductoActivo(producto: Producto): Promise<{ success:
 
 export async function entregarProducto(producto: Producto): Promise<{ success: boolean; message: string }> {
   try {
-    await authGet(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/save/active/entrega/producto`)
+    await authGet(API_ENDPOINTS.ENTREGAR_PRODUCTO)
     return { success: true, message: "Producto entregado exitosamente" }
   } catch (error) {
     console.error("Error al entregar producto:", error)
@@ -140,8 +141,7 @@ export interface LoginResponse {
 // Función para autenticar usuario (usa el endpoint de API local para evitar problemas de CORS)
 export async function login(credentials: LoginCredentials): Promise<LoginResponse> {
   try {
-    // Usar el endpoint de API local en lugar del servidor externo directamente
-    const response = await fetch(`/api/auth/login`, {
+    const response = await fetch(API_ENDPOINTS.LOGIN, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -189,7 +189,7 @@ export async function login(credentials: LoginCredentials): Promise<LoginRespons
 export async function getAllUsers(): Promise<User[]> {
   try {
     // Usar el endpoint proxy local en lugar del servidor externo directamente
-    const response = await authGet(`/api/users`)
+    const response = await authGet(API_ENDPOINTS.ALL_USERS)
     return response || []
   } catch (error) {
     console.error("Error al obtener usuarios:", error)
@@ -200,7 +200,7 @@ export async function getAllUsers(): Promise<User[]> {
 export async function createUser(user: User): Promise<{ success: boolean; message: string }> {
   try {
     // Usar el endpoint proxy local en lugar del servidor externo directamente
-    await authPost(`/api/users/create`, user)
+    await authPost(API_ENDPOINTS.CREATE_USER, user)
     return { success: true, message: "Usuario creado exitosamente" }
   } catch (error) {
     console.error("Error al crear usuario:", error)
@@ -210,7 +210,7 @@ export async function createUser(user: User): Promise<{ success: boolean; messag
 
 export const getSpecificUser = async (username: string) => {
   try {
-    const response = await authPost(`/api/users/specific`, { value: username })
+    const response = await authPost(API_ENDPOINTS.SPECIFIC_USER, { value: username })
     return response
   } catch (error) {
     console.error('Error al obtener usuario específico:', error)
@@ -221,7 +221,7 @@ export const getSpecificUser = async (username: string) => {
 export const updateUserStatus = async (username: string, status: boolean) => {
   try {
     // Usar el endpoint local como proxy para evitar problemas de CORS
-    const response = await authPost(`/api/users/update-status`, { 
+    const response = await authPost(API_ENDPOINTS.UPDATE_STATUS, { 
       value: username,
       status: status
     })
@@ -235,7 +235,7 @@ export const updateUserStatus = async (username: string, status: boolean) => {
 export const updateUserImage = async (username: string, imageBase64: string) => {
   try {
     // Usar el endpoint local como proxy para evitar problemas de CORS
-    const response = await authPost(`/api/users/update-image`, { 
+    const response = await authPost(API_ENDPOINTS.UPDATE_IMAGE, { 
       value: username,
       image: imageBase64
     })
@@ -265,7 +265,7 @@ export interface UserInformationUpdate {
 export const updateUserInformation = async (username: string, userInfo: UserInformationUpdate) => {
   try {
     // Usar el endpoint local como proxy para evitar problemas de CORS
-    const response = await authPost(`/api/users/update-information`, { 
+    const response = await authPost(API_ENDPOINTS.UPDATE_INFORMATION, { 
       valueSearch: username,
       usuarioInformationRequest: userInfo
     })

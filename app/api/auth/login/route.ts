@@ -9,15 +9,17 @@ export async function POST(request: Request) {
     // // console.log('Datos enviados al servidor:', body);
     
     // URL del endpoint de login real
-    const loginUrl = process.env.NEXT_PUBLIC_API_LOGIN_URL;
+    const baseUrl = process.env.NEXT_PUBLIC_AUTH_API_URL;
     
     // Verificar que la URL existe
-    if (!loginUrl) {
+    if (!baseUrl) {
       return NextResponse.json(
-        { success: false, message: 'URL de login no configurada en variables de entorno' },
+        { success: false, message: 'URL de autenticación no configurada en variables de entorno' },
         { status: 500 }
       );
     }
+    
+    const loginUrl = `${baseUrl}/login`;
     
     // Reenviar la petición al servidor real
     const response = await fetch(loginUrl, {

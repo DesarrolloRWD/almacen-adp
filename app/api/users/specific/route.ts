@@ -24,14 +24,16 @@ export async function POST(request: Request) {
     }
     
     // URL del endpoint real
-    const specificUserUrl = process.env.NEXT_PUBLIC_API_SPECIFIC_USER
+    const baseUrl = process.env.NEXT_PUBLIC_USUARIOS_API_URL
     
-    if (!specificUserUrl) {
+    if (!baseUrl) {
       return NextResponse.json(
-        { error: "URL del API no configurada" },
+        { error: "URL del API de usuarios no configurada" },
         { status: 500 }
       )
     }
+    
+    const specificUserUrl = `${baseUrl}/api/specific/user`
     
     // console.log(`Obteniendo información del usuario: ${username}`)
     

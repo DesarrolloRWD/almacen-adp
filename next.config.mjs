@@ -12,15 +12,62 @@ const nextConfig = {
   // Configuración de proxy para evitar problemas de CORS durante desarrollo
   async rewrites() {
     return [
+      // Proxy para autenticación
       {
-        source: '/api/:path*',
-        destination: `${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3000'}/api/:path*`,
-        // Asegurarse de que todos los métodos HTTP sean permitidos (GET, POST, PUT, DELETE, etc.)
+        source: '/api/auth/login',
+        destination: `${process.env.NEXT_PUBLIC_AUTH_API_URL}/login`,
+      },
+      
+      // Proxy para usuarios
+      {
+        source: '/api/users',
+        destination: `${process.env.NEXT_PUBLIC_USUARIOS_API_URL}/api/get/all-users`,
       },
       {
-        source: '/auth/login',
-        destination: `${process.env.NEXT_PUBLIC_API_LOGIN_URL || 'http://localhost:3000/auth/login'}`,
-        // Proxy para la URL de login
+        source: '/api/users/specific',
+        destination: `${process.env.NEXT_PUBLIC_USUARIOS_API_URL}/api/specific/user`,
+      },
+      {
+        source: '/api/users/create',
+        destination: `${process.env.NEXT_PUBLIC_USUARIOS_API_URL}/api/save/information`,
+      },
+      {
+        source: '/api/users/update-status',
+        destination: `${process.env.NEXT_PUBLIC_USUARIOS_API_URL}/api/update/status`,
+      },
+      {
+        source: '/api/users/update-image',
+        destination: `${process.env.NEXT_PUBLIC_USUARIOS_API_URL}/api/update/image`,
+      },
+      {
+        source: '/api/users/update-information',
+        destination: `${process.env.NEXT_PUBLIC_USUARIOS_API_URL}/api/update/information`,
+      },
+      
+      // Proxy para almacén
+      {
+        source: '/api/productos',
+        destination: `${process.env.NEXT_PUBLIC_ALMACEN_API_URL}/api/get/products`,
+      },
+      {
+        source: '/api/productos/save',
+        destination: `${process.env.NEXT_PUBLIC_ALMACEN_API_URL}/api/save/product`,
+      },
+      {
+        source: '/api/productos/update',
+        destination: `${process.env.NEXT_PUBLIC_ALMACEN_API_URL}/api/update/product`,
+      },
+      {
+        source: '/api/productos/activos',
+        destination: `${process.env.NEXT_PUBLIC_ALMACEN_API_URL}/api/get/productos/activos`,
+      },
+      {
+        source: '/api/productos/activar',
+        destination: `${process.env.NEXT_PUBLIC_ALMACEN_API_URL}/api/save/active/producto`,
+      },
+      {
+        source: '/api/productos/entregar',
+        destination: `${process.env.NEXT_PUBLIC_ALMACEN_API_URL}/api/save/active/entrega/producto`,
       },
     ];
   },

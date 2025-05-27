@@ -15,16 +15,17 @@ export async function GET(request: Request) {
     }
     
     // URL del endpoint real
-    const usersUrl = process.env.NEXT_PUBLIC_API_ALL_USERS
+    const baseUrl = process.env.NEXT_PUBLIC_USUARIOS_API_URL
     
-    // console.log("URL del endpoint de usuarios:", usersUrl)
-    
-    if (!usersUrl) {
+    if (!baseUrl) {
       return NextResponse.json(
-        { error: "URL del API no configurada" },
+        { error: "URL del API de usuarios no configurada" },
         { status: 500 }
       )
     }
+    
+    const usersUrl = `${baseUrl}/api/get/all-users`
+    // console.log("URL del endpoint de usuarios:", usersUrl)
     
     // Realizar la solicitud al servidor real
     // console.log("Realizando solicitud al servidor externo...")

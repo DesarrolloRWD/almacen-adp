@@ -3,7 +3,16 @@ import { NextResponse } from 'next/server';
 export async function GET() {
   try {
     // URL de la API externa
-    const apiUrl = 'http://82.25.97.207:8080/almacen-adp/api/get/products';
+    const baseUrl = process.env.NEXT_PUBLIC_ALMACEN_API_URL;
+    
+    if (!baseUrl) {
+      return NextResponse.json(
+        { error: 'URL de API de almacén no configurada' },
+        { status: 500 }
+      );
+    }
+    
+    const apiUrl = `${baseUrl}/api/get/products`;
     
     // Realizar la solicitud a la API externa
     const response = await fetch(apiUrl, {
