@@ -37,7 +37,7 @@ const navItems: NavItem[] = [
     icon: <Layers className="h-5 w-5" />,
   },
   {
-    title: "Historial",
+    title: "Entregas",
     href: "/historial",
     icon: <History className="h-5 w-5" />,
   },

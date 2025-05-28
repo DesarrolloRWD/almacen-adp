@@ -54,6 +54,10 @@ const nextConfig = {
         destination: `${process.env.NEXT_PUBLIC_ALMACEN_API_URL}/api/get/specific/presentacion`,
       },
       {
+        source: '/api/get/presentation/by/codigo/lote',
+        destination: `${process.env.NEXT_PUBLIC_ALMACEN_API_URL}/api/get/presentation/by/codigo/lote`,
+      },
+      {
         source: '/api/productos',
         destination: `${process.env.NEXT_PUBLIC_ALMACEN_API_URL}/api/get/products`,
       },

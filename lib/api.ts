@@ -153,10 +153,31 @@ export async function getPresentaciones(): Promise<Presentacion[]> {
 export async function getPresentacionEspecifica(id: number): Promise<Presentacion | null> {
   try {
     // Usar POST en lugar de GET y enviar el ID en el cuerpo de la petición
-    return await authPost(API_ENDPOINTS.GET_PRESENTACION_ESPECIFICA, { id })
+    const response = await authPost(API_ENDPOINTS.GET_PRESENTACION_ESPECIFICA, { id })
+    return response
   } catch (error) {
     console.error("Error al obtener presentación específica:", error)
     return null
+  }
+}
+
+export async function getPresentacionByCodigoLote(codigo: string, lote: string): Promise<Presentacion[]> {
+  try {
+    // Formato exacto como se muestra en Swagger
+    const payload = {
+      "codigo": codigo,
+      "lote": lote
+    };
+    console.log('Enviando payload:', payload);
+    
+    // Usar authPost para mantener la consistencia con el resto del código
+    const response = await authPost(API_ENDPOINTS.GET_PRESENTACION_BY_CODIGO_LOTE, payload);
+    console.log('Respuesta recibida:', response);
+    
+    return Array.isArray(response) ? response : [];
+  } catch (error) {
+    console.error("Error al buscar presentaciones por código y lote:", error);
+    return [];
   }
 }
 
@@ -318,6 +339,9 @@ export const api = {
   getProductosActivos,
   saveProductoActivo,
   entregarProducto,
+  getPresentaciones,
+  getPresentacionEspecifica,
+  getPresentacionByCodigoLote,
   login,
   getAllUsers,
   createUser,
