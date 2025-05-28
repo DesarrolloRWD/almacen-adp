@@ -16,6 +16,7 @@ import {
   ChevronLeft,
   ChevronRight,
   ShieldAlert,
+  Layers,
 } from "lucide-react"
 
 interface NavItem {
@@ -31,9 +32,9 @@ const navItems: NavItem[] = [
     icon: <Stethoscope className="h-5 w-5" />,
   },
   {
-    title: "Gestión de Lotes",
-    href: "/cajas",
-    icon: <PackageOpen className="h-5 w-5" />,
+    title: "Presentaciones",
+    href: "/formatos",
+    icon: <Layers className="h-5 w-5" />,
   },
   {
     title: "Historial",

@@ -36,16 +36,19 @@ AlmacenNaval es una aplicación web desarrollada con Next.js para la gestión de
 
 ### Endpoints de Usuarios
 - `GET /api/users`: Obtener todos los usuarios.
-- `GET /api/users/specific`: Obtener información de un usuario específico.
+- `POST /api/users/specific`: Obtener información de un usuario específico.
+- `POST /api/users/create`: Crear un nuevo usuario.
 - `POST /api/users/update-status`: Actualizar el estado de un usuario.
 - `POST /api/users/update-image`: Actualizar la imagen de perfil de un usuario.
 - `POST /api/users/update-information`: Actualizar la información general de un usuario.
 
 ### Endpoints de Productos
-- `POST /api/save/information`: Registrar un nuevo producto.
-- `POST /api/save/active/producto`: Activar un lote de producto.
-- `GET /api/save/active/entrega/producto`: Registrar la entrega de un producto activo.
-- `POST /api/get/productos/activos`: Obtener la lista de productos activos.
+- `GET /api/productos`: Obtener todos los productos.
+- `POST /api/productos/save`: Registrar un nuevo producto.
+- `PUT /api/productos/update`: Actualizar un producto existente.
+- `GET /api/productos/activos`: Obtener la lista de productos activos.
+- `POST /api/productos/activar`: Activar un lote de producto.
+- `GET /api/productos/entregar`: Registrar la entrega de un producto activo.
 
 ## Flujo de Trabajo
 
@@ -69,19 +72,22 @@ AlmacenNaval es una aplicación web desarrollada con Next.js para la gestión de
 4. Una vez entregado todo el contenido, el producto se marca como completado.
 
 ## Configuración del Entorno
-El proyecto utiliza variables de entorno para la configuración:
+El proyecto utiliza un sistema simplificado de variables de entorno para la configuración:
 
 ```
-NEXT_PUBLIC_API_BASE_URL=http://82.25.97.207:8080/almacen
-NEXT_PUBLIC_API_LOGIN_URL=http://82.25.97.207:8080/usuarios-adp/api/login
-NEXT_PUBLIC_API_ALL_USERS=http://82.25.97.207:8080/usuarios-adp/api/get/users
-NEXT_PUBLIC_API_SPECIFIC_USER=http://82.25.97.207:8080/usuarios-adp/api/get/user
-NEXT_PUBLIC_API_UPDATE_STATUS=http://82.25.97.207:8080/usuarios-adp/api/update/status
-NEXT_PUBLIC_API_UPDATE_IMAGE=http://82.25.97.207:8080/usuarios-adp/api/update/image
-NEXT_PUBLIC_API_UPDATE_INFORMATION=http://82.25.97.207:8080/usuarios-adp/api/update/information
+# URLs base de los microservicios (sin trailing slash)
+NEXT_PUBLIC_AUTH_API_URL=http://82.25.97.207:8080/authz-adp
+NEXT_PUBLIC_USUARIOS_API_URL=http://82.25.97.207:8080/usuarios-adp
+NEXT_PUBLIC_ALMACEN_API_URL=http://82.25.97.207:8080/almacen-adp
 ```
 
 ## Soluciones Implementadas
+
+### Configuración Centralizada de API
+Se implementó un sistema centralizado para gestionar los endpoints de la API mediante:
+- Archivo `lib/config.ts` que define todas las rutas como constantes
+- Configuración de proxy en `next.config.mjs` que mapea rutas cortas a URLs completas
+- Variables de entorno simplificadas que solo definen las URLs base de cada microservicio
 
 ### Manejo de CORS
 Se implementó un proxy en Next.js para evitar problemas de CORS con la API externa, redirigiendo las solicitudes a través de endpoints locales.

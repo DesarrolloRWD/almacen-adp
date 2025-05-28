@@ -12,6 +12,21 @@ export interface Producto {
   movimientoArea: string
 }
 
+export interface Presentacion {
+  id: number
+  tipoPresentacion: string
+  descripcionPresentacion: string
+  cantidad: number
+  equivalenciaEnBase: number
+  totalEquivalenciaEnBase: number
+  lote: string
+  item: {
+    codigo: string
+    descripcion: string
+    id: number
+  }
+}
+
 export interface Caja {
   id: string
   codigo: string
@@ -126,6 +141,25 @@ export async function entregarProducto(producto: Producto): Promise<{ success: b
   }
 }
 
+export async function getPresentaciones(): Promise<Presentacion[]> {
+  try {
+    return await authGet(API_ENDPOINTS.GET_PRESENTACIONES)
+  } catch (error) {
+    console.error("Error al obtener presentaciones:", error)
+    return []
+  }
+}
+
+export async function getPresentacionEspecifica(id: number): Promise<Presentacion | null> {
+  try {
+    // Usar POST en lugar de GET y enviar el ID en el cuerpo de la petición
+    return await authPost(API_ENDPOINTS.GET_PRESENTACION_ESPECIFICA, { id })
+  } catch (error) {
+    console.error("Error al obtener presentación específica:", error)
+    return null
+  }
+}
+
 // Interfaz para la autenticación
 export interface LoginCredentials {
   usuario: string
@@ -156,7 +190,7 @@ export async function login(credentials: LoginCredentials): Promise<LoginRespons
     const data = await response.json()
     
     // Log para depuración
-    // console.log('Respuesta procesada en api.ts:', data)
+    // //console.log('Respuesta procesada en api.ts:', data)
     
     // Verificar si la respuesta contiene un token (con o sin espacio)
     const tokenValue = data && (data.token || data['token ']);

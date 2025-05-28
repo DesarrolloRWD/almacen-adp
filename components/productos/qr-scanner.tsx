@@ -38,7 +38,7 @@ export default function QrScanner({ onScanSuccess, onCancel }: QrScannerProps): 
   // Procesar el contenido del QR
   const processQrData = (data: string) => {
     try {
-      console.log("Contenido QR original:", data);
+      //console.log("Contenido QR original:", data);
       setError(null); // Limpiar errores previos
       setProcessedData(null); // Limpiar datos procesados previos
       
@@ -50,12 +50,12 @@ export default function QrScanner({ onScanSuccess, onCancel }: QrScannerProps): 
         // Verificar si el contenido parece ser JSON (comienza con { y termina con })
         if (cleanData.startsWith('{') && cleanData.endsWith('}')) {
           const jsonData = JSON.parse(cleanData);
-          console.log("Datos procesados como JSON válido:", jsonData);
+          //console.log("Datos procesados como JSON válido:", jsonData);
           setProcessedData(jsonData);
           return;
         }
       } catch (jsonError) {
-        console.log("No es un JSON válido, intentando otros formatos...");
+        //console.log("No es un JSON válido, intentando otros formatos...");
       }
       
       // Si no es JSON, intentar procesar como el formato distorsionado
@@ -66,7 +66,7 @@ export default function QrScanner({ onScanSuccess, onCancel }: QrScannerProps): 
       // Método 1: Intentar dividir por comas (formato distorsionado)
       if (cleanData.includes(',')) {
         const parts = cleanData.split(',').map(part => part.trim()).filter(part => part);
-        console.log("Partes separadas por coma:", parts);
+        //console.log("Partes separadas por coma:", parts);
         
         // Procesar cada parte
         for (const part of parts) {
@@ -144,11 +144,11 @@ export default function QrScanner({ onScanSuccess, onCancel }: QrScannerProps): 
       if (Object.keys(jsonData).length === 0) {
         // Último intento: mostrar el contenido original y pedir al usuario que lo verifique
         setError("No se pudo extraer información del código QR automáticamente. Por favor verifica el formato o intenta copiar y pegar nuevamente.");
-        console.log("No se pudo procesar el contenido del QR en ningún formato conocido");
+        //console.log("No se pudo procesar el contenido del QR en ningún formato conocido");
         return;
       }
       
-      console.log("Datos procesados del QR:", jsonData);
+      //console.log("Datos procesados del QR:", jsonData);
       setProcessedData(jsonData);
     } catch (err) {
       console.error("Error al procesar el QR:", err);

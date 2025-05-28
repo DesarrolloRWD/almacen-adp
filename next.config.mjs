@@ -46,6 +46,14 @@ const nextConfig = {
       
       // Proxy para almacén
       {
+        source: '/api/productos/presentaciones',
+        destination: `${process.env.NEXT_PUBLIC_ALMACEN_API_URL}/api/get/all/presentaciones`,
+      },
+      {
+        source: '/api/productos/presentacion/especifica',
+        destination: `${process.env.NEXT_PUBLIC_ALMACEN_API_URL}/api/get/specific/presentacion`,
+      },
+      {
         source: '/api/productos',
         destination: `${process.env.NEXT_PUBLIC_ALMACEN_API_URL}/api/get/products`,
       },

@@ -176,7 +176,7 @@ export function RecentActivity() {
         console.error('Error al obtener movimientos:', err)
         setError(`No se pudieron cargar los datos de actividad reciente: ${err instanceof Error ? err.message : 'Error desconocido'}`)
         // Usar datos de respaldo en caso de error
-        // console.log('Usando datos de respaldo para movimientos')
+        // //console.log('Usando datos de respaldo para movimientos')
         setActivityData(fallbackData as any)
       } finally {
         setLoading(false)

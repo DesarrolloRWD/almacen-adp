@@ -7,7 +7,7 @@ export const runtime = 'nodejs' // Usar Node.js runtime
 // Método POST para actualizar el estado del usuario
 export async function POST(request: NextRequest) {
   try {
-    // console.log('Recibida solicitud POST para actualizar estado')
+    // //console.log('Recibida solicitud POST para actualizar estado')
     const body = await request.json()
     const token = request.cookies.get('token')?.value
 
@@ -30,8 +30,8 @@ export async function POST(request: NextRequest) {
     
     const apiUrl = `${baseUrl}/api/update/status`
 
-    // console.log('Enviando solicitud a:', apiUrl)
-    // console.log('Datos:', body)
+    // //console.log('Enviando solicitud a:', apiUrl)
+    // //console.log('Datos:', body)
 
     // Realizar la solicitud al endpoint externo
     const response = await fetch(apiUrl, {
@@ -44,7 +44,7 @@ export async function POST(request: NextRequest) {
     })
 
     const data = await response.json()
-    // console.log('Respuesta recibida:', data)
+    // //console.log('Respuesta recibida:', data)
 
     // Devolver la respuesta del servidor externo
     return NextResponse.json(data, { status: response.status })

@@ -93,7 +93,7 @@ export default function ProductosTable() {
         throw new Error('Formato de datos inesperado')
       }
       
-      console.log('Datos recibidos:', data.length, 'productos')
+      //console.log('Datos recibidos:', data.length, 'productos')
       
       // Procesar los datos para agregar el estado basado en la fecha de expiración
       const productosConEstado = data.map((producto: ProductoAPI) => {
@@ -141,7 +141,7 @@ export default function ProductosTable() {
   const handleEditarProducto = (productoAPI: ProductoAPI) => {
     // Pasar directamente el producto de la API al diálogo de edición
     // ya que ahora el formulario espera la misma estructura que la API
-    console.log('Editando producto:', productoAPI)
+    //console.log('Editando producto:', productoAPI)
     setProductoSeleccionado(productoAPI as unknown as Producto)
     setEditarDialogOpen(true)
   }
@@ -150,7 +150,7 @@ export default function ProductosTable() {
   const handleActivarProducto = (productoAPI: ProductoAPI) => {
     // Pasar directamente el producto de la API al diálogo de activación
     // ya que ahora el formulario espera la misma estructura que la API
-    console.log('Activando producto:', productoAPI)
+    //console.log('Activando producto:', productoAPI)
     setProductoSeleccionado(productoAPI as unknown as Producto)
     setActivarDialogOpen(true)
   }

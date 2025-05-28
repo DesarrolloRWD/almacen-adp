@@ -154,9 +154,9 @@ export function EditarProductoForm({ producto, onSuccess, onCancel }: EditarProd
         }
       }
 
-      // console.log('Actualizando insumo con datos:', formattedValues)
+      // //console.log('Actualizando insumo con datos:', formattedValues)
 
-      console.log('Enviando datos:', JSON.stringify(formattedValues, null, 2))
+      //console.log('Enviando datos:', JSON.stringify(formattedValues, null, 2))
       
       // Usar el proxy local para evitar problemas de CORS
       const response = await fetch(`/api/update/producto`, {

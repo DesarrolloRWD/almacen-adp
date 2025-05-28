@@ -57,7 +57,7 @@ export async function POST(request: Request) {
     
     // Obtener los datos de la respuesta
     const data = await response.json()
-    // console.log("Datos del usuario obtenidos correctamente")
+    // //console.log("Datos del usuario obtenidos correctamente")
     
     // Devolver los datos al cliente
     return NextResponse.json(data)

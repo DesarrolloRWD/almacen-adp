@@ -27,6 +27,8 @@ export const ALMACEN_ENDPOINTS = {
   GET_PRODUCTOS_ACTIVOS: '/api/productos/activos',
   ACTIVAR_PRODUCTO: '/api/productos/activar',
   ENTREGAR_PRODUCTO: '/api/productos/entregar',
+  GET_PRESENTACIONES: '/api/productos/presentaciones',
+  GET_PRESENTACION_ESPECIFICA: '/api/productos/presentacion/especifica',
 };
 
 // Exportar todos los endpoints como un objeto
