@@ -139,19 +139,19 @@ export default function RegistrarProductoForm() {
                 }
               }
             } catch (e) {
-              console.log('No se pudo decodificar el token JWT');
+              // Error al decodificar el token JWT
             }
           }
           
           // Si encontramos el usuario, usar solo su nombre de usuario (usuario)
           if (usuarioActual) {
             setNombreUsuario(usuarioActual.usuario);
-            console.log('Usuario actual encontrado:', usuarioActual.usuario);
+            // Usuario actual encontrado
           } else {
             // Si no encontramos el usuario, usar el primer usuario de la lista como fallback
             const primerUsuario = usuarios[0];
             setNombreUsuario(primerUsuario.usuario);
-            console.log('Usando primer usuario como fallback:', primerUsuario.usuario);
+            // Usando primer usuario como fallback
           }
         }
       } catch (error) {

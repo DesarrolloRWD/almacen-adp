@@ -91,8 +91,8 @@ export function PresentacionesTable() {
     setPresentacionesFiltradas(filtradas)
   }, [busqueda, tipoSeleccionado, presentaciones])
 
-  // Obtener tipos únicos para el filtro
-  const tiposUnicos = ['todos', ...new Set(presentaciones.map(p => p.tipoPresentacion || '').filter(Boolean))]
+  // Tipos predefinidos para el filtro
+  const tiposPredefinidos = ['todos', 'PIEZA', 'CAJA', 'KIT']
   
   // Función para agregar una presentación al carrito
   const agregarPresentacion = async (id: number) => {
@@ -390,7 +390,7 @@ export function PresentacionesTable() {
             <SelectValue placeholder="Todos los tipos" />
           </SelectTrigger>
           <SelectContent>
-            {tiposUnicos.map(tipo => (
+            {tiposPredefinidos.map(tipo => (
               <SelectItem key={tipo} value={tipo}>
                 {tipo === 'todos' ? 'Todos los tipos' : tipo}
               </SelectItem>
@@ -399,123 +399,7 @@ export function PresentacionesTable() {
         </Select>
         
 
-        <Sheet>
-          <SheetTrigger asChild>
-            <Button className="bg-naval-600 hover:bg-naval-700 relative">
-              <ShoppingCart className="h-4 w-4 mr-2" />
-              Carrito
-              {presentacionesSeleccionadas.length > 0 && (
-                <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">
-                  {presentacionesSeleccionadas.length}
-                </span>
-              )}
-            </Button>
-          </SheetTrigger>
-          <SheetContent className="w-[400px] sm:w-[540px] border-l border-naval-200 flex flex-col">
-            <SheetHeader>
-              <SheetTitle className="text-naval-800 flex items-center">
-                <ShoppingCart className="mr-2 h-5 w-5 text-naval-600" />
-                Presentaciones Seleccionadas
-              </SheetTitle>
-              <SheetDescription>
-                Seleccione las presentaciones para generar una salida
-              </SheetDescription>
-            </SheetHeader>
-            
-            <div className="flex-grow flex flex-col min-h-0">
-              {presentacionesSeleccionadas.length > 0 && (
-                <div className="flex justify-between items-center mt-4 mb-2 px-1">
-                  <div className="text-sm font-medium text-naval-700">{presentacionesSeleccionadas.length} {presentacionesSeleccionadas.length === 1 ? 'elemento' : 'elementos'}</div>
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    className="text-red-500 hover:text-red-700 hover:bg-red-50 text-xs h-8"
-                    onClick={() => setPresentacionesSeleccionadas([])}
-                  >
-                    Limpiar todo
-                  </Button>
-                </div>
-              )}
-              
-              <div className="border-t border-naval-100 my-2"></div>
-              
-              <ScrollArea className="flex-grow overflow-auto">
-                {presentacionesSeleccionadas.length === 0 ? (
-                  <div className="py-12 text-center text-naval-500 flex flex-col items-center">
-                    <ShoppingCart className="h-12 w-12 text-naval-200 mb-4" />
-                    <p className="font-medium">No hay presentaciones seleccionadas</p>
-                    <p className="mt-2 text-sm max-w-xs">Haga clic en el botón "+" en la tabla para agregar presentaciones al carrito.</p>
-                  </div>
-                ) : (
-                  <div className="space-y-3 px-1">
-                    {presentacionesSeleccionadas.map((presentacion) => (
-                      <div key={presentacion.id} className="flex items-center justify-between p-3 border border-naval-200 rounded-md hover:bg-naval-50 transition-colors">
-                        <div className="flex-1 min-w-0">
-                          <div className="font-medium text-naval-800 truncate">{presentacion.item?.codigo} - {presentacion.tipoPresentacion}</div>
-                          <div className="text-sm text-naval-500 truncate">{presentacion.descripcionPresentacion}</div>
-                          <div className="flex items-center mt-1 flex-wrap gap-2">
-                            <Badge variant="outline" className="bg-naval-50 text-naval-700 border-naval-200">
-                              {presentacion.lote}
-                            </Badge>
-                            <span className="text-sm text-naval-600">
-                              {presentacion.cantidad?.toLocaleString() || '0'} unidades
-                            </span>
-                            <span className="text-xs text-naval-400">
-                              Equiv: {presentacion.equivalenciaEnBase?.toLocaleString() || '0'}
-                            </span>
-                          </div>
-                        </div>
-                        <Button 
-                          variant="ghost" 
-                          size="icon" 
-                          className="ml-2 text-red-500 hover:text-red-700 hover:bg-red-50 h-8 w-8 flex-shrink-0"
-                          onClick={() => eliminarPresentacion(presentacion.id)}
-                        >
-                          <Trash className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </ScrollArea>
-            </div>
-            
-            <div className="mt-auto pt-4 border-t border-naval-100">
-              <div className="flex justify-between text-sm font-medium text-naval-700 mb-2">
-                <span>Total de presentaciones:</span>
-                <span>{presentacionesSeleccionadas.length}</span>
-              </div>
-              
-              <div className="flex justify-between text-sm font-medium text-naval-700 mb-4">
-                <span>Total de unidades:</span>
-                <span>{presentacionesSeleccionadas.reduce((total, p) => total + (p.cantidad || 0), 0).toLocaleString()}</span>
-              </div>
-              
-              <SheetFooter>
-                <SheetClose asChild>
-                  <Button variant="outline" className="border-naval-200 text-naval-700">
-                    <X className="h-4 w-4 mr-2" />
-                    Cerrar
-                  </Button>
-                </SheetClose>
-                <Button 
-                  className="bg-naval-600 hover:bg-naval-700"
-                  onClick={generarSalida}
-                  disabled={presentacionesSeleccionadas.length === 0 || generando}
-                >
-                  {generando ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Procesando...
-                    </>
-                  ) : (
-                    "Generar Salida"
-                  )}
-                </Button>
-              </SheetFooter>
-            </div>
-          </SheetContent>
-        </Sheet>
+        {/* Botón de carrito eliminado */}
       </div>
 
       {error && (
@@ -545,7 +429,6 @@ export function PresentacionesTable() {
                   <TableHead className="text-naval-700">Cantidad</TableHead>
                   <TableHead className="text-naval-700">Equivalencia</TableHead>
                   <TableHead className="text-naval-700">Total</TableHead>
-                  <TableHead className="text-naval-700 text-center">+</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -568,26 +451,6 @@ export function PresentacionesTable() {
                       <TableCell>{presentacion.cantidad?.toLocaleString() || '0'}</TableCell>
                       <TableCell>{presentacion.equivalenciaEnBase?.toLocaleString() || '0'}</TableCell>
                       <TableCell>{presentacion.totalEquivalenciaEnBase?.toLocaleString() || '0'}</TableCell>
-                      <TableCell>
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button 
-                                variant="ghost" 
-                                size="icon" 
-                                className="h-8 w-8 bg-naval-600 text-white hover:bg-naval-700 rounded-full"
-                                onClick={() => agregarPresentacion(presentacion.id)}
-                                disabled={loadingPresentacion || presentacionesSeleccionadas.some(p => p.id === presentacion.id)}
-                              >
-                                <Plus className="h-4 w-4" />
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p>Agregar al carrito</p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
-                      </TableCell>
                     </TableRow>
                   ))
                 )}

@@ -1,21 +1,27 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
-import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Search, Plus, X, Trash2, Loader2, Minus, FileText } from "lucide-react"
+import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Search, Plus, X, Trash2, Loader2, Minus, FileText, PackageCheck, MoreVertical, MessageSquare } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { format } from "date-fns"
 import { api } from "@/lib/api"
-import { Presentacion } from "@/lib/api"
+import { Presentacion, getAllUsers } from "@/lib/api"
 import jsPDF from "jspdf"
 import autoTable from "jspdf-autotable"
 import { generateEntrega, EntregaData } from "@/lib/api"
 import { toast } from "sonner"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 
 // Array vacío para resultados de búsqueda
 const resultadosBusquedaData: ResultadoBusqueda[] = [];
@@ -64,6 +70,7 @@ interface Entrega {
   lote: string;
   area: string;
   usuario: Usuario;
+  comentario?: string; // Comentario específico para esta presentación
 }
 
 // Función para convertir una Presentación de la API a nuestro formato ResultadoBusqueda
@@ -114,6 +121,71 @@ export default function HistorialMovimientos() {
   const [entregadoPor, setEntregadoPor] = useState("");
   const [areaDestino, setAreaDestino] = useState("");
   const [responsableArea, setResponsableArea] = useState("");
+  
+  // Estado para el modal de comentarios específicos
+  const [modalComentarioAbierto, setModalComentarioAbierto] = useState(false);
+  const [comentarioActual, setComentarioActual] = useState("");
+  const [entregaSeleccionadaId, setEntregaSeleccionadaId] = useState<number | null>(null);
+  
+  // Estado para el nombre de usuario
+  const [nombreUsuario, setNombreUsuario] = useState("");
+  const [isLoadingUsers, setIsLoadingUsers] = useState(false);
+  
+  // Obtener el nombre de usuario al cargar el componente
+  useEffect(() => {
+    const obtenerUsuarioActual = async () => {
+      setIsLoadingUsers(true);
+      try {
+        // Obtener la lista de usuarios
+        const usuarios = await getAllUsers();
+        
+        // Buscar el usuario actual
+        let usuarioActual = null;
+        
+        // Intentar obtener el usuario desde localStorage
+        const token = localStorage.getItem('token');
+        
+        if (token) {
+          try {
+            // Decodificar el token JWT para obtener el nombre de usuario
+            const base64Url = token.split('.')[1];
+            if (base64Url) {
+              const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+              const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+                return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+              }).join(''));
+              
+              const payload = JSON.parse(jsonPayload);
+              const username = payload.sub || payload.usuario;
+              
+              if (username) {
+                usuarioActual = usuarios.find(u => u.usuario === username);
+              }
+            }
+          } catch (e) {
+            // Error al decodificar el token JWT
+          }
+        }
+        
+        // Si encontramos el usuario, usar solo su nombre de usuario (usuario)
+        if (usuarioActual) {
+          setNombreUsuario(usuarioActual.usuario);
+          setEntregadoPor(usuarioActual.usuario); // Establecer automáticamente el valor
+        } else if (usuarios.length > 0) {
+          // Si no encontramos el usuario, usar el primer usuario de la lista como fallback
+          const primerUsuario = usuarios[0];
+          setNombreUsuario(primerUsuario.usuario);
+          setEntregadoPor(primerUsuario.usuario); // Establecer automáticamente el valor
+        }
+      } catch (error) {
+        console.error('Error al obtener usuarios:', error);
+      } finally {
+        setIsLoadingUsers(false);
+      }
+    };
+    
+    obtenerUsuarioActual();
+  }, []);
   
   // Función para buscar productos por código y lote
   const buscarProductos = async () => {
@@ -284,6 +356,41 @@ export default function HistorialMovimientos() {
     // No llamamos a setModalAbierto(false);
   };
   
+  // Función para abrir el modal de comentarios
+  const abrirModalComentario = (id: number) => {
+    const entrega = entregas.find(e => e.id === id);
+    if (entrega) {
+      setEntregaSeleccionadaId(id);
+      setComentarioActual(entrega.comentario || "");
+      setModalComentarioAbierto(true);
+    }
+  };
+  
+  // Función para guardar el comentario de una entrega específica
+  const guardarComentario = () => {
+    if (entregaSeleccionadaId === null) return;
+    
+    const entregasActualizadas = entregas.map(entrega => {
+      if (entrega.id === entregaSeleccionadaId) {
+        return {
+          ...entrega,
+          comentario: comentarioActual
+        };
+      }
+      return entrega;
+    });
+    
+    setEntregas(entregasActualizadas);
+    setModalComentarioAbierto(false);
+    setEntregaSeleccionadaId(null);
+    
+    // Mostrar notificación de éxito
+    toast.success("Comentario guardado", {
+      description: "El comentario se ha guardado correctamente",
+      duration: 3000
+    });
+  };
+  
   // Función para eliminar una entrega
   const eliminarEntrega = (id: number) => {
     // Encontrar la entrega que se va a eliminar
@@ -355,16 +462,19 @@ export default function HistorialMovimientos() {
       setModalObservacionesAbierto(false);
       
       // Preparar los datos para el endpoint de entregas
+      // IMPORTANTE: Los comentarios específicos de cada presentación (entrega.comentario) 
+      // no se envían al microservicio, solo se usan para el PDF
       const datosEntrega: EntregaData = {
         entregadoPor: entregadoPor,
         areaDestino: areaDestino,
         responsableArea: responsableArea,
-        observaciones: observaciones,
+        observaciones: observaciones, // Observaciones generales para toda la entrega
         detalles: entregas.map(entrega => ({
           id: entrega.id,
           cantidadEntregada: entrega.totalSeleccionado || entrega.cantidad,
-          observaciones: observaciones, // Usar las mismas observaciones en cada detalle
+          observaciones: observaciones, // Solo las observaciones generales, no los comentarios específicos
           nombreProducto: entrega.producto.descripcion
+          // No incluimos entrega.comentario aquí, ya que es solo para el PDF
         }))
       };
       
@@ -513,15 +623,23 @@ export default function HistorialMovimientos() {
     const tableHeight = Math.max(30, 8 + entregas.length * 8);
     doc.roundedRect(10, startTableY, pageWidth - 20, tableHeight, 2, 2, 'F');
     
-    // Crear tabla con los datos (sin columnas de cantidad y equivalencia)
+    // Crear tabla con los datos sin columna de comentarios
     const tableColumn = ["Código", "Descripción", "Tipo", "Presentación", "Total"];
-    const tableRows = entregas.map(entrega => [
-      entrega.producto.codigo || "",
-      (entrega.producto.descripcion || "").split(' - ')[0],
-      entrega.producto.tipoPresentacion || "",
-      entrega.producto.descripcionPresentacion || "",
-      (entrega.totalSeleccionado || 0).toString()
-    ]);
+    const tableRows = entregas.map(entrega => {
+      // Preparar la descripción con el comentario debajo si existe
+      const descripcionBase = (entrega.producto.descripcion || "").split(' - ')[0];
+      const descripcionConComentario = entrega.comentario 
+        ? `${descripcionBase}\n\nObservaciones: ${entrega.comentario}` 
+        : descripcionBase;
+      
+      return [
+        entrega.producto.codigo || "",
+        descripcionConComentario,
+        entrega.producto.tipoPresentacion || "",
+        entrega.producto.descripcionPresentacion || "",
+        (entrega.totalSeleccionado || 0).toString()
+      ];
+    });
     
     // Agregar la tabla al PDF con estilo mejorado - ajustado para formato horizontal
     autoTable(doc, {
@@ -551,7 +669,29 @@ export default function HistorialMovimientos() {
         3: { halign: 'center', cellWidth: 50 }, // Presentación
         4: { halign: 'center', cellWidth: 25 }  // Total
       },
-      alternateRowStyles: { fillColor: [240, 245, 255] }
+      alternateRowStyles: { fillColor: [240, 245, 255] },
+      // Configuración para dar formato especial a los comentarios
+      didParseCell: function(data) {
+        // Si estamos en la columna de descripción y hay un salto de línea (comentario)
+        if (data.column.index === 1 && data.cell.text.toString().includes('\n')) {
+          // Dividir el texto en descripción y comentario
+          const textoCompleto = data.cell.text.toString();
+          const partes = textoCompleto.split('\n');
+          
+          // Crear un array con la descripción y el comentario con estilos diferentes
+          data.cell.text = [
+            partes[0], // Descripción normal
+            partes[1] // Comentario
+          ];
+          
+          // Aplicar estilos al comentario
+          if (data.cell.styles) {
+            data.cell.styles.fontStyle = 'bold';
+            data.cell.styles.fontSize = 6; // Letra pequeña (6pt)
+            data.cell.styles.textColor = [0, 0, 0]; // Color negro para el comentario
+          }
+        }
+      }
     });
     
     // Calcular la posición Y final de la tabla
@@ -637,82 +777,98 @@ export default function HistorialMovimientos() {
   return (
     <div className="space-y-4">
       {/* Formulario de búsqueda */}
-      <div className="flex flex-col gap-4 md:flex-row">
-        <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label htmlFor="codigo">Código</Label>
-            <Input
-              id="codigo"
-              placeholder="Ingrese código del producto"
-              className="border-naval-200 focus-visible:ring-naval-500"
-              value={codigo}
-              onChange={(e) => setCodigo(e.target.value)}
-            />
+      <div className="bg-white rounded-xl border border-naval-100 shadow-sm overflow-hidden">
+        <div className="p-4 pt-5">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+            <div className="space-y-2">
+              <Label htmlFor="codigo" className="text-naval-700 font-medium">Código del Producto</Label>
+              <div className="relative">
+                <Input
+                  id="codigo"
+                  placeholder="Ej. PR001"
+                  className="border-naval-200 focus-visible:ring-naval-500 pl-9"
+                  value={codigo}
+                  onChange={(e) => setCodigo(e.target.value)}
+                />
+                <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                  <FileText className="h-4 w-4 text-naval-400" />
+                </div>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="lote" className="text-naval-700 font-medium">Número de Lote</Label>
+              <div className="relative">
+                <Input
+                  id="lote"
+                  placeholder="Ej. LOT20230527"
+                  className="border-naval-200 focus-visible:ring-naval-500 pl-9"
+                  value={lote}
+                  onChange={(e) => setLote(e.target.value)}
+                />
+                <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                  <PackageCheck className="h-4 w-4 text-naval-400" />
+                </div>
+              </div>
+            </div>
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="lote">Lote</Label>
-            <Input
-              id="lote"
-              placeholder="Ingrese número de lote"
-              className="border-naval-200 focus-visible:ring-naval-500"
-              value={lote}
-              onChange={(e) => setLote(e.target.value)}
-            />
-          </div>
-        </div>
-        <div className="flex items-end">
-          <Button 
-            onClick={buscarProductos}
-            className="bg-naval-600 hover:bg-naval-700 text-white"
-            disabled={cargando}
-          >
-            {cargando ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Buscando...
-              </>
-            ) : (
-              <>
-                <Search className="mr-2 h-4 w-4" />
-                Buscar
-              </>
+          
+          <div className="flex flex-wrap gap-3 justify-between items-center border-t border-naval-100 pt-4">
+            <Button 
+              onClick={buscarProductos}
+              className="bg-naval-600 hover:bg-naval-700 text-white shadow-sm"
+              disabled={cargando}
+            >
+              {cargando ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Buscando...
+                </>
+              ) : (
+                <>
+                  <Search className="mr-2 h-4 w-4" />
+                  Buscar Productos
+                </>
+              )}
+            </Button>
+            
+            {entregas.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                <Button 
+                  variant="outline" 
+                  onClick={limpiarEntregas}
+                  className="border-naval-200 text-naval-700 hover:bg-naval-50 hover:text-naval-800"
+                  size="sm"
+                >
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Limpiar Lista
+                </Button>
+                <Button 
+                  onClick={generarPDFSalida}
+                  className="bg-green-600 hover:bg-green-700 text-white shadow-sm"
+                  size="sm"
+                >
+                  <FileText className="mr-2 h-4 w-4" />
+                  Generar Salida
+                </Button>
+              </div>
             )}
-          </Button>
-        </div>
-        {entregas.length > 0 && (
-          <div className="flex items-end gap-2">
-            <Button 
-              variant="outline" 
-              onClick={limpiarEntregas}
-              className="border-naval-200 text-naval-700 hover:bg-naval-50 hover:text-naval-800"
-            >
-              <Trash2 className="mr-2 h-4 w-4" />
-              Limpiar todo
-            </Button>
-            <Button 
-              onClick={generarPDFSalida}
-              className="bg-green-600 hover:bg-green-700 text-white"
-            >
-              <FileText className="mr-2 h-4 w-4" />
-              Crear Salida
-            </Button>
           </div>
-        )}
+        </div>
       </div>
 
       {/* Tabla de entregas */}
       <div className="rounded-md border border-naval-200">
-        <Table>
+        <Table className="w-full">
           <TableHeader className="bg-naval-50">
             <TableRow>
-              <TableHead className="text-naval-700 w-[120px]">Código</TableHead>
-              <TableHead className="text-naval-700">Descripción</TableHead>
-              <TableHead className="text-naval-700 w-[100px]">Tipo</TableHead>
-              <TableHead className="text-naval-700 w-[120px]">Presentación</TableHead>
-              <TableHead className="text-naval-700 w-[80px] text-center">Cantidad</TableHead>
-              <TableHead className="text-naval-700 w-[80px] text-center">Equiv.</TableHead>
-              <TableHead className="text-naval-700 w-[80px] text-center">Total</TableHead>
-              <TableHead className="text-naval-700 w-[50px]">Acción</TableHead>
+              <TableHead className="text-naval-700 w-[90px] py-2">Código</TableHead>
+              <TableHead className="text-naval-700 py-2">Descripción</TableHead>
+              <TableHead className="text-naval-700 w-[80px] py-2">Tipo</TableHead>
+              <TableHead className="text-naval-700 w-[100px] py-2">Presentación</TableHead>
+              <TableHead className="text-naval-700 w-[70px] text-center py-2">Cantidad</TableHead>
+              <TableHead className="text-naval-700 w-[60px] text-center py-2">Equiv.</TableHead>
+              <TableHead className="text-naval-700 w-[60px] text-center py-2">Total</TableHead>
+              <TableHead className="text-naval-700 w-[50px] py-2">Acción</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -725,41 +881,74 @@ export default function HistorialMovimientos() {
             ) : (
               entregas.map((entrega) => (
                 <TableRow key={entrega.id} className="hover:bg-naval-50">
-                  <TableCell>
+                  <TableCell className="py-2">
                     <div className="font-medium text-naval-700">{entrega.producto.codigo}</div>
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="py-2">
                     <div className="font-medium text-naval-700">{entrega.producto.descripcion.split(' - ')[0]}</div>
                   </TableCell>
-                  <TableCell>
-                    <Badge className="bg-blue-50 text-blue-700 border-blue-100">
+                  <TableCell className="py-2">
+                    <Badge className="bg-blue-50 text-blue-700 border-blue-100 text-xs py-1">
                       {entrega.producto.tipoPresentacion}
                     </Badge>
                   </TableCell>
-                  <TableCell>
-                    <Badge className="bg-green-50 text-green-700 border-green-100">
+                  <TableCell className="py-2">
+                    <Badge className="bg-green-50 text-green-700 border-green-100 text-xs py-1">
                       {entrega.producto.descripcionPresentacion}
                     </Badge>
                   </TableCell>
-                  <TableCell className="text-center">
+                  <TableCell className="text-center py-2">
                     <div className="font-medium text-naval-700">{entrega.cantidad}</div>
                   </TableCell>
-                  <TableCell className="text-center">
+                  <TableCell className="text-center py-2">
                     <div className="font-medium text-green-700">{entrega.producto.catalogo}</div>
                   </TableCell>
-                  <TableCell className="text-center">
+                  <TableCell className="text-center py-2">
                     <div className="font-medium text-blue-700">{entrega.totalSeleccionado}</div>
                   </TableCell>
-                  <TableCell>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => eliminarEntrega(entrega.id)}
-                      className="text-red-500 hover:text-red-700 hover:bg-red-50"
-                    >
-                      <X className="h-4 w-4" />
-                      <span className="sr-only">Eliminar</span>
-                    </Button>
+                  <TableCell className="py-2 relative">
+                    <div className="flex flex-col items-center">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="text-naval-500 hover:text-naval-700 hover:bg-naval-50 h-7 w-7 p-0"
+                          >
+                            <MoreVertical className="h-4 w-4" />
+                            <span className="sr-only">Opciones</span>
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-[160px]">
+                          <DropdownMenuItem
+                            onClick={() => abrirModalComentario(entrega.id)}
+                            className="text-blue-600 hover:text-blue-800 hover:bg-blue-50 cursor-pointer"
+                          >
+                            <MessageSquare className="h-4 w-4 mr-2" />
+                            {entrega.comentario ? "Editar comentario" : "Agregar comentario"}
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() => eliminarEntrega(entrega.id)}
+                            className="text-red-600 hover:text-red-800 hover:bg-red-50 cursor-pointer"
+                          >
+                            <Trash2 className="h-4 w-4 mr-2" />
+                            Eliminar
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                      
+                      {entrega.comentario && (
+                        <div className="mt-1">
+                          <Badge 
+                            variant="outline" 
+                            className="bg-blue-50 text-blue-700 border-blue-200 text-[10px] py-0 px-1 whitespace-nowrap"
+                          >
+                            <MessageSquare className="h-2.5 w-2.5 mr-0.5" />
+                            Con comentario
+                          </Badge>
+                        </div>
+                      )}
+                    </div>
                   </TableCell>
                 </TableRow>
               ))
@@ -768,57 +957,23 @@ export default function HistorialMovimientos() {
         </Table>
       </div>
 
-      {/* Información de paginación */}
-      <div className="flex items-center justify-between">
-        <div className="text-sm text-muted-foreground">
-          Mostrando <strong>{entregas.length}</strong> entregas
-        </div>
-        <div className="flex items-center space-x-2">
-          <Button
-            variant="outline"
-            size="icon"
-            className="border-naval-200 text-naval-700 hover:bg-naval-50 hover:text-naval-800"
-            disabled
-          >
-            <ChevronsLeft className="h-4 w-4" />
-            <span className="sr-only">Primera página</span>
-          </Button>
-          <Button
-            variant="outline"
-            size="icon"
-            className="border-naval-200 text-naval-700 hover:bg-naval-50 hover:text-naval-800"
-            disabled
-          >
-            <ChevronLeft className="h-4 w-4" />
-            <span className="sr-only">Página anterior</span>
-          </Button>
-          <Button variant="outline" size="sm" className="px-4 border-naval-200 text-naval-700">
-            Página 1 de 1
-          </Button>
-          <Button
-            variant="outline"
-            size="icon"
-            className="border-naval-200 text-naval-700 hover:bg-naval-50 hover:text-naval-800"
-            disabled
-          >
-            <ChevronRight className="h-4 w-4" />
-            <span className="sr-only">Página siguiente</span>
-          </Button>
-          <Button
-            variant="outline"
-            size="icon"
-            className="border-naval-200 text-naval-700 hover:bg-naval-50 hover:text-naval-800"
-            disabled
-          >
-            <ChevronsRight className="h-4 w-4" />
-            <span className="sr-only">Última página</span>
-          </Button>
+      {/* Resumen de entregas */}
+      <div className="mt-3 bg-naval-50 rounded-lg p-3 border border-naval-100 shadow-sm">
+        <div className="flex items-center">
+          <FileText className="h-4 w-4 mr-2 text-naval-600" />
+          <div className="text-sm font-medium text-naval-700 flex items-center">
+            <span>Resumen:</span>
+            <div className="flex items-center ml-3">
+              <strong className="text-lg text-naval-800 mr-2">{entregas.length}</strong>
+              <span>{entregas.length === 1 ? 'entrega registrada' : 'entregas registradas'}</span>
+            </div>
+          </div>
         </div>
       </div>
 
       {/* Modal de resultados de búsqueda */}
       <Dialog open={modalAbierto} onOpenChange={setModalAbierto}>
-        <DialogContent className="sm:max-w-[750px] p-0 overflow-hidden bg-white rounded-xl shadow-xl">
+        <DialogContent className="sm:max-w-[900px] p-0 overflow-hidden bg-white rounded-xl shadow-xl">
           {/* Encabezado del modal */}
           <div className="bg-gradient-to-r from-naval-50 to-blue-50 p-5 border-b border-naval-100">
             <DialogHeader>
@@ -868,140 +1023,129 @@ export default function HistorialMovimientos() {
                   )}
                 </div>
               ) : (
-                <div className="grid grid-cols-1 gap-2">
-                  {/* Tarjetas de resultados compactas */}
-                  {resultadosBusqueda.map((resultado) => (
-                    <div 
-                      key={resultado.id} 
-                      className="bg-white border border-gray-100 rounded-lg overflow-hidden hover:shadow-md transition-all duration-200"
-                    >
-                      <div className="p-3 flex items-center">
-                        {/* ID oculto */}
-                        <input type="hidden" value={resultado.id} />
-                        
-                        {/* Información del producto */}
-                        <div className="min-w-0 flex-1 mr-4 ml-1">
-                          <h3 className="font-medium text-naval-800 text-sm truncate">{resultado.producto.descripcion.split(' - ')[0]}</h3>
-                          <div className="text-xs text-naval-500 flex items-center">
-                            <span className="truncate">Código: <span className="font-medium">{resultado.producto.codigo}</span></span>
-                            {resultado.lote && (
-                              <span className="truncate ml-2">| Lote: <span className="font-medium">{resultado.lote}</span></span>
-                            )}
-                          </div>
-                        </div>
-                        
-                        {/* Tipo y Color */}
-                        <div className="flex space-x-2 mr-4 flex-shrink-0">
-                          <div className="flex flex-col items-start">
-                            <span className="text-xs text-naval-500 mb-1">Tipo</span>
-                            <Badge className="bg-blue-50 text-blue-700 border-blue-100 text-xs">
+                <div className="grid grid-cols-1 gap-4">
+                  {/* Tabla de resultados */}
+                  <table className="w-full border-collapse">
+                    <thead className="bg-naval-50">
+                      <tr>
+                        <th className="py-2 px-3 text-left text-naval-700 font-medium text-sm">Producto</th>
+                        <th className="py-2 px-3 text-center text-naval-700 font-medium text-sm">Tipo</th>
+                        <th className="py-2 px-3 text-center text-naval-700 font-medium text-sm">Descripción</th>
+                        <th className="py-2 px-3 text-center text-naval-700 font-medium text-sm">Disponible</th>
+                        <th className="py-2 px-3 text-center text-naval-700 font-medium text-sm">Equiv.</th>
+                        <th className="py-2 px-3 text-center text-naval-700 font-medium text-sm">Total</th>
+                        <th className="py-2 px-3 text-center text-naval-700 font-medium text-sm">Cantidad a sacar</th>
+                        <th className="py-2 px-3 text-center text-naval-700 font-medium text-sm">Acción</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {resultadosBusqueda.map((resultado) => (
+                        <tr key={resultado.id} className="border-b border-naval-100 hover:bg-naval-50/50">
+                          <td className="py-3 px-3">
+                            <div className="flex flex-col">
+                              <span className="font-medium text-naval-800">{resultado.producto.descripcion.split(' - ')[0]}</span>
+                              <div className="flex items-center text-xs text-naval-500 mt-1">
+                                <span>Código: <span className="font-medium">{resultado.producto.codigo}</span></span>
+                                {resultado.lote && (
+                                  <span className="ml-2">| Lote: <span className="font-medium">{resultado.lote}</span></span>
+                                )}
+                              </div>
+                            </div>
+                          </td>
+                          <td className="py-3 px-3 text-center">
+                            <Badge className="bg-blue-50 text-blue-700 border-blue-100">
                               {resultado.tipoPresentacion}
                             </Badge>
-                          </div>
-                          <div className="flex flex-col items-start">
-                            <span className="text-xs text-naval-500 mb-1">Descripción</span>
-                            <Badge className="bg-green-50 text-green-700 border-green-100 text-xs">
+                          </td>
+                          <td className="py-3 px-3 text-center">
+                            <Badge className="bg-green-50 text-green-700 border-green-100">
                               {resultado.descripcionPresentacion}
                             </Badge>
-                          </div>
-                        </div>
-                        
-                        {/* Separador vertical */}
-                        <div className="h-10 w-px bg-gray-200 mx-3 flex-shrink-0"></div>
-                        
-                        {/* Cantidades */}
-                        <div className="flex items-center space-x-4 mr-3 flex-shrink-0">
-                          <div className="flex flex-col items-center w-16">
-                            <span className="text-xs text-naval-500 mb-1">Disponible</span>
-                            <span className="font-medium text-naval-800 bg-gray-50 px-2 py-0.5 rounded w-full text-center">{resultado.cantidad}</span>
-                          </div>
-                          
-                          <div className="flex flex-col items-center w-16">
-                            <span className="text-xs text-naval-500 mb-1">Equiv.</span>
-                            <span className="font-medium text-green-700 bg-green-50 px-2 py-0.5 rounded w-full text-center">{resultado.producto.catalogo}</span>
-                          </div>
-                          
-                          <div className="flex flex-col items-center w-16">
-                            <span className="text-xs text-naval-500 mb-1">Total</span>
-                            <span className="font-medium text-blue-700 bg-blue-50 px-2 py-0.5 rounded w-full text-center">{resultado.totalEquivalenciaEnBase}</span>
-                          </div>
-                        </div>
-                        
-                        {/* Selector de cantidad y botón de acción */}
-                        <div className="flex items-center space-x-2 ml-auto">
-                          <div className="flex flex-col items-center">
-                            <span className="text-xs text-naval-500 mb-1">Cantidad a sacar</span>
-                            <div className="flex items-center border border-naval-200 rounded-md overflow-hidden">
-                              <button 
-                                className={`px-2 py-1 ${resultado.totalEquivalenciaEnBase <= 0 
-                                  ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
-                                  : 'bg-naval-50 text-naval-700 hover:bg-naval-100'} border-r border-naval-200`}
-                                onClick={(e) => {
-                                  e.preventDefault();
-                                  if (resultado.totalEquivalenciaEnBase <= 0) return;
-                                  const cantidadElement = document.getElementById(`cantidad-${resultado.id}`) as HTMLInputElement;
-                                  if (cantidadElement) {
-                                    const currentValue = parseInt(cantidadElement.value) || 0;
-                                    if (currentValue > 1) {
-                                      cantidadElement.value = (currentValue - 1).toString();
+                          </td>
+                          <td className="py-3 px-3 text-center font-medium text-naval-800">
+                            {resultado.cantidad}
+                          </td>
+                          <td className="py-3 px-3 text-center font-medium text-green-700">
+                            {resultado.producto.catalogo}
+                          </td>
+                          <td className="py-3 px-3 text-center font-medium text-blue-700">
+                            {resultado.totalEquivalenciaEnBase}
+                          </td>
+                          <td className="py-3 px-3 text-center">
+                            <div className="flex items-center justify-center">
+                              <div className="flex border border-naval-200 rounded-md overflow-hidden">
+                                <button 
+                                  className={`px-2 py-1 ${resultado.totalEquivalenciaEnBase <= 0 
+                                    ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
+                                    : 'bg-naval-50 text-naval-700 hover:bg-naval-100'} border-r border-naval-200`}
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    if (resultado.totalEquivalenciaEnBase <= 0) return;
+                                    const cantidadElement = document.getElementById(`cantidad-${resultado.id}`) as HTMLInputElement;
+                                    if (cantidadElement) {
+                                      const currentValue = parseInt(cantidadElement.value) || 0;
+                                      if (currentValue > 1) {
+                                        cantidadElement.value = (currentValue - 1).toString();
+                                      }
                                     }
-                                  }
-                                }}
-                                disabled={resultado.totalEquivalenciaEnBase <= 0}
-                              >
-                                <Minus className="h-3 w-3" />
-                              </button>
-                              <input 
-                                id={`cantidad-${resultado.id}`}
-                                type="number" 
-                                defaultValue="1" 
-                                min="1" 
-                                max={resultado.totalEquivalenciaEnBase} 
-                                className={`w-12 text-center border-none focus:ring-0 focus:outline-none text-sm ${resultado.totalEquivalenciaEnBase <= 0 ? 'bg-gray-100 text-gray-400' : ''}`}
-                                disabled={resultado.totalEquivalenciaEnBase <= 0}
-                              />
-                              <button 
-                                className={`px-2 py-1 ${resultado.totalEquivalenciaEnBase <= 0 
-                                  ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
-                                  : 'bg-naval-50 text-naval-700 hover:bg-naval-100'} border-l border-naval-200`}
-                                onClick={(e) => {
-                                  e.preventDefault();
-                                  if (resultado.totalEquivalenciaEnBase <= 0) return;
-                                  const cantidadElement = document.getElementById(`cantidad-${resultado.id}`) as HTMLInputElement;
-                                  if (cantidadElement) {
-                                    const currentValue = parseInt(cantidadElement.value) || 0;
-                                    if (currentValue < resultado.totalEquivalenciaEnBase) {
-                                      cantidadElement.value = (currentValue + 1).toString();
+                                  }}
+                                  disabled={resultado.totalEquivalenciaEnBase <= 0}
+                                >
+                                  <Minus className="h-3 w-3" />
+                                </button>
+                                <input 
+                                  id={`cantidad-${resultado.id}`}
+                                  type="number" 
+                                  defaultValue="1" 
+                                  min="1" 
+                                  max={resultado.totalEquivalenciaEnBase} 
+                                  className={`w-12 text-center border-none focus:ring-0 focus:outline-none text-sm ${resultado.totalEquivalenciaEnBase <= 0 ? 'bg-gray-100 text-gray-400' : ''}`}
+                                  disabled={resultado.totalEquivalenciaEnBase <= 0}
+                                />
+                                <button 
+                                  className={`px-2 py-1 ${resultado.totalEquivalenciaEnBase <= 0 
+                                    ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
+                                    : 'bg-naval-50 text-naval-700 hover:bg-naval-100'} border-l border-naval-200`}
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    if (resultado.totalEquivalenciaEnBase <= 0) return;
+                                    const cantidadElement = document.getElementById(`cantidad-${resultado.id}`) as HTMLInputElement;
+                                    if (cantidadElement) {
+                                      const currentValue = parseInt(cantidadElement.value) || 0;
+                                      if (currentValue < resultado.totalEquivalenciaEnBase) {
+                                        cantidadElement.value = (currentValue + 1).toString();
+                                      }
                                     }
-                                  }
-                                }}
-                                disabled={resultado.totalEquivalenciaEnBase <= 0}
-                              >
-                                <Plus className="h-3 w-3" />
-                              </button>
+                                  }}
+                                  disabled={resultado.totalEquivalenciaEnBase <= 0}
+                                >
+                                  <Plus className="h-3 w-3" />
+                                </button>
+                              </div>
                             </div>
-                          </div>
-                          
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => {
-                              const cantidadElement = document.getElementById(`cantidad-${resultado.id}`) as HTMLInputElement;
-                              const cantidadTotal = cantidadElement ? parseInt(cantidadElement.value) || 1 : 1;
-                              agregarEntrega(resultado, cantidadTotal);
-                            }}
-                            disabled={resultado.totalEquivalenciaEnBase <= 0}
-                            className={`h-9 flex-shrink-0 ${resultado.totalEquivalenciaEnBase <= 0 
-                              ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
-                              : 'bg-naval-50 text-naval-700 hover:bg-naval-100 hover:text-naval-800 border-naval-200 transition-all duration-200'}`}
-                          >
-                            <Plus className="h-4 w-4 mr-1" />
-                            <span className="font-medium">Agregar</span>
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
+                          </td>
+                          <td className="py-3 px-3 text-center">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                const cantidadElement = document.getElementById(`cantidad-${resultado.id}`) as HTMLInputElement;
+                                const cantidadTotal = cantidadElement ? parseInt(cantidadElement.value) || 1 : 1;
+                                agregarEntrega(resultado, cantidadTotal);
+                              }}
+                              disabled={resultado.totalEquivalenciaEnBase <= 0}
+                              className={`${resultado.totalEquivalenciaEnBase <= 0 
+                                ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
+                                : 'bg-naval-50 text-naval-700 hover:bg-naval-100 hover:text-naval-800 border-naval-200'}`}
+                            >
+                              <Plus className="h-4 w-4 mr-1" />
+                              Agregar
+                            </Button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
               )}
             </div>
@@ -1036,11 +1180,15 @@ export default function HistorialMovimientos() {
               <Input
                 id="entregadoPor"
                 placeholder="Nombre de quien entrega"
-                className="border border-naval-200 focus-visible:ring-naval-500"
+                className="border border-naval-200 focus-visible:ring-naval-500 bg-gray-50"
                 value={entregadoPor}
                 onChange={(e) => setEntregadoPor(e.target.value)}
+                readOnly={!!nombreUsuario}
                 required
               />
+              {nombreUsuario && (
+                <p className="text-xs text-green-600 mt-1">Campo completado automáticamente con tu nombre de usuario</p>
+              )}
             </div>
             
             <div className="space-y-2">
@@ -1099,6 +1247,47 @@ export default function HistorialMovimientos() {
                 ) : (
                   "Generar Salida"
                 )}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal de comentarios específicos para cada presentación */}
+      <Dialog open={modalComentarioAbierto} onOpenChange={setModalComentarioAbierto}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Comentario específico para esta presentación</DialogTitle>
+          </DialogHeader>
+          <div className="text-sm text-gray-500 mb-4">
+            Este comentario se mostrará únicamente en el PDF para esta presentación específica.
+          </div>
+          
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="comentarioEspecifico" className="font-medium">Comentario</Label>
+              <textarea
+                id="comentarioEspecifico"
+                placeholder="Ingrese un comentario específico para esta presentación"
+                className="w-full h-32 p-2 border border-naval-200 rounded-md focus:outline-none focus:ring-2 focus:ring-naval-500"
+                value={comentarioActual}
+                onChange={(e) => setComentarioActual(e.target.value)}
+              />
+            </div>
+            
+            <div className="flex justify-end space-x-2">
+              <Button 
+                variant="outline" 
+                onClick={() => setModalComentarioAbierto(false)}
+                className="border-naval-200 text-naval-700 hover:bg-naval-50 hover:text-naval-800"
+              >
+                Cancelar
+              </Button>
+              <Button 
+                onClick={guardarComentario}
+                className="bg-naval-600 hover:bg-naval-700 text-white"
+              >
+                Guardar comentario
               </Button>
             </div>
           </div>
