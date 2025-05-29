@@ -14,6 +14,8 @@ import { api } from "@/lib/api"
 import { Presentacion } from "@/lib/api"
 import jsPDF from "jspdf"
 import autoTable from "jspdf-autotable"
+import { generateEntrega, EntregaData } from "@/lib/api"
+import { toast } from "sonner"
 
 // Array vacío para resultados de búsqueda
 const resultadosBusquedaData: ResultadoBusqueda[] = [];
@@ -109,6 +111,9 @@ export default function HistorialMovimientos() {
   // Estado para el modal de observaciones
   const [modalObservacionesAbierto, setModalObservacionesAbierto] = useState(false);
   const [observaciones, setObservaciones] = useState("");
+  const [entregadoPor, setEntregadoPor] = useState("");
+  const [areaDestino, setAreaDestino] = useState("");
+  const [responsableArea, setResponsableArea] = useState("");
   
   // Función para buscar productos por código y lote
   const buscarProductos = async () => {
@@ -320,11 +325,88 @@ export default function HistorialMovimientos() {
     mostrarModalObservaciones();
   };
   
+  // Estado para controlar si se está generando la salida
+  const [generandoSalida, setGenerandoSalida] = useState(false);
+
   // Función para generar el PDF con las observaciones
-  const generarPDFConObservaciones = () => {
-    // Cerrar el modal de observaciones
-    setModalObservacionesAbierto(false);
+  const generarPDFConObservaciones = async () => {
+    if (generandoSalida) return;
     
+    // Validar campos requeridos
+    if (!entregadoPor.trim()) {
+      toast.error("El campo 'Entregado Por' es requerido");
+      return;
+    }
+    
+    if (!areaDestino.trim()) {
+      toast.error("El campo 'Área de Destino' es requerido");
+      return;
+    }
+    
+    if (!responsableArea.trim()) {
+      toast.error("El campo 'Responsable del Área' es requerido");
+      return;
+    }
+    
+    setGenerandoSalida(true);
+    
+    try {
+      // Cerrar el modal de observaciones
+      setModalObservacionesAbierto(false);
+      
+      // Preparar los datos para el endpoint de entregas
+      const datosEntrega: EntregaData = {
+        entregadoPor: entregadoPor,
+        areaDestino: areaDestino,
+        responsableArea: responsableArea,
+        observaciones: observaciones,
+        detalles: entregas.map(entrega => ({
+          id: entrega.id,
+          cantidadEntregada: entrega.totalSeleccionado || entrega.cantidad,
+          observaciones: observaciones, // Usar las mismas observaciones en cada detalle
+          nombreProducto: entrega.producto.descripcion
+        }))
+      };
+      
+      // Mostrar en consola los datos que se enviarán
+      console.log('Datos que se enviarán al endpoint de entregas:', datosEntrega);
+      
+      // Enviar datos al endpoint
+      const resultado = await generateEntrega(datosEntrega);
+      
+      // Si el envío fue exitoso, generar el PDF y limpiar las entregas
+      if (resultado.success) {
+        // Generar el PDF
+        generarPDF();
+        
+        // Limpiar las entregas
+        setEntregas([]);
+        
+        // Mostrar notificación de éxito
+        toast.success("Salida generada correctamente", {
+          description: "Se ha registrado la salida y generado el PDF",
+          duration: 5000
+        });
+      } else {
+        // Mostrar notificación de error
+        toast.error("Error al generar la salida", {
+          description: "No se pudo registrar la salida",
+          duration: 5000
+        });
+      }
+    } catch (error) {
+      console.error('Error al generar la entrega:', error);
+      toast.error("Error al generar la salida", {
+        description: "Ocurrió un error inesperado",
+        duration: 5000
+      });
+    } finally {
+      setGenerandoSalida(false);
+    }
+  };
+  
+  // Función para generar el PDF
+  const generarPDF = () => {
     // Crear un nuevo documento PDF con orientación horizontal para más espacio
     const doc = new jsPDF({
       orientation: 'landscape',
@@ -942,19 +1024,55 @@ export default function HistorialMovimientos() {
       <Dialog open={modalObservacionesAbierto} onOpenChange={setModalObservacionesAbierto}>
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
-            <DialogTitle>Observaciones para la salida</DialogTitle>
+            <DialogTitle>Datos para la salida</DialogTitle>
           </DialogHeader>
           <div className="text-sm text-gray-500 mb-4">
-            Agregue observaciones opcionales para el documento de salida.
+            Complete la información requerida para generar la salida.
           </div>
           
           <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="entregadoPor" className="font-medium">Entregado Por <span className="text-red-500">*</span></Label>
+              <Input
+                id="entregadoPor"
+                placeholder="Nombre de quien entrega"
+                className="border border-naval-200 focus-visible:ring-naval-500"
+                value={entregadoPor}
+                onChange={(e) => setEntregadoPor(e.target.value)}
+                required
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="areaDestino" className="font-medium">Área de Destino <span className="text-red-500">*</span></Label>
+              <Input
+                id="areaDestino"
+                placeholder="Área a la que se destina"
+                className="border border-naval-200 focus-visible:ring-naval-500"
+                value={areaDestino}
+                onChange={(e) => setAreaDestino(e.target.value)}
+                required
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="responsableArea" className="font-medium">Responsable del Área <span className="text-red-500">*</span></Label>
+              <Input
+                id="responsableArea"
+                placeholder="Nombre del responsable del área"
+                className="border border-naval-200 focus-visible:ring-naval-500"
+                value={responsableArea}
+                onChange={(e) => setResponsableArea(e.target.value)}
+                required
+              />
+            </div>
+            
             <div className="space-y-2">
               <Label htmlFor="observaciones">Observaciones</Label>
               <textarea
                 id="observaciones"
                 placeholder="Ingrese observaciones (opcional)"
-                className="w-full h-32 p-2 border border-naval-200 rounded-md focus:outline-none focus:ring-2 focus:ring-naval-500"
+                className="w-full h-24 p-2 border border-naval-200 rounded-md focus:outline-none focus:ring-2 focus:ring-naval-500"
                 value={observaciones}
                 onChange={(e) => setObservaciones(e.target.value)}
               />
@@ -971,8 +1089,16 @@ export default function HistorialMovimientos() {
               <Button 
                 onClick={generarPDFConObservaciones}
                 className="bg-naval-600 hover:bg-naval-700 text-white"
+                disabled={generandoSalida}
               >
-                Generar PDF
+                {generandoSalida ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Procesando...
+                  </>
+                ) : (
+                  "Generar Salida"
+                )}
               </Button>
             </div>
           </div>

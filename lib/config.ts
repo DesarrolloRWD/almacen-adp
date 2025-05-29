@@ -32,11 +32,17 @@ export const ALMACEN_ENDPOINTS = {
   GET_PRESENTACION_BY_CODIGO_LOTE: '/api/presentaciones',
 };
 
+// Endpoints para entregas
+export const ENTREGAS_ENDPOINTS = {
+  GENERATE_ENTREGA: '/api/generate/entrega',
+};
+
 // Exportar todos los endpoints como un objeto
 export const API_ENDPOINTS = {
   ...AUTH_ENDPOINTS,
   ...USUARIOS_ENDPOINTS,
   ...ALMACEN_ENDPOINTS,
+  ...ENTREGAS_ENDPOINTS,
 };
 
 export default API_ENDPOINTS;

@@ -81,6 +81,12 @@ const nextConfig = {
         source: '/api/productos/entregar',
         destination: `${process.env.NEXT_PUBLIC_ALMACEN_API_URL}/api/save/active/entrega/producto`,
       },
+      
+      // Proxy para entregas
+      {
+        source: '/api/generate/entrega',
+        destination: `${process.env.NEXT_PUBLIC_ENTREGAS_API_URL}/api/generate/entrega`,
+      },
     ];
   },
   

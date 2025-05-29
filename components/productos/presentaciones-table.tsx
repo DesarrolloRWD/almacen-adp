@@ -1,13 +1,16 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Presentacion, getPresentaciones, getPresentacionEspecifica } from '@/lib/api'
+import { Presentacion, getPresentaciones, getPresentacionEspecifica, generateEntrega, EntregaData } from '@/lib/api'
+import jsPDF from "jspdf"
+import autoTable from "jspdf-autotable"
+import { toast } from "sonner"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
-import { Search, Filter, ShoppingCart, Plus, Trash, X } from 'lucide-react'
+import { Search, Filter, ShoppingCart, Plus, Trash, X, Loader2, FileDown } from 'lucide-react'
 import {
   Select,
   SelectContent,
@@ -119,12 +122,252 @@ export function PresentacionesTable() {
     setPresentacionesSeleccionadas(prev => prev.filter(p => p.id !== id))
   }
   
+  // Estado para controlar si se está generando el PDF/enviando datos
+  const [generando, setGenerando] = useState(false);
+
   // Función para generar salida de las presentaciones seleccionadas
-  const generarSalida = () => {
-    // Aquí se implementaría la lógica para generar la salida
-    //console.log('Generando salida para:', presentacionesSeleccionadas)
-    // Por ahora solo mostraremos un mensaje
-    alert(`Se generaría salida para ${presentacionesSeleccionadas.length} presentaciones seleccionadas`)
+  const generarSalida = async () => {
+    if (generando) return;
+    setGenerando(true);
+    
+    try {
+      // Preparar los datos para el endpoint de entregas
+      const datosEntrega: EntregaData = {
+        entregadoPor: "Usuario Actual", // Esto debería venir del contexto de autenticación
+        areaDestino: "Área de destino", // Esto podría ser un campo seleccionable
+        responsableArea: "Responsable del área", // Esto podría ser un campo seleccionable
+        observaciones: "", // Esto podría venir de un modal con un campo de texto
+        detalles: presentacionesSeleccionadas.map(presentacion => ({
+          id: presentacion.id,
+          cantidadEntregada: presentacion.cantidad || 0,
+          observaciones: "",
+          nombreProducto: presentacion.item?.descripcion || presentacion.descripcionPresentacion
+        }))
+      };
+      
+      // Mostrar en consola los datos que se enviarán
+      console.log('Datos que se enviarán al endpoint de entregas:', datosEntrega);
+      
+      // 1. Enviar datos al endpoint
+      const resultado = await generateEntrega(datosEntrega);
+      
+      // 2. Si el envío fue exitoso, generar el PDF y limpiar las presentaciones
+      if (resultado.success) {
+        // Generar el PDF
+        generarPDF();
+        
+        // Limpiar las presentaciones seleccionadas
+        setPresentacionesSeleccionadas([]);
+        
+        // Mostrar notificación de éxito
+        toast.success("Salida generada correctamente", {
+          description: "Se ha registrado la salida y generado el PDF",
+          duration: 5000
+        });
+      } else {
+        // Mostrar notificación de error
+        toast.error("Error al generar la salida", {
+          description: "No se pudo registrar la salida",
+          duration: 5000
+        });
+      }
+    } catch (error) {
+      console.error('Error al generar la entrega:', error);
+      toast.error("Error al generar la salida", {
+        description: "Ocurrió un error inesperado",
+        duration: 5000
+      });
+    } finally {
+      setGenerando(false);
+    }
+  }
+  
+  // Función para generar el PDF
+  const generarPDF = () => {
+    // Crear un nuevo documento PDF
+    const doc = new jsPDF({
+      orientation: 'landscape',
+      unit: 'mm',
+      format: 'a4'
+    });
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
+    
+    // Agregar marca de agua
+    const watermarkText = "HOSPITAL NAVAL";
+    doc.setTextColor(240, 240, 240); // Gris muy claro
+    doc.setFontSize(70);
+    doc.setFont("helvetica", "bold");
+    
+    // Guardar el estado actual del contexto
+    const originalState = {
+      textColor: doc.getTextColor(),
+      fontSize: doc.getFontSize(),
+      font: doc.getFont()
+    };
+    
+    // Dibujar marca de agua centrada
+    doc.text(watermarkText, pageWidth / 2, pageHeight / 2, {
+      angle: -30,
+      align: "center"
+    });
+    
+    // Restaurar el estado original
+    doc.setTextColor(originalState.textColor);
+    doc.setFontSize(originalState.fontSize);
+    doc.setFont(originalState.font.fontName);
+    
+    // Agregar fondo de color suave en la parte superior como encabezado
+    doc.setFillColor(240, 245, 255); // Azul muy claro
+    doc.rect(0, 0, pageWidth, 25, 'F');
+    
+    // Agregar línea decorativa
+    doc.setDrawColor(0, 51, 102); // Azul naval
+    doc.setLineWidth(0.5);
+    doc.line(0, 25, pageWidth, 25);
+    
+    // Calcular el ancho máximo disponible para el título
+    const docInfoWidth = 80;
+    const titleMaxWidth = pageWidth - docInfoWidth - 30;
+    
+    // Agregar títulos principales
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(16);
+    doc.setTextColor(0, 51, 102); // Azul naval
+    doc.text("ALMACÉN NAVAL", titleMaxWidth / 2 + 15, 12, { align: "center", maxWidth: titleMaxWidth });
+    
+    doc.setFontSize(12);
+    doc.text("REGISTRO DE SALIDA DE MATERIALES", titleMaxWidth / 2 + 15, 19, { align: "center", maxWidth: titleMaxWidth });
+    
+    // Agregar número de documento y fecha en la esquina superior derecha
+    const fechaActual = new Date();
+    const numeroDocumento = `DOC-${fechaActual.getFullYear()}${(fechaActual.getMonth()+1).toString().padStart(2, '0')}${fechaActual.getDate().toString().padStart(2, '0')}-${Math.floor(Math.random() * 1000).toString().padStart(3, '0')}`;
+    
+    doc.setFillColor(0, 51, 102); // Azul naval
+    doc.roundedRect(pageWidth - docInfoWidth - 5, 5, docInfoWidth, 15, 2, 2, 'F');
+    
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(8);
+    doc.setTextColor(255, 255, 255); // Blanco
+    doc.text("DOCUMENTO N°", pageWidth - docInfoWidth, 10);
+    doc.text(numeroDocumento, pageWidth - docInfoWidth, 14);
+    doc.text(`FECHA: ${fechaActual.toLocaleDateString()}`, pageWidth - docInfoWidth, 18);
+    
+    // Agregar texto explicativo
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(9);
+    doc.setTextColor(60, 60, 60); // Gris oscuro
+    const textoExplicativo = "Este documento certifica la salida de materiales del Almacén Naval. "
+      + "Los productos listados a continuación han sido retirados del inventario y entregados al solicitante. "
+      + "Este documento debe ser firmado tanto por la persona que autoriza la salida como por quien recibe los materiales. "
+      + "Una copia de este documento debe ser archivada para mantener un registro adecuado de los movimientos de inventario.";
+    
+    // Agregar texto explicativo con saltos de línea automáticos
+    const splitText = doc.splitTextToSize(textoExplicativo, pageWidth - 30);
+    doc.text(splitText, 15, 35);
+    
+    // Agregar espacio antes de la tabla
+    const startTableY = 55;
+    
+    // Agregar una línea separadora entre el texto y la tabla
+    doc.setDrawColor(220, 220, 220); // Gris claro
+    doc.setLineWidth(0.3);
+    doc.line(15, startTableY - 10, pageWidth - 15, startTableY - 10);
+    
+    // Agregar un título para la tabla
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(10);
+    doc.setTextColor(0, 51, 102); // Azul naval
+    doc.text("DETALLE DE MATERIALES", pageWidth / 2, startTableY - 5, { align: "center" });
+    
+    // Agregar un rectángulo sombreado para la tabla
+    doc.setFillColor(248, 250, 252); // Gris muy claro
+    const tableHeight = Math.max(30, 8 + presentacionesSeleccionadas.length * 8);
+    doc.roundedRect(10, startTableY, pageWidth - 20, tableHeight, 2, 2, 'F');
+    
+    // Crear tabla con los datos
+    const tableColumn = ["Código", "Descripción", "Tipo", "Presentación", "Total"];
+    const tableRows = presentacionesSeleccionadas.map(presentacion => [
+      presentacion.item?.codigo || "",
+      presentacion.item?.descripcion || "",
+      presentacion.tipoPresentacion || "",
+      presentacion.descripcionPresentacion || "",
+      (presentacion.cantidad || 0).toString()
+    ]);
+    
+    // Agregar la tabla al PDF
+    autoTable(doc, {
+      head: [tableColumn],
+      body: tableRows,
+      startY: startTableY,
+      theme: 'grid',
+      styles: { 
+        fontSize: 10,
+        cellPadding: 3,
+        lineColor: [220, 220, 220],
+        lineWidth: 0.1,
+      },
+      headStyles: {
+        fillColor: [0, 51, 102],
+        textColor: [255, 255, 255],
+        fontStyle: 'bold',
+        halign: 'center'
+      },
+      alternateRowStyles: {
+        fillColor: [248, 250, 252]
+      },
+      columnStyles: {
+        0: { cellWidth: 30 },
+        1: { cellWidth: 'auto' },
+        2: { cellWidth: 30 },
+        3: { cellWidth: 50 },
+        4: { cellWidth: 20, halign: 'center' }
+      },
+    });
+    
+    // Obtener la posición Y después de la tabla
+    const finalY = (doc as any).lastAutoTable.finalY + 10;
+    
+    // Agregar sección para observaciones
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(10);
+    doc.setTextColor(0, 51, 102); // Azul naval
+    doc.text("OBSERVACIONES:", 15, finalY);
+    
+    // Agregar línea para observaciones
+    doc.setDrawColor(220, 220, 220);
+    doc.setLineWidth(0.3);
+    doc.line(15, finalY + 5, pageWidth - 15, finalY + 5);
+    doc.line(15, finalY + 15, pageWidth - 15, finalY + 15);
+    
+    // Agregar sección para firmas
+    const firmasY = finalY + 30;
+    
+    // Agregar líneas para firmas
+    doc.setDrawColor(100, 100, 100);
+    doc.setLineWidth(0.5);
+    
+    // Firma autorización
+    doc.line(40, firmasY + 15, 100, firmasY + 15);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(8);
+    doc.setTextColor(80, 80, 80);
+    doc.text("Firma de Autorización", 70, firmasY + 20, { align: "center" });
+    
+    // Firma recepción
+    doc.line(pageWidth - 100, firmasY + 15, pageWidth - 40, firmasY + 15);
+    doc.text("Firma de Recepción", pageWidth - 70, firmasY + 20, { align: "center" });
+    
+    // Agregar pie de página
+    const footerY = pageHeight - 10;
+    doc.setFont("helvetica", "italic");
+    doc.setFontSize(8);
+    doc.setTextColor(150, 150, 150);
+    doc.text(`Documento generado el ${fechaActual.toLocaleDateString()} a las ${fechaActual.toLocaleTimeString()}`, pageWidth / 2, footerY, { align: "center" });
+    
+    // Guardar el PDF con un nombre que incluye la fecha
+    const fechaStr = `${fechaActual.getFullYear()}${(fechaActual.getMonth()+1).toString().padStart(2, '0')}${fechaActual.getDate().toString().padStart(2, '0')}`;
+    doc.save(`Salida_Materiales_${fechaStr}.pdf`);
   }
 
   return (
@@ -258,9 +501,16 @@ export function PresentacionesTable() {
                 <Button 
                   className="bg-naval-600 hover:bg-naval-700"
                   onClick={generarSalida}
-                  disabled={presentacionesSeleccionadas.length === 0}
+                  disabled={presentacionesSeleccionadas.length === 0 || generando}
                 >
-                  Generar Salida
+                  {generando ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Procesando...
+                    </>
+                  ) : (
+                    "Generar Salida"
+                  )}
                 </Button>
               </SheetFooter>
             </div>

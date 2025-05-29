@@ -331,6 +331,31 @@ export const updateUserInformation = async (username: string, userInfo: UserInfo
   }
 }
 
+// Interfaz para los datos de entrega
+export interface EntregaData {
+  entregadoPor: string;
+  areaDestino: string;
+  responsableArea: string;
+  observaciones: string;
+  detalles: {
+    id: number;
+    cantidadEntregada: number;
+    observaciones: string;
+    nombreProducto: string;
+  }[];
+}
+
+// Función para generar una entrega
+export async function generateEntrega(entregaData: EntregaData): Promise<{ success: boolean; message: string }> {
+  try {
+    const response = await authPost(API_ENDPOINTS.GENERATE_ENTREGA, entregaData);
+    return { success: true, message: "Entrega generada exitosamente" };
+  } catch (error) {
+    console.error("Error al generar entrega:", error);
+    return { success: false, message: "Error al generar la entrega" };
+  }
+}
+
 // Exportar todas las funciones como un objeto API
 export const api = {
   getProductos,
@@ -348,5 +373,6 @@ export const api = {
   getSpecificUser,
   updateUserStatus,
   updateUserImage,
-  updateUserInformation
+  updateUserInformation,
+  generateEntrega,
 }

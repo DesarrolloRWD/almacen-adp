@@ -1,7 +1,10 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useForm } from "react-hook-form"
+import { useRouter } from "next/navigation"
+import { useAuth } from "@/hooks"
+import { api } from "@/lib/api"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
 import { format } from "date-fns"
@@ -78,8 +81,88 @@ const formSchema = z.object({
 })
 
 export default function RegistrarProductoForm() {
+  const router = useRouter()
+  const { user } = useAuth() // Obtener el usuario del contexto de autenticación
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [showQrScanner, setShowQrScanner] = useState(false)
+  const [cantidadRestante, setCantidadRestante] = useState(0)
+  const [nombreUsuario, setNombreUsuario] = useState('')
+  const [isLoadingUsers, setIsLoadingUsers] = useState(false)
+  
+  // Opciones predefinidas para Unidad Base
+  const unidadesBaseOptions = ["PIEZA", "CAJA", "KIT"]
+
+  // Obtener información del usuario logueado usando el endpoint de usuarios
+  useEffect(() => {
+    const obtenerUsuarioActual = async () => {
+      setIsLoadingUsers(true);
+      try {
+        // Obtener el token del localStorage
+        const token = localStorage.getItem('token');
+        if (!token) {
+          console.log('No hay token disponible');
+          setIsLoadingUsers(false);
+          return;
+        }
+        
+        // Obtener el nombre de usuario del localStorage (si existe)
+        const usuarioGuardado = localStorage.getItem('usuario');
+        
+        // Obtener todos los usuarios usando el endpoint
+        const usuarios = await api.getAllUsers();
+        
+        if (usuarios && usuarios.length > 0) {
+          // Buscar el usuario actual basado en el token o en localStorage
+          let usuarioActual = null;
+          
+          // Si tenemos el nombre de usuario guardado, buscar por ese nombre
+          if (usuarioGuardado) {
+            usuarioActual = usuarios.find(u => u.usuario === usuarioGuardado);
+          }
+          
+          // Si no encontramos el usuario, intentar decodificar el token
+          if (!usuarioActual && token) {
+            try {
+              // Decodificar el token JWT para obtener el nombre de usuario
+              const base64Url = token.split('.')[1];
+              if (base64Url) {
+                const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+                const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+                  return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+                }).join(''));
+                
+                const payload = JSON.parse(jsonPayload);
+                const username = payload.sub || payload.usuario;
+                
+                if (username) {
+                  usuarioActual = usuarios.find(u => u.usuario === username);
+                }
+              }
+            } catch (e) {
+              console.log('No se pudo decodificar el token JWT');
+            }
+          }
+          
+          // Si encontramos el usuario, usar solo su nombre de usuario (usuario)
+          if (usuarioActual) {
+            setNombreUsuario(usuarioActual.usuario);
+            console.log('Usuario actual encontrado:', usuarioActual.usuario);
+          } else {
+            // Si no encontramos el usuario, usar el primer usuario de la lista como fallback
+            const primerUsuario = usuarios[0];
+            setNombreUsuario(primerUsuario.usuario);
+            console.log('Usando primer usuario como fallback:', primerUsuario.usuario);
+          }
+        }
+      } catch (error) {
+        console.error('Error al obtener usuarios:', error);
+      } finally {
+        setIsLoadingUsers(false);
+      }
+    };
+    
+    obtenerUsuarioActual();
+  }, [])
 
   // Inicializar formulario
   const form = useForm<z.infer<typeof formSchema>>({
@@ -109,6 +192,39 @@ export default function RegistrarProductoForm() {
       ],
     },
   })
+
+  // Actualizar el campo "Creado Por" con el nombre del usuario cuando el formulario esté listo
+  useEffect(() => {
+    if (nombreUsuario) {
+      form.setValue('creadoPor', nombreUsuario);
+    }
+  }, [nombreUsuario, form]);
+
+  // Calcular la cantidad restante por asignar en presentaciones
+  const calcularCantidadRestante = () => {
+    const cantidadNeta = form.watch('cantidadNeta') || 0;
+    const presentaciones = form.watch('presentaciones') || [];
+    
+    const cantidadAsignada = presentaciones.reduce((total, presentacion) => {
+      return total + (Number(presentacion.cantidad) || 0);
+    }, 0);
+    
+    return cantidadNeta - cantidadAsignada;
+  };
+
+  // Actualizar la cantidad restante cuando cambian los valores relevantes
+  useEffect(() => {
+    const subscription = form.watch((value, { name }) => {
+      if (name?.includes('cantidadNeta') || name?.includes('presentaciones')) {
+        setCantidadRestante(calcularCantidadRestante());
+      }
+    });
+    
+    // Calcular inicial
+    setCantidadRestante(calcularCantidadRestante());
+    
+    return () => subscription.unsubscribe();
+  }, [form.watch]);
 
   // Manejar envío del formulario
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
@@ -284,11 +400,13 @@ export default function RegistrarProductoForm() {
   // Función para agregar una nueva presentación
   const addPresentacion = () => {
     const presentaciones = form.getValues("presentaciones") || []
+    const unidadBase = form.getValues("unidadBase") || ""
+    
     form.setValue("presentaciones", [
       ...presentaciones,
       {
         codigo: "",
-        tipoPresentacion: "",
+        tipoPresentacion: unidadBase, // Usar la unidad base actual
         descripcionPresentacion: "",
         cantidad: 1,
         equivalenciaEnBase: 1
@@ -541,13 +659,35 @@ export default function RegistrarProductoForm() {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel className="text-naval-700">Unidad Base</FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder="Ej. PIEZA"
-                        {...field}
-                        className="border-naval-200 focus-visible:ring-naval-500"
-                      />
-                    </FormControl>
+                    <Select
+                      onValueChange={(value) => {
+                        field.onChange(value);
+                        
+                        // Actualizar el tipo de presentación en todas las presentaciones
+                        const presentaciones = form.getValues("presentaciones") || [];
+                        if (presentaciones.length > 0) {
+                          const updatedPresentaciones = presentaciones.map(p => ({
+                            ...p,
+                            tipoPresentacion: value
+                          }));
+                          form.setValue("presentaciones", updatedPresentaciones);
+                        }
+                      }}
+                      defaultValue={field.value}
+                    >
+                      <FormControl>
+                        <SelectTrigger className="border-naval-200 focus-visible:ring-naval-500">
+                          <SelectValue placeholder="Selecciona una unidad base" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {unidadesBaseOptions.map((option) => (
+                          <SelectItem key={option} value={option}>
+                            {option}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -727,7 +867,18 @@ export default function RegistrarProductoForm() {
                 name="cantidadNeta"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-naval-700">Cantidad Neta</FormLabel>
+                    <div className="flex items-center justify-between">
+                      <FormLabel className="text-naval-700">Cantidad Neta</FormLabel>
+                      {form.watch('cantidadNeta') > 0 && (
+                        <div className={`ml-2 px-3 py-1 text-xs rounded-full ${cantidadRestante === 0 ? 'bg-green-100 text-green-800' : cantidadRestante > 0 ? 'bg-amber-100 text-amber-800' : 'bg-red-100 text-red-800'}`}>
+                          {cantidadRestante === 0 
+                            ? '✓ Cantidades correctas' 
+                            : cantidadRestante > 0 
+                              ? `Faltan ${cantidadRestante} unidades por asignar` 
+                              : `Exceso de ${Math.abs(cantidadRestante)} unidades`}
+                        </div>
+                      )}
+                    </div>
                     <FormControl>
                       <Input
                         type="number"
@@ -752,6 +903,7 @@ export default function RegistrarProductoForm() {
                         placeholder="Nombre del usuario"
                         {...field}
                         className="border-naval-200 focus-visible:ring-naval-500"
+                        readOnly={!!nombreUsuario}
                       />
                     </FormControl>
                     <FormMessage />
@@ -824,7 +976,8 @@ export default function RegistrarProductoForm() {
                           <Input
                             placeholder="Ej. Caja"
                             {...field}
-                            className="border-naval-200 focus-visible:ring-naval-500"
+                            className="border-naval-200 focus-visible:ring-naval-500 bg-gray-50"
+                            readOnly={true}
                           />
                         </FormControl>
                         <FormMessage />
@@ -855,7 +1008,16 @@ export default function RegistrarProductoForm() {
                     name={`presentaciones.${index}.cantidad`}
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-naval-700">Cantidad</FormLabel>
+                        <div className="flex items-center justify-between">
+                          <FormLabel className="text-naval-700">Cantidad</FormLabel>
+                          {form.watch('cantidadNeta') > 0 && cantidadRestante !== 0 && (
+                            <div className={`ml-2 px-3 py-1 text-xs rounded-full ${cantidadRestante === 0 ? 'bg-green-100 text-green-800' : cantidadRestante > 0 ? 'bg-amber-100 text-amber-800' : 'bg-red-100 text-red-800'}`}>
+                              {cantidadRestante > 0 
+                                ? `Faltan ${cantidadRestante} unidades` 
+                                : `Exceso de ${Math.abs(cantidadRestante)} unidades`}
+                            </div>
+                          )}
+                        </div>
                         <FormControl>
                           <Input
                             type="number"
@@ -897,9 +1059,20 @@ export default function RegistrarProductoForm() {
         </Card>
 
         <div className="flex justify-end">
-          <Button type="submit" disabled={isSubmitting} className="bg-naval-600 hover:bg-naval-700">
+          <Button 
+            type="submit" 
+            disabled={isSubmitting || (form.watch('cantidadNeta') > 0 && cantidadRestante !== 0)} 
+            className="bg-naval-600 hover:bg-naval-700"
+          >
             {isSubmitting ? "Registrando..." : "Registrar Producto"}
           </Button>
+          {form.watch('cantidadNeta') > 0 && cantidadRestante !== 0 && (
+            <div className="absolute -mt-10 text-sm text-red-600">
+              {cantidadRestante > 0 
+                ? `Faltan ${cantidadRestante} unidades por asignar en presentaciones` 
+                : `Hay un exceso de ${Math.abs(cantidadRestante)} unidades en presentaciones`}
+            </div>
+          )}
         </div>
       </form>
     </Form>
