@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { useForm } from "react-hook-form"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/hooks"
@@ -9,7 +9,8 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
 import { format } from "date-fns"
 import { es } from "date-fns/locale"
-import { CalendarIcon, Stethoscope, PackageOpen, PlusCircle, Trash2, QrCode } from "lucide-react"
+import { CalendarIcon, Stethoscope, PackageOpen, PlusCircle, Trash2, QrCode, CheckCircle } from "lucide-react"
+import { motion, AnimatePresence } from "framer-motion"
 
 import { Button } from "@/components/ui/button"
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
@@ -80,6 +81,62 @@ const formSchema = z.object({
   }),
 })
 
+// Componente de animación para mostrar cuando el producto se registra exitosamente
+const SuccessAnimation = ({ message, onComplete }: { message: string, onComplete: () => void }) => {
+  useEffect(() => {
+    // Después de 2.5 segundos, ejecutar onComplete
+    const timer = setTimeout(() => {
+      onComplete();
+    }, 2500);
+    
+    return () => clearTimeout(timer);
+  }, [onComplete]);
+
+  return (
+    <motion.div
+      className="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-50"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+    >
+      <motion.div
+        className="bg-white rounded-lg p-8 flex flex-col items-center max-w-md mx-4"
+        initial={{ scale: 0.8, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        exit={{ scale: 0.8, opacity: 0 }}
+        transition={{ type: "spring", damping: 15 }}
+      >
+        <motion.div
+          initial={{ scale: 0 }}
+          animate={{ scale: 1, rotate: [0, 10, -10, 0] }}
+          transition={{ delay: 0.2, duration: 0.5 }}
+          className="mb-4 text-green-500"
+        >
+          <CheckCircle size={80} strokeWidth={1.5} />
+        </motion.div>
+        
+        <motion.h2
+          className="text-2xl font-bold text-naval-700 mb-2 text-center"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+        >
+          ¡Producto Registrado!
+        </motion.h2>
+        
+        <motion.p
+          className="text-naval-600 text-center"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.4 }}
+        >
+          {message}
+        </motion.p>
+      </motion.div>
+    </motion.div>
+  );
+};
+
 export default function RegistrarProductoForm() {
   const router = useRouter()
   const { user } = useAuth() // Obtener el usuario del contexto de autenticación
@@ -88,6 +145,9 @@ export default function RegistrarProductoForm() {
   const [cantidadRestante, setCantidadRestante] = useState(0)
   const [nombreUsuario, setNombreUsuario] = useState('')
   const [isLoadingUsers, setIsLoadingUsers] = useState(false)
+  const [showSuccessAnimation, setShowSuccessAnimation] = useState(false)
+  const [successMessage, setSuccessMessage] = useState('')
+  const formRef = useRef<HTMLDivElement>(null)
   
   // Opciones predefinidas para Unidad Base
   const unidadesBaseOptions = ["PIEZA", "CAJA", "KIT"]
@@ -100,7 +160,7 @@ export default function RegistrarProductoForm() {
         // Obtener el token del localStorage
         const token = localStorage.getItem('token');
         if (!token) {
-          console.log('No hay token disponible');
+          //console.log('No hay token disponible');
           setIsLoadingUsers(false);
           return;
         }
@@ -332,36 +392,60 @@ export default function RegistrarProductoForm() {
       }
       
       const responseData = await response.json()
-
-      // Mostrar mensaje de éxito con toast normal
-      toast({
-        title: "Producto registrado",
-        description: `El producto ${values.codigo} ha sido registrado exitosamente.`,
-      })
       
-      // Mostrar notificación tipo SweetAlert con sonner
+      // Mostrar notificación de éxito con el estilo solicitado (usando sonnerToast)
       sonnerToast.success(
-        `Producto registrado exitosamente`,
+        "Producto registrado correctamente",
         {
-          description: `El producto ${values.codigo} ha sido registrado correctamente en el sistema.`,
+          description: `El producto ${values.codigo} ha sido registrado en el sistema.`,
           duration: 5000,
           position: 'top-center',
-          style: { 
-            backgroundColor: '#10b981', 
-            color: 'white',
-            border: 'none',
-            fontSize: '16px',
-            padding: '16px',
-            borderRadius: '8px',
-            boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)'
-          },
-          icon: '✅',
-          closeButton: true
+          style: {
+            backgroundColor: '#ecfdf5',
+            color: '#065f46',
+            border: '1px solid #10b981',
+            borderRadius: '8px'
+          }
         }
       )
-
-      // Resetear formulario
-      form.reset()
+      
+      // Resetear formulario con los valores por defecto
+      form.reset({
+        codigo: "",
+        descripcion: "",
+        marca: "",
+        unidadBase: "",
+        division: "",
+        linea: "",
+        sublinea: "",
+        lote: "",
+        fechaExpiracion: new Date(),
+        minimos: 0,
+        maximos: 0,
+        creadoPor: nombreUsuario || "",
+        cantidadNeta: 0,
+        presentaciones: [
+          {
+            codigo: "",
+            tipoPresentacion: "",
+            descripcionPresentacion: "",
+            cantidad: 1,
+            equivalenciaEnBase: 1
+          }
+        ],
+      })
+      
+      // Redirigir a la misma página para reiniciar completamente la vista
+      // y desplazarse al inicio de la página
+      setTimeout(() => {
+        window.scrollTo({
+          top: 0,
+          behavior: 'smooth'
+        })
+        
+        // Recargar la página actual para reiniciar completamente la vista
+        router.refresh()
+      }, 1000)
     } catch (error) {
       console.error("Error al registrar producto:", error)
       
@@ -402,6 +486,10 @@ export default function RegistrarProductoForm() {
     const presentaciones = form.getValues("presentaciones") || []
     const unidadBase = form.getValues("unidadBase") || ""
     
+    // Determinar el valor de equivalenciaEnBase según el tipo de presentación
+    // Si es PIEZA, siempre debe ser 1, para otros casos usar 1 como valor predeterminado
+    const equivalenciaEnBase = unidadBase === "PIEZA" ? 1 : 1
+    
     form.setValue("presentaciones", [
       ...presentaciones,
       {
@@ -409,7 +497,7 @@ export default function RegistrarProductoForm() {
         tipoPresentacion: unidadBase, // Usar la unidad base actual
         descripcionPresentacion: "",
         cantidad: 1,
-        equivalenciaEnBase: 1
+        equivalenciaEnBase: equivalenciaEnBase
       }
     ])
   }
@@ -570,9 +658,47 @@ export default function RegistrarProductoForm() {
     setShowQrScanner(!showQrScanner);
   };
 
+  // Función para manejar la finalización de la animación
+  const handleAnimationComplete = () => {
+    setShowSuccessAnimation(false);
+  };
+
   return (
-    <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+    <>
+      {/* Animación de éxito */}
+      <AnimatePresence>
+        {showSuccessAnimation && (
+          <SuccessAnimation 
+            message={successMessage}
+            onComplete={handleAnimationComplete}
+          />
+        )}
+      </AnimatePresence>
+      
+      {showQrScanner && (
+        <QrScanner 
+          onCancel={() => setShowQrScanner(false)}
+          onScanSuccess={(data: Record<string, any>) => {
+            // Actualizar los campos del formulario con los datos del QR
+            if (data.codigo) form.setValue("codigo", String(data.codigo).trim());
+            if (data.descripcion) form.setValue("descripcion", String(data.descripcion).trim());
+            if (data.marca) form.setValue("marca", String(data.marca).trim());
+            if (data.unidadBase) form.setValue("unidadBase", String(data.unidadBase).trim());
+            
+            // Cerrar el escáner
+            setShowQrScanner(false);
+            
+            // Mostrar notificación de éxito
+            sonnerToast.success("Datos cargados correctamente", {
+              description: "Los datos del código QR han sido cargados en el formulario.",
+              duration: 3000
+            });
+          }}
+        />
+      )}
+
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
         <div className="flex justify-end mb-2">
           <Button 
             type="button" 
@@ -597,119 +723,135 @@ export default function RegistrarProductoForm() {
               <Stethoscope className="h-5 w-5" />
               <h3 className="font-medium">Información del Producto</h3>
             </div>
-
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              <FormField
-                control={form.control}
-                name="codigo"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-naval-700">Código</FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder="Ej. PROD-001"
-                        {...field}
-                        className="border-naval-200 focus-visible:ring-naval-500"
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="marca"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-naval-700">Marca</FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder="Ej. MediTech"
-                        {...field}
-                        className="border-naval-200 focus-visible:ring-naval-500"
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="descripcion"
-                render={({ field }) => (
-                  <FormItem className="md:col-span-2">
-                    <FormLabel className="text-naval-700">Descripción</FormLabel>
-                    <FormControl>
-                      <Textarea
-                        placeholder="Descripción detallada del producto"
-                        {...field}
-                        className="border-naval-200 focus-visible:ring-naval-500"
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="unidadBase"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-naval-700">Unidad Base</FormLabel>
-                    <Select
-                      onValueChange={(value) => {
-                        field.onChange(value);
-                        
-                        // Actualizar el tipo de presentación en todas las presentaciones
-                        const presentaciones = form.getValues("presentaciones") || [];
-                        if (presentaciones.length > 0) {
-                          const updatedPresentaciones = presentaciones.map(p => ({
-                            ...p,
-                            tipoPresentacion: value
-                          }));
-                          form.setValue("presentaciones", updatedPresentaciones);
-                        }
-                      }}
-                      defaultValue={field.value}
-                    >
+            
+            {/* Usamos un layout más estructurado con alturas fijas para evitar descuadres */}
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+              {/* Primera fila: Código y Marca */}
+              <div className="flex flex-col h-24"> {/* Altura fija para cada contenedor */}
+                <FormField
+                  control={form.control}
+                  name="codigo"
+                  render={({ field }) => (
+                    <FormItem className="flex-1">
+                      <FormLabel className="text-naval-700">Código</FormLabel>
                       <FormControl>
-                        <SelectTrigger className="border-naval-200 focus-visible:ring-naval-500">
-                          <SelectValue placeholder="Selecciona una unidad base" />
-                        </SelectTrigger>
+                        <Input
+                          placeholder="Ej. PROD-001"
+                          {...field}
+                          className="border-naval-200 focus-visible:ring-naval-500"
+                        />
                       </FormControl>
-                      <SelectContent>
-                        {unidadesBaseOptions.map((option) => (
-                          <SelectItem key={option} value={option}>
-                            {option}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
 
-              <FormField
-                control={form.control}
-                name="lote"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-naval-700">Lote</FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder="Ej. LOT-2025-001"
-                        {...field}
-                        className="border-naval-200 focus-visible:ring-naval-500"
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              <div className="flex flex-col h-24"> {/* Altura fija para cada contenedor */}
+                <FormField
+                  control={form.control}
+                  name="marca"
+                  render={({ field }) => (
+                    <FormItem className="flex-1">
+                      <FormLabel className="text-naval-700">Marca</FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="Ej. MediTech"
+                          {...field}
+                          className="border-naval-200 focus-visible:ring-naval-500"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              {/* Segunda fila: Descripción (ocupa todo el ancho) */}
+              <div className="flex flex-col h-32 md:col-span-2"> {/* Altura fija más grande para el textarea */}
+                <FormField
+                  control={form.control}
+                  name="descripcion"
+                  render={({ field }) => (
+                    <FormItem className="flex-1">
+                      <FormLabel className="text-naval-700">Descripción</FormLabel>
+                      <FormControl>
+                        <Textarea
+                          placeholder="Descripción detallada del producto"
+                          {...field}
+                          className="border-naval-200 focus-visible:ring-naval-500"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              {/* Cuarta fila: Unidad Base y Lote */}
+              <div className="flex flex-col h-24"> {/* Altura fija para cada contenedor */}
+                <FormField
+                  control={form.control}
+                  name="unidadBase"
+                  render={({ field }) => (
+                    <FormItem className="flex-1">
+                      <FormLabel className="text-naval-700">Unidad Base</FormLabel>
+                      <Select
+                        onValueChange={(value) => {
+                          field.onChange(value);
+                          
+                          // Actualizar el tipo de presentación en todas las presentaciones
+                          const presentaciones = form.getValues("presentaciones") || [];
+                          if (presentaciones.length > 0) {
+                            const updatedPresentaciones = presentaciones.map(p => ({
+                              ...p,
+                              tipoPresentacion: value,
+                              // Si la unidad base es PIEZA, establecer equivalenciaEnBase a 1
+                              ...(value === "PIEZA" ? { equivalenciaEnBase: 1 } : {})
+                            }));
+                            form.setValue("presentaciones", updatedPresentaciones);
+                          }
+                        }}
+                        defaultValue={field.value}
+                      >
+                        <FormControl>
+                          <SelectTrigger className="border-naval-200 focus-visible:ring-naval-500">
+                            <SelectValue placeholder="Selecciona una unidad base" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {unidadesBaseOptions.map((option) => (
+                            <SelectItem key={option} value={option}>
+                              {option}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <div className="flex flex-col h-24"> {/* Altura fija para cada contenedor */}
+                <FormField
+                  control={form.control}
+                  name="lote"
+                  render={({ field }) => (
+                    <FormItem className="flex-1">
+                      <FormLabel className="text-naval-700">Lote</FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="Ej. LOT-2025-001"
+                          {...field}
+                          className="border-naval-200 focus-visible:ring-naval-500"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -721,97 +863,108 @@ export default function RegistrarProductoForm() {
               <h3 className="font-medium">Clasificación y Detalles</h3>
             </div>
 
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              <FormField
-                control={form.control}
-                name="division"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-naval-700">División</FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder="Ej. Insumos Médicos"
-                        {...field}
-                        className="border-naval-200 focus-visible:ring-naval-500"
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="linea"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-naval-700">Línea</FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder="Ej. Material de Curación"
-                        {...field}
-                        className="border-naval-200 focus-visible:ring-naval-500"
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="sublinea"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-naval-700">Sublínea</FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder="Ej. Guantes"
-                        {...field}
-                        className="border-naval-200 focus-visible:ring-naval-500"
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="fechaExpiracion"
-                render={({ field }) => (
-                  <FormItem className="flex flex-col">
-                    <FormLabel className="text-naval-700">Fecha de Expiración</FormLabel>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <FormControl>
-                          <Button
-                            variant={"outline"}
-                            className={cn(
-                              "w-full pl-3 text-left font-normal border-naval-200",
-                              !field.value && "text-muted-foreground",
-                            )}
-                          >
-                            {field.value ? format(field.value, "PPP", { locale: es }) : <span>Seleccionar fecha</span>}
-                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                          </Button>
-                        </FormControl>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar
-                          mode="single"
-                          selected={field.value}
-                          onSelect={field.onChange}
-                          disabled={(date) => date < new Date()}
-                          initialFocus
-                          className="border-naval-200"
+            {/* Usamos un layout más estructurado con alturas fijas para evitar descuadres */}
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+              {/* Primera fila: División y Línea */}
+              <div className="flex flex-col h-24"> {/* Altura fija para cada contenedor */}
+                <FormField
+                  control={form.control}
+                  name="division"
+                  render={({ field }) => (
+                    <FormItem className="flex-1">
+                      <FormLabel className="text-naval-700">División</FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="Ej. Insumos Médicos"
+                          {...field}
+                          className="border-naval-200 focus-visible:ring-naval-500"
                         />
-                      </PopoverContent>
-                    </Popover>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <div className="flex flex-col h-24"> {/* Altura fija para cada contenedor */}
+                <FormField
+                  control={form.control}
+                  name="linea"
+                  render={({ field }) => (
+                    <FormItem className="flex-1">
+                      <FormLabel className="text-naval-700">Línea</FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="Ej. Material de Curación"
+                          {...field}
+                          className="border-naval-200 focus-visible:ring-naval-500"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              {/* Segunda fila: Sublínea y Fecha de Expiración */}
+              <div className="flex flex-col h-24"> {/* Altura fija para cada contenedor */}
+                <FormField
+                  control={form.control}
+                  name="sublinea"
+                  render={({ field }) => (
+                    <FormItem className="flex-1">
+                      <FormLabel className="text-naval-700">Sublínea</FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="Ej. Guantes"
+                          {...field}
+                          className="border-naval-200 focus-visible:ring-naval-500"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <div className="flex flex-col h-24"> {/* Altura fija para cada contenedor */}
+                <FormField
+                  control={form.control}
+                  name="fechaExpiracion"
+                  render={({ field }) => (
+                    <FormItem className="flex-1">
+                      <FormLabel className="text-naval-700">Fecha de Expiración</FormLabel>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <FormControl>
+                            <Button
+                              variant={"outline"}
+                              className={cn(
+                                "w-full pl-3 text-left font-normal border-naval-200",
+                                !field.value && "text-muted-foreground",
+                              )}
+                            >
+                              {field.value ? format(field.value, "PPP", { locale: es }) : <span>Seleccionar fecha</span>}
+                              <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                            </Button>
+                          </FormControl>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar
+                            mode="single"
+                            selected={field.value}
+                            onSelect={field.onChange}
+                            disabled={(date) => date < new Date()}
+                            initialFocus
+                            className="border-naval-200"
+                          />
+                        </PopoverContent>
+                      </Popover>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -823,93 +976,261 @@ export default function RegistrarProductoForm() {
               <h3 className="font-medium">Información de Inventario</h3>
             </div>
 
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              <FormField
-                control={form.control}
-                name="minimos"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-naval-700">Cantidad Mínima</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="number"
-                        min="0"
-                        {...field}
-                        className="border-naval-200 focus-visible:ring-naval-500"
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+            {/* Usamos un layout más estructurado con alturas fijas para evitar descuadres */}
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+              {/* Primera fila: Cantidad Mínima y Máxima */}
+              <div className="flex flex-col h-24"> {/* Altura fija para cada contenedor */}
+                <FormField
+                  control={form.control}
+                  name="minimos"
+                  render={({ field }) => {
+                    // Manejar cambios en la cantidad mínima
+                    const handleMinimosChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+                      // Permitir campo vacío
+                      if (e.target.value === "") {
+                        field.onChange("");
+                        return;
+                      }
+                      
+                      const value = parseInt(e.target.value);
+                      if (!isNaN(value)) {
+                        field.onChange(value);
+                        
+                        // Verificar si la cantidad neta actual está por debajo del nuevo mínimo
+                        const cantidadNeta = form.getValues('cantidadNeta') || 0;
+                        if (cantidadNeta < value && cantidadNeta > 0) {
+                          sonnerToast.info("Cantidad por debajo del mínimo", {
+                            description: `La cantidad neta actual (${cantidadNeta}) está por debajo del mínimo recomendado (${value})`,
+                            duration: 3000
+                          });
+                        }
+                      }
+                    };
+                    
+                    return (
+                      <FormItem className="flex-1">
+                        <FormLabel className="text-naval-700">Cantidad Mínima</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            min="0"
+                            {...field}
+                            onChange={handleMinimosChange}
+                            className="border-naval-200 focus-visible:ring-naval-500"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    );
+                  }}
+                />
+              </div>
 
-              <FormField
-                control={form.control}
-                name="maximos"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-naval-700">Cantidad Máxima</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="number"
-                        min="0"
-                        {...field}
-                        className="border-naval-200 focus-visible:ring-naval-500"
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              <div className="flex flex-col h-24"> {/* Altura fija para cada contenedor */}
+                <FormField
+                  control={form.control}
+                  name="maximos"
+                  render={({ field }) => {
+                    // Manejar cambios en la cantidad máxima
+                    const handleMaximosChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+                      // Permitir campo vacío
+                      if (e.target.value === "") {
+                        field.onChange("");
+                        return;
+                      }
+                      
+                      const newMaxValue = parseInt(e.target.value);
+                      if (!isNaN(newMaxValue)) {
+                        field.onChange(newMaxValue);
+                        
+                        // Verificar si la cantidad neta actual excede el nuevo máximo
+                        const cantidadNeta = form.getValues('cantidadNeta');
+                        if (newMaxValue > 0 && cantidadNeta > newMaxValue) {
+                          // Actualizar la cantidad neta al nuevo máximo
+                          form.setValue('cantidadNeta', newMaxValue);
+                          sonnerToast.info("Cantidad neta ajustada", {
+                            description: `La cantidad neta ha sido ajustada a ${newMaxValue} para coincidir con el nuevo máximo`,
+                            duration: 3000
+                          });
+                        }
+                      }
+                    };
+                    
+                    return (
+                      <FormItem className="flex-1">
+                        <FormLabel className="text-naval-700">Cantidad Máxima</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            min="0"
+                            {...field}
+                            onChange={handleMaximosChange}
+                            className="border-naval-200 focus-visible:ring-naval-500"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    );
+                  }}
+                />
+              </div>
 
-              <FormField
-                control={form.control}
-                name="cantidadNeta"
-                render={({ field }) => (
-                  <FormItem>
-                    <div className="flex items-center justify-between">
-                      <FormLabel className="text-naval-700">Cantidad Neta</FormLabel>
-                      {form.watch('cantidadNeta') > 0 && (
-                        <div className={`ml-2 px-3 py-1 text-xs rounded-full ${cantidadRestante === 0 ? 'bg-green-100 text-green-800' : cantidadRestante > 0 ? 'bg-amber-100 text-amber-800' : 'bg-red-100 text-red-800'}`}>
-                          {cantidadRestante === 0 
-                            ? '✓ Cantidades correctas' 
-                            : cantidadRestante > 0 
-                              ? `Faltan ${cantidadRestante} unidades por asignar` 
-                              : `Exceso de ${Math.abs(cantidadRestante)} unidades`}
-                        </div>
-                      )}
-                    </div>
-                    <FormControl>
-                      <Input
-                        type="number"
-                        min="0"
-                        {...field}
-                        className="border-naval-200 focus-visible:ring-naval-500"
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              {/* Segunda fila: Cantidad Neta y Creado Por */}
+              <div className="flex flex-col h-24"> {/* Altura fija para cada contenedor */}
+                <FormField
+                  control={form.control}
+                  name="cantidadNeta"
+                  render={({ field }) => {
+                    const maximos = form.watch('maximos') || 0;
+                    
+                    // Validar que la cantidad neta esté dentro de los límites (mínimo y máximo)
+                    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+                      // Permitir campo vacío
+                      if (e.target.value === "") {
+                        field.onChange("");
+                        return;
+                      }
+                      
+                      const value = parseInt(e.target.value);
+                      const minimos = form.watch('minimos') || 0;
+                      
+                      if (!isNaN(value)) {
+                        // Si el valor es mayor que máximos, establecerlo a máximos
+                        if (value > maximos && maximos > 0) {
+                          field.onChange(maximos);
+                          sonnerToast.warning("Cantidad excedida", {
+                            description: `La cantidad neta no puede ser mayor que la cantidad máxima (${maximos})`,
+                            duration: 3000
+                          });
+                          // Función para manejar la finalización de la animación
+                          const handleAnimationComplete = () => {
+                            setShowSuccessAnimation(false);
+                          };
 
-              <FormField
-                control={form.control}
-                name="creadoPor"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-naval-700">Creado Por</FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder="Nombre del usuario"
-                        {...field}
-                        className="border-naval-200 focus-visible:ring-naval-500"
-                        readOnly={!!nombreUsuario}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+                          return (
+                            <>
+                              {/* Animación de éxito */}
+                              <AnimatePresence>
+                                {showSuccessAnimation && (
+                                  <SuccessAnimation 
+                                    message={successMessage}
+                                    onComplete={handleAnimationComplete}
+                                  />
+                                )}
+                              </AnimatePresence>
+                              
+                              {showQrScanner && (
+                                <QrScanner 
+                                  onCancel={() => setShowQrScanner(false)}
+                                  onScanSuccess={(data: Record<string, any>) => {
+                                    setShowQrScanner(false)
+                                    if (data && data.codigo) {
+                                      form.setValue("codigo", data.codigo)
+                                    }
+                                  }}
+                                />
+                              )}
+                              
+                              <Form {...form}>
+                                <div ref={formRef}>
+                                  <FormItem className="flex-1">
+                                    <FormLabel className="text-naval-700">Cantidad Neta</FormLabel>
+                                    <FormControl>
+                                      <Input
+                                        type="number"
+                                        min="0"
+                                        max={maximos > 0 ? maximos : undefined}
+                                        {...field}
+                                        onChange={handleChange}
+                                        className="border-naval-200 focus-visible:ring-naval-500"
+                                      />
+                                    </FormControl>
+                                    {/* Mostrar mensaje según si la cantidad está por debajo del mínimo o por encima del máximo */}
+                                    {(() => {
+                                      const minimos = form.watch('minimos') || 0;
+                                      const cantidadActual = field.value || 0;
+                                      
+                                      if (cantidadActual < minimos && minimos > 0) {
+                                        return (
+                                          <p className="text-xs text-amber-600 mt-1">Cantidad mínima recomendada: {minimos}</p>
+                                        );
+                                      } else if (maximos > 0) {
+                                        return (
+                                          <p className="text-xs text-blue-600 mt-1">Máximo permitido: {maximos}</p>
+                                        );
+                                      }
+                                      return null;
+                                    })()}
+                                    <FormMessage />
+                                  </FormItem>
+                                </div>
+                              </Form>
+                            </>
+                          );
+                        } else {
+                          field.onChange(value);
+                          
+                          
+                        }
+                      }
+                    };
+                    
+                    return (
+                      <FormItem className="flex-1">
+                        <FormLabel className="text-naval-700">Cantidad Neta</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            min="0"
+                            max={maximos > 0 ? maximos : undefined}
+                            {...field}
+                            onChange={handleChange}
+                            className="border-naval-200 focus-visible:ring-naval-500"
+                          />
+                        </FormControl>
+                        {/* Mostrar mensaje según si la cantidad está por debajo del mínimo o por encima del máximo */}
+                        {(() => {
+                          const minimos = form.watch('minimos') || 0;
+                          const cantidadActual = field.value || 0;
+                          
+                          if (cantidadActual < minimos && minimos > 0) {
+                            return (
+                              <p className="text-xs text-amber-600 mt-1">Cantidad mínima recomendada: {minimos}</p>
+                            );
+                          } else if (maximos > 0) {
+                            return (
+                              <p className="text-xs text-blue-600 mt-1">Máximo permitido: {maximos}</p>
+                            );
+                          }
+                          return null;
+                        })()}
+                        <FormMessage />
+                      </FormItem>
+                    );
+                  }}
+                />
+              </div>
+
+              <div className="flex flex-col h-24"> {/* Altura fija para cada contenedor */}
+                <FormField
+                  control={form.control}
+                  name="creadoPor"
+                  render={({ field }) => (
+                    <FormItem className="flex-1">
+                      <FormLabel className="text-naval-700">Creado Por</FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="Nombre del usuario"
+                          {...field}
+                          className="border-naval-200 focus-visible:ring-naval-500"
+                          readOnly={!!nombreUsuario}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -947,108 +1268,133 @@ export default function RegistrarProductoForm() {
                     <Trash2 className="h-4 w-4" />
                   </Button>
                 </div>
-                <div className="grid grid-cols-1 gap-4 md:grid-cols-2 p-4 border border-naval-100 rounded-md bg-white">
-                  <FormField
-                    control={form.control}
-                    name={`presentaciones.${index}.codigo`}
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-naval-700">Código</FormLabel>
-                        <FormControl>
-                          <Input
-                            placeholder="Ej. PRES-001"
-                            {...field}
-                            className="border-naval-200 focus-visible:ring-naval-500"
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                <div className="p-4 border border-naval-100 rounded-md bg-white">
+                  {/* Usamos un layout más estructurado con alturas fijas para evitar descuadres */}
+                  <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                    {/* Primera fila: Código y Tipo de Presentación */}
+                    <div className="flex flex-col h-24"> {/* Altura fija para cada contenedor */}
+                      <FormField
+                        control={form.control}
+                        name={`presentaciones.${index}.codigo`}
+                        render={({ field }) => (
+                          <FormItem className="flex-1">
+                            <FormLabel className="text-naval-700">Código</FormLabel>
+                            <FormControl>
+                              <Input
+                                placeholder="Ej. PRES-001"
+                                {...field}
+                                className="border-naval-200 focus-visible:ring-naval-500"
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
 
-                  <FormField
-                    control={form.control}
-                    name={`presentaciones.${index}.tipoPresentacion`}
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-naval-700">Tipo de Presentación</FormLabel>
-                        <FormControl>
-                          <Input
-                            placeholder="Ej. Caja"
-                            {...field}
-                            className="border-naval-200 focus-visible:ring-naval-500 bg-gray-50"
-                            readOnly={true}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                    <div className="flex flex-col h-24"> {/* Altura fija para cada contenedor */}
+                      <FormField
+                        control={form.control}
+                        name={`presentaciones.${index}.tipoPresentacion`}
+                        render={({ field }) => (
+                          <FormItem className="flex-1">
+                            <FormLabel className="text-naval-700">Tipo de Presentación</FormLabel>
+                            <FormControl>
+                              <Input
+                                placeholder="Ej. Caja"
+                                {...field}
+                                className="border-naval-200 focus-visible:ring-naval-500 bg-gray-50"
+                                readOnly={true}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
 
-                  <FormField
-                    control={form.control}
-                    name={`presentaciones.${index}.descripcionPresentacion`}
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-naval-700">Descripción</FormLabel>
-                        <FormControl>
-                          <Input
-                            placeholder="Ej. Caja con 100 unidades"
-                            {...field}
-                            className="border-naval-200 focus-visible:ring-naval-500"
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                    {/* Segunda fila: Descripción y Cantidad */}
+                    <div className="flex flex-col h-24"> {/* Altura fija para cada contenedor */}
+                      <FormField
+                        control={form.control}
+                        name={`presentaciones.${index}.descripcionPresentacion`}
+                        render={({ field }) => (
+                          <FormItem className="flex-1">
+                            <FormLabel className="text-naval-700">Descripción</FormLabel>
+                            <FormControl>
+                              <Input
+                                placeholder="Ej. Caja con 100 unidades"
+                                {...field}
+                                className="border-naval-200 focus-visible:ring-naval-500"
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
 
-                  <FormField
-                    control={form.control}
-                    name={`presentaciones.${index}.cantidad`}
-                    render={({ field }) => (
-                      <FormItem>
-                        <div className="flex items-center justify-between">
-                          <FormLabel className="text-naval-700">Cantidad</FormLabel>
-                          {form.watch('cantidadNeta') > 0 && cantidadRestante !== 0 && (
-                            <div className={`ml-2 px-3 py-1 text-xs rounded-full ${cantidadRestante === 0 ? 'bg-green-100 text-green-800' : cantidadRestante > 0 ? 'bg-amber-100 text-amber-800' : 'bg-red-100 text-red-800'}`}>
-                              {cantidadRestante > 0 
-                                ? `Faltan ${cantidadRestante} unidades` 
-                                : `Exceso de ${Math.abs(cantidadRestante)} unidades`}
-                            </div>
+                    <div className="flex flex-col h-24"> {/* Altura fija para cada contenedor */}
+                      <FormField
+                        control={form.control}
+                        name={`presentaciones.${index}.cantidad`}
+                        render={({ field }) => (
+                          <FormItem className="flex-1">
+                            <FormLabel className="text-naval-700">Cantidad</FormLabel>
+                            <FormControl>
+                              <Input
+                                type="number"
+                                min="1"
+                                {...field}
+                                className="border-naval-200 focus-visible:ring-naval-500"
+                              />
+                            </FormControl>
+                            {form.watch('cantidadNeta') > 0 && cantidadRestante !== 0 && (
+                              <p className={`text-xs mt-1 ${cantidadRestante > 0 ? 'text-amber-600' : 'text-red-600'}`}>
+                                {cantidadRestante > 0 
+                                  ? `Faltan ${cantidadRestante} unidades por asignar` 
+                                  : `Exceso de ${Math.abs(cantidadRestante)} unidades`}
+                              </p>
+                            )}
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+
+                    {/* Tercera fila: Equivalencia en Unidad Base (solo si no es PIEZA) */}
+                    {form.watch(`presentaciones.${index}.tipoPresentacion`) !== "PIEZA" && (
+                      <div className="flex flex-col h-24 md:col-span-2"> {/* Altura fija para cada contenedor */}
+                        <FormField
+                          control={form.control}
+                          name={`presentaciones.${index}.equivalenciaEnBase`}
+                          render={({ field }) => (
+                            <FormItem className="flex-1">
+                              <FormLabel className="text-naval-700">Equivalencia en Unidad Base</FormLabel>
+                              <FormControl>
+                                <Input
+                                  type="number"
+                                  min="1"
+                                  {...field}
+                                  className="border-naval-200 focus-visible:ring-naval-500"
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
                           )}
-                        </div>
-                        <FormControl>
-                          <Input
-                            type="number"
-                            min="1"
-                            {...field}
-                            className="border-naval-200 focus-visible:ring-naval-500"
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
+                        />
+                      </div>
                     )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name={`presentaciones.${index}.equivalenciaEnBase`}
-                    render={({ field }) => (
-                      <FormItem className="md:col-span-2">
-                        <FormLabel className="text-naval-700">Equivalencia en Unidad Base</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="number"
-                            min="1"
-                            {...field}
-                            className="border-naval-200 focus-visible:ring-naval-500"
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
+                    
+                    {/* Si es PIEZA, mantener el valor 1 pero no mostrar el campo */}
+                    {form.watch(`presentaciones.${index}.tipoPresentacion`) === "PIEZA" && (
+                      <input 
+                        type="hidden" 
+                        {...form.register(`presentaciones.${index}.equivalenciaEnBase`)} 
+                        value="1" 
+                      />
                     )}
-                  />
+                  </div>
                 </div>
                 {index < form.watch("presentaciones").length - 1 && (
                   <Separator className="my-4" />
@@ -1058,6 +1404,18 @@ export default function RegistrarProductoForm() {
           </CardContent>
         </Card>
 
+        {/* Mensaje de advertencia antes del botón para evitar descuadres */}
+        {/* {form.watch('cantidadNeta') > 0 && cantidadRestante !== 0 && (
+          <div className="mb-4 text-sm w-full">
+            <p className={`p-2 rounded-md ${cantidadRestante > 0 ? 'bg-amber-50 text-amber-700 border border-amber-200' : 'bg-red-50 text-red-700 border border-red-200'}`}>
+              {cantidadRestante > 0 
+                ? `⚠️ Faltan ${cantidadRestante} unidades por asignar en presentaciones` 
+                : `⚠️ Hay un exceso de ${Math.abs(cantidadRestante)} unidades en presentaciones`}
+            </p>
+          </div>
+        )} */}
+
+        {/* Botón de envío */}
         <div className="flex justify-end">
           <Button 
             type="submit" 
@@ -1066,15 +1424,9 @@ export default function RegistrarProductoForm() {
           >
             {isSubmitting ? "Registrando..." : "Registrar Producto"}
           </Button>
-          {form.watch('cantidadNeta') > 0 && cantidadRestante !== 0 && (
-            <div className="absolute -mt-10 text-sm text-red-600">
-              {cantidadRestante > 0 
-                ? `Faltan ${cantidadRestante} unidades por asignar en presentaciones` 
-                : `Hay un exceso de ${Math.abs(cantidadRestante)} unidades en presentaciones`}
-            </div>
-          )}
         </div>
       </form>
     </Form>
+    </>
   )
 }

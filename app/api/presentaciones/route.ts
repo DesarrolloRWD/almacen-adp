@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { codigo, lote } = body;
     
-    console.log('Buscando presentaciones con:', { codigo, lote });
+    //console.log('Buscando presentaciones con:', { codigo, lote });
     
     // URL de la API externa
     const apiUrl = process.env.NEXT_PUBLIC_ALMACEN_API_URL + '/api/get/presentation/by/codigo/lote';
@@ -55,7 +55,7 @@ export async function POST(request: NextRequest) {
     
     // Obtener los datos de la respuesta
     const data = await response.json();
-    console.log('Respuesta de API externa:', data);
+    //console.log('Respuesta de API externa:', data);
     
     // Devolver los datos
     return NextResponse.json(data);

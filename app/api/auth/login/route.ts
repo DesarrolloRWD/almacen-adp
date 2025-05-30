@@ -6,7 +6,7 @@ export async function POST(request: Request) {
     const body = await request.json();
     
     // Log para depuración
-    // // //console.log('Datos enviados al servidor:', body);
+    // // ////console.log('Datos enviados al servidor:', body);
     
     // URL del endpoint de login real
     const baseUrl = process.env.NEXT_PUBLIC_AUTH_API_URL;
@@ -42,9 +42,9 @@ export async function POST(request: Request) {
     const data = await response.json();
     
     // Log para depuración
-    // // //console.log('Respuesta del servidor de login:', data);
-    // // //console.log('Tipo de respuesta:', typeof data);
-    // // //console.log('Propiedades de la respuesta:', Object.keys(data));
+    // // ////console.log('Respuesta del servidor de login:', data);
+    // // ////console.log('Tipo de respuesta:', typeof data);
+    // // ////console.log('Propiedades de la respuesta:', Object.keys(data));
     
     // Verificar si la respuesta contiene un token (con o sin espacio)
     const tokenValue = data && (data.token || data['token ']);

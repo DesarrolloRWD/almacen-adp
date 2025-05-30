@@ -168,11 +168,11 @@ export async function getPresentacionByCodigoLote(codigo: string, lote: string):
       "codigo": codigo,
       "lote": lote
     };
-    console.log('Enviando payload:', payload);
+    //console.log('Enviando payload:', payload);
     
     // Usar authPost para mantener la consistencia con el resto del código
     const response = await authPost(API_ENDPOINTS.GET_PRESENTACION_BY_CODIGO_LOTE, payload);
-    console.log('Respuesta recibida:', response);
+    //console.log('Respuesta recibida:', response);
     
     return Array.isArray(response) ? response : [];
   } catch (error) {
@@ -211,7 +211,7 @@ export async function login(credentials: LoginCredentials): Promise<LoginRespons
     const data = await response.json()
     
     // Log para depuración
-    // //console.log('Respuesta procesada en api.ts:', data)
+    // ////console.log('Respuesta procesada en api.ts:', data)
     
     // Verificar si la respuesta contiene un token (con o sin espacio)
     const tokenValue = data && (data.token || data['token ']);

@@ -98,11 +98,11 @@ export function PresentacionesTable() {
   const agregarPresentacion = async (id: number) => {
     try {
       setLoadingPresentacion(true)
-      //console.log('Obteniendo presentación con ID:', id) // Log para depuración
+      ////console.log('Obteniendo presentación con ID:', id) // Log para depuración
       const presentacion = await getPresentacionEspecifica(id)
       
       if (presentacion) {
-        //console.log('Presentación obtenida:', presentacion) // Log para depuración
+        ////console.log('Presentación obtenida:', presentacion) // Log para depuración
         // Verificar si ya existe en el carrito
         const yaExiste = presentacionesSeleccionadas.some(p => p.id === presentacion.id)
         
@@ -146,7 +146,7 @@ export function PresentacionesTable() {
       };
       
       // Mostrar en consola los datos que se enviarán
-      console.log('Datos que se enviarán al endpoint de entregas:', datosEntrega);
+      //console.log('Datos que se enviarán al endpoint de entregas:', datosEntrega);
       
       // 1. Enviar datos al endpoint
       const resultado = await generateEntrega(datosEntrega);
