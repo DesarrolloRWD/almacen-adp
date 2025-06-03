@@ -168,30 +168,30 @@ export async function getPresentacionByCodigoLote(codigo: string, lote: string):
       "codigo": codigo,
       "lote": lote
     };
-    console.log('Buscando presentaciones - Payload enviado:', payload);
+    // console.log('Buscando presentaciones - Payload enviado:', payload);
     
     // Usar authPost para mantener la consistencia con el resto del código
     const response = await authPost(API_ENDPOINTS.GET_PRESENTACION_BY_CODIGO_LOTE, payload);
-    console.log('Presentaciones encontradas - Respuesta completa:', JSON.stringify(response, null, 2));
+    // console.log('Presentaciones encontradas - Respuesta completa:', JSON.stringify(response, null, 2));
     
     // Verificar la estructura de los datos recibidos
     if (Array.isArray(response)) {
-      console.log(`Se encontraron ${response.length} presentaciones`);
+      // console.log(`Se encontraron ${response.length} presentaciones`);
       // Mostrar detalles de cada presentación encontrada
       response.forEach((presentacion, index) => {
-        console.log(`Presentación ${index + 1}:`, {
-          id: presentacion.id,
-          tipoPresentacion: presentacion.tipoPresentacion,
-          descripcionPresentacion: presentacion.descripcionPresentacion,
-          cantidad: presentacion.cantidad,
-          equivalenciaEnBase: presentacion.equivalenciaEnBase,
-          totalEquivalenciaEnBase: presentacion.totalEquivalenciaEnBase,
-          lote: presentacion.lote,
-          item: presentacion.item
-        });
+        // console.log(`Presentación ${index + 1}:`, {
+        //   id: presentacion.id,
+        //   tipoPresentacion: presentacion.tipoPresentacion,
+        //   descripcionPresentacion: presentacion.descripcionPresentacion,
+        //   cantidad: presentacion.cantidad,
+        //   equivalenciaEnBase: presentacion.equivalenciaEnBase,
+        //   totalEquivalenciaEnBase: presentacion.totalEquivalenciaEnBase,
+        //   lote: presentacion.lote,
+        //   item: presentacion.item
+        // });
       });
     } else {
-      console.log('La respuesta no es un array:', response);
+      // console.log('La respuesta no es un array:', response);
     }
     
     return Array.isArray(response) ? response : [];
@@ -368,10 +368,10 @@ export interface EntregaData {
 // Función para generar una entrega
 export async function generateEntrega(entregaData: EntregaData): Promise<{ success: boolean; message: string }> {
   try {
-    console.log('URL del endpoint:', API_ENDPOINTS.GENERATE_ENTREGA);
-    console.log('Datos enviados:', JSON.stringify(entregaData, null, 2));
+    // console.log('URL del endpoint:', API_ENDPOINTS.GENERATE_ENTREGA);
+    // console.log('Datos enviados:', JSON.stringify(entregaData, null, 2));
     const response = await authPost(API_ENDPOINTS.GENERATE_ENTREGA, entregaData);
-    console.log('Respuesta del servidor:', response);
+    // console.log('Respuesta del servidor:', response);
     return { success: true, message: "Entrega generada exitosamente" };
   } catch (error: any) {
     console.error("Error al generar entrega:", error);

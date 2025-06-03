@@ -479,7 +479,7 @@ export default function HistorialMovimientos() {
       };
       
       // Mostrar en consola los datos que se enviarán
-      console.log('Datos que se enviarán al endpoint de entregas:', JSON.stringify(datosEntrega, null, 2));
+      // console.log('Datos que se enviarán al endpoint de entregas:', JSON.stringify(datosEntrega, null, 2));
       
       // Enviar datos al endpoint
       const resultado = await generateEntrega(datosEntrega);
