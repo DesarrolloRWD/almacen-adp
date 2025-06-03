@@ -267,7 +267,7 @@ export default function HistorialMovimientos() {
     
     // Crear una nueva entrega
     const nuevaEntrega: Entrega = {
-      id: nextId,
+      id: resultado.id, // Usar el ID original de la presentación en lugar de nextId
       fecha: new Date().toISOString(),
       tipo: "Salida", // Por defecto es una salida, podría ser configurable
       producto: {
@@ -479,7 +479,7 @@ export default function HistorialMovimientos() {
       };
       
       // Mostrar en consola los datos que se enviarán
-      //console.log('Datos que se enviarán al endpoint de entregas:', datosEntrega);
+      console.log('Datos que se enviarán al endpoint de entregas:', JSON.stringify(datosEntrega, null, 2));
       
       // Enviar datos al endpoint
       const resultado = await generateEntrega(datosEntrega);
