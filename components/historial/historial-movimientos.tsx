@@ -203,12 +203,12 @@ export default function HistorialMovimientos() {
       const codigoFormateado = codigo.trim();
       const loteFormateado = lote.trim();
       
-      //console.log('Buscando presentaciones con:', { codigo: codigoFormateado, lote: loteFormateado });
+      ////console.log('Buscando presentaciones con:', { codigo: codigoFormateado, lote: loteFormateado });
       
       // Llamada a la API para buscar presentaciones por código y lote
       const presentaciones = await api.getPresentacionByCodigoLote(codigoFormateado, loteFormateado);
       
-      //console.log('Presentaciones encontradas:', presentaciones);
+      ////console.log('Presentaciones encontradas:', presentaciones);
       
       if (!presentaciones || presentaciones.length === 0) {
         setErrorBusqueda("No se encontraron presentaciones con los criterios especificados");
@@ -479,7 +479,7 @@ export default function HistorialMovimientos() {
       };
       
       // Mostrar en consola los datos que se enviarán
-      // console.log('Datos que se enviarán al endpoint de entregas:', JSON.stringify(datosEntrega, null, 2));
+      // //console.log('Datos que se enviarán al endpoint de entregas:', JSON.stringify(datosEntrega, null, 2));
       
       // Enviar datos al endpoint
       const resultado = await generateEntrega(datosEntrega);

@@ -38,7 +38,7 @@ export default function QrScanner({ onScanSuccess, onCancel }: QrScannerProps): 
   // Procesar el contenido del QR
   const processQrData = (data: string) => {
     try {
-      console.log("Contenido QR original:", data);
+      //console.log("Contenido QR original:", data);
       setError(null); // Limpiar errores previos
       setProcessedData(null); // Limpiar datos procesados previos
       
@@ -50,7 +50,7 @@ export default function QrScanner({ onScanSuccess, onCancel }: QrScannerProps): 
       
       // Verificar si es el formato distorsionado del lector
       if (data.includes('¨') || data.includes('[') || data.includes('Ñ') || data.includes('*')) {
-        console.log("Detectado formato distorsionado del lector QR, intentando convertir a JSON");
+        //console.log("Detectado formato distorsionado del lector QR, intentando convertir a JSON");
         
         // Convertir el formato distorsionado a JSON
         let jsonString = data
@@ -59,16 +59,16 @@ export default function QrScanner({ onScanSuccess, onCancel }: QrScannerProps): 
           .replace(/Ñ/g, ':') // Ñ -> :
           .replace(/\*/g, '}'); // * -> }
         
-        console.log("Formato convertido a JSON:", jsonString);
+        //console.log("Formato convertido a JSON:", jsonString);
         
         try {
           // Intentar parsear como JSON
           const jsonData = JSON.parse(jsonString);
-          console.log("Datos procesados como JSON convertido:", jsonData);
+          //console.log("Datos procesados como JSON convertido:", jsonData);
           setProcessedData(jsonData);
           return;
         } catch (convertError) {
-          console.log("Error al parsear el JSON convertido:", convertError);
+          //console.log("Error al parsear el JSON convertido:", convertError);
           // Continuar con otros métodos de procesamiento
         }
       }
@@ -81,12 +81,12 @@ export default function QrScanner({ onScanSuccess, onCancel }: QrScannerProps): 
         // Verificar si el contenido parece ser JSON (comienza con { y termina con })
         if (cleanData.startsWith('{') && cleanData.endsWith('}')) {
           const jsonData = JSON.parse(cleanData);
-          console.log("Datos procesados como JSON válido:", jsonData);
+          //console.log("Datos procesados como JSON válido:", jsonData);
           setProcessedData(jsonData);
           return;
         }
       } catch (jsonError) {
-        console.log("No es un JSON válido, intentando otros formatos...");
+        //console.log("No es un JSON válido, intentando otros formatos...");
       }
       
       // Si no es JSON, intentar procesar como el formato distorsionado
@@ -96,25 +96,25 @@ export default function QrScanner({ onScanSuccess, onCancel }: QrScannerProps): 
       
       // Formato específico del lector QR externo
       // Ejemplo: ¨[codigo[Ñ[56535[,[marca[Ñ[ROCHE[,[descripcion[Ñ[ere[,[unidad[Ñ[PZ[,[lote[Ñ[LT001[*
-      console.log("Intentando procesar formato específico del lector QR con Ñ");
+      //console.log("Intentando procesar formato específico del lector QR con Ñ");
       
       // Eliminar el asterisco final y caracteres especiales al inicio
       cleanData = cleanData.replace(/^\s*¨/, "").replace(/\*$/, '');
-      console.log("Datos limpiados:", cleanData);
+      //console.log("Datos limpiados:", cleanData);
       
       // Dividir por comas para procesar cada sección
       const sections = cleanData.split(',').map(s => s.trim()).filter(s => s);
-      console.log("Secciones separadas por coma:", sections);
+      //console.log("Secciones separadas por coma:", sections);
       
       // Procesar cada sección
       for (const section of sections) {
-        console.log("Procesando sección:", section);
+        //console.log("Procesando sección:", section);
         
         try {
           // Extraer el nombre del campo (entre los primeros corchetes)
           const fieldMatch = section.match(/\[(\w+)\]/);
           if (!fieldMatch) {
-            console.log("No se encontró el nombre del campo en:", section);
+            //console.log("No se encontró el nombre del campo en:", section);
             continue;
           }
           
@@ -124,7 +124,7 @@ export default function QrScanner({ onScanSuccess, onCancel }: QrScannerProps): 
           // Buscamos el patrón [Ñ[valor[
           const valueMatch = section.match(/\[Ñ\]\[([^\[]+)/);
           if (!valueMatch) {
-            console.log("No se encontró el valor para el campo", key);
+            //console.log("No se encontró el valor para el campo", key);
             
             // Intentar con un patrón alternativo si no se encuentra el valor con Ñ
             const altMatch = section.match(/\[(\w+)\]\[.\]\[([^\[]+)/);
@@ -135,7 +135,7 @@ export default function QrScanner({ onScanSuccess, onCancel }: QrScannerProps): 
               // Eliminar el corchete final si existe
               value = value.replace(/\[$/, '');
               
-              console.log(`Campo extraído (alt): ${key}, Valor extraído: ${value}`);
+              //console.log(`Campo extraído (alt): ${key}, Valor extraído: ${value}`);
               
               // Mapeo de campos específicos
               if (key === 'unidad') {
@@ -149,7 +149,7 @@ export default function QrScanner({ onScanSuccess, onCancel }: QrScannerProps): 
                 jsonData[key] = value;
               }
               
-              console.log(`Campo procesado (alt): ${key} = ${jsonData[key]}`);
+              //console.log(`Campo procesado (alt): ${key} = ${jsonData[key]}`);
             }
             continue;
           }
@@ -159,7 +159,7 @@ export default function QrScanner({ onScanSuccess, onCancel }: QrScannerProps): 
           // Eliminar el corchete final si existe
           value = value.replace(/\[$/, '');
           
-          console.log(`Campo extraído: ${key}, Valor extraído: ${value}`);
+          //console.log(`Campo extraído: ${key}, Valor extraído: ${value}`);
           
           // Mapeo de campos específicos
           if (key === 'unidad') {
@@ -173,15 +173,15 @@ export default function QrScanner({ onScanSuccess, onCancel }: QrScannerProps): 
             jsonData[key] = value;
           }
           
-          console.log(`Campo procesado: ${key} = ${jsonData[key]}`);
+          //console.log(`Campo procesado: ${key} = ${jsonData[key]}`);
         } catch (error) {
-          console.log("Error procesando sección:", section, error);
+          //console.log("Error procesando sección:", section, error);
         }
       }
       
       // Si se encontraron datos, procesarlos
       if (Object.keys(jsonData).length > 0) {
-        console.log("Datos procesados del formato específico:", jsonData);
+        //console.log("Datos procesados del formato específico:", jsonData);
         setProcessedData(jsonData);
         return;
       }
@@ -189,7 +189,7 @@ export default function QrScanner({ onScanSuccess, onCancel }: QrScannerProps): 
       // Método 1: Intentar dividir por comas (formato distorsionado)
       if (cleanData.includes(',')) {
         const parts = cleanData.split(',').map(part => part.trim()).filter(part => part);
-        console.log("Partes separadas por coma:", parts);
+        //console.log("Partes separadas por coma:", parts);
         
         // Procesar cada parte
         for (const part of parts) {
@@ -211,7 +211,7 @@ export default function QrScanner({ onScanSuccess, onCancel }: QrScannerProps): 
             value = value.replace(/«/g, 'o');
             
             jsonData[key] = value;
-            console.log(`Campo de texto encontrado: ${key} = ${value}`);
+            //console.log(`Campo de texto encontrado: ${key} = ${value}`);
             continue;
           }
           
@@ -229,7 +229,7 @@ export default function QrScanner({ onScanSuccess, onCancel }: QrScannerProps): 
             }
             
             jsonData[key] = value;
-            console.log(`Campo numérico encontrado: ${key} = ${value}`);
+            //console.log(`Campo numérico encontrado: ${key} = ${value}`);
             continue;
           }
           
@@ -251,7 +251,7 @@ export default function QrScanner({ onScanSuccess, onCancel }: QrScannerProps): 
             const value = isNaN(numValue) ? valueStr : numValue;
             
             jsonData[key] = value;
-            console.log(`Campo genérico encontrado: ${key} = ${value}`);
+            //console.log(`Campo genérico encontrado: ${key} = ${value}`);
           }
         }
       }
@@ -283,7 +283,7 @@ export default function QrScanner({ onScanSuccess, onCancel }: QrScannerProps): 
             jsonData[key] = value;
           }
           
-          console.log(`Par clave-valor encontrado: ${key} = ${jsonData[key]}`);
+          //console.log(`Par clave-valor encontrado: ${key} = ${jsonData[key]}`);
         }
       }
       
@@ -291,11 +291,11 @@ export default function QrScanner({ onScanSuccess, onCancel }: QrScannerProps): 
       if (Object.keys(jsonData).length === 0) {
         // Último intento: mostrar el contenido original y pedir al usuario que lo verifique
         setError("No se pudo extraer información del código QR automáticamente. Por favor verifica el formato o intenta copiar y pegar nuevamente.");
-        console.log("No se pudo procesar el contenido del QR en ningún formato conocido");
+        //console.log("No se pudo procesar el contenido del QR en ningún formato conocido");
         return;
       }
       
-      console.log("Datos procesados del QR:", jsonData);
+      //console.log("Datos procesados del QR:", jsonData);
       setProcessedData(jsonData);
     } catch (err) {
       console.error("Error al procesar el QR:", err);

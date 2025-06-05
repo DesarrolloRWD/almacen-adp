@@ -7,7 +7,7 @@ export const runtime = 'nodejs' // Usar Node.js runtime
 // Método POST para actualizar la información del usuario
 export async function POST(request: NextRequest) {
   try {
-    // ////console.log('Recibida solicitud POST para actualizar información de usuario')
+    // //////console.log('Recibida solicitud POST para actualizar información de usuario')
     const body = await request.json()
     const token = request.cookies.get('token')?.value
 
@@ -30,8 +30,8 @@ export async function POST(request: NextRequest) {
     
     const apiUrl = `${baseUrl}/api/update/information`
 
-    // ////console.log('Enviando solicitud a:', apiUrl)
-    // ////console.log('Datos:', body)
+    // //////console.log('Enviando solicitud a:', apiUrl)
+    // //////console.log('Datos:', body)
 
     // Realizar la solicitud al endpoint externo
     const response = await fetch(apiUrl, {
@@ -46,7 +46,7 @@ export async function POST(request: NextRequest) {
     // Obtener la respuesta como JSON
     const data = await response.json()
     
-    // ////console.log('Respuesta recibida:', data)
+    // //////console.log('Respuesta recibida:', data)
 
     // Devolver la respuesta
     return NextResponse.json(data, {

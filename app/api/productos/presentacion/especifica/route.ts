@@ -11,8 +11,8 @@ export async function POST(req: NextRequest) {
     // Construir la URL completa para el microservicio
     const apiUrl = `${process.env.NEXT_PUBLIC_ALMACEN_API_URL}/api/get/specific/presentacion`
     
-    ////console.log('Enviando solicitud a:', apiUrl)
-    ////console.log('Con datos:', body)
+    //////console.log('Enviando solicitud a:', apiUrl)
+    //////console.log('Con datos:', body)
     
     // Realizar la solicitud al microservicio
     const response = await fetch(apiUrl, {
@@ -35,7 +35,7 @@ export async function POST(req: NextRequest) {
     
     // Devolver la respuesta del microservicio
     const data = await response.json()
-    ////console.log('Respuesta del microservicio:', data)
+    //////console.log('Respuesta del microservicio:', data)
     
     return NextResponse.json(data)
   } catch (error) {

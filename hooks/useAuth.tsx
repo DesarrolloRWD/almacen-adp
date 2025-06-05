@@ -62,16 +62,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = async (usuario: string, password: string): Promise<boolean> => {
     try {
       // Log para depuración
-      // ////console.log('Intentando login con:', { usuario, password: '***' })
+      // //////console.log('Intentando login con:', { usuario, password: '***' })
       
       const result = await apiLogin({ usuario, pswd: password })
       
       // Log para depuración
-      // ////console.log('Resultado del login:', result)
+      // //////console.log('Resultado del login:', result)
       
       // Guardar el token en localStorage, cookie y en el estado
       if (result.success && result.token) {
-        // ////console.log('Login exitoso, guardando token')
+        // //////console.log('Login exitoso, guardando token')
         localStorage.setItem("token", result.token)
         // Guardar en cookie para que el middleware pueda acceder
         document.cookie = `token=${result.token}; path=/; max-age=${60 * 60 * 24 * 7}; SameSite=Strict`

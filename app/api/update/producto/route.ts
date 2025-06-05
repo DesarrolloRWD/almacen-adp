@@ -4,7 +4,7 @@ export async function POST(request: NextRequest) {
   try {
     // Obtener los datos del request
     const data = await request.json();
-    ////console.log('Datos recibidos:', JSON.stringify(data, null, 2));
+    //////console.log('Datos recibidos:', JSON.stringify(data, null, 2));
     
     // URL de la API externa para actualizar productos
     const baseUrl = process.env.NEXT_PUBLIC_ALMACEN_API_URL;
@@ -18,7 +18,7 @@ export async function POST(request: NextRequest) {
     
     const apiUrl = `${baseUrl}/api/update/product`;
     
-    ////console.log('Enviando a URL:', apiUrl);
+    //////console.log('Enviando a URL:', apiUrl);
     
     // Intentar realizar la solicitud a la API externa
     try {
@@ -43,12 +43,12 @@ export async function POST(request: NextRequest) {
       // Intentar obtener la respuesta como JSON
       try {
         const responseData = await response.json();
-        ////console.log('Respuesta exitosa:', JSON.stringify(responseData, null, 2));
+        //////console.log('Respuesta exitosa:', JSON.stringify(responseData, null, 2));
         return NextResponse.json(responseData);
       } catch (jsonError) {
         // Si no es JSON, devolver el texto como respuesta
         const responseText = await response.text();
-        ////console.log('Respuesta exitosa (texto):', responseText);
+        //////console.log('Respuesta exitosa (texto):', responseText);
         return NextResponse.json({ message: responseText || 'Operación exitosa' });
       }
     } catch (fetchError) {

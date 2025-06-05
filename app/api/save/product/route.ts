@@ -26,11 +26,11 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     
     // Imprimir el cuerpo completo de la solicitud para depuración
-    //console.log("Cuerpo completo de la solicitud:", JSON.stringify(body, null, 2))
+    ////console.log("Cuerpo completo de la solicitud:", JSON.stringify(body, null, 2))
     
     // Asegurarnos de que la fecha de expiración tenga el formato correcto
     if (body.fechaExpiracion) {
-      //console.log("Fecha de expiración original:", body.fechaExpiracion)
+      ////console.log("Fecha de expiración original:", body.fechaExpiracion)
       
       // Verificar si la fecha ya tiene el formato correcto
       if (!body.fechaExpiracion.endsWith('T00:00:00.000Z')) {
@@ -39,7 +39,7 @@ export async function POST(request: NextRequest) {
         body.fechaExpiracion = `${fechaBase}T00:00:00.000Z`
       }
       
-      //console.log("Fecha de expiración formateada:", body.fechaExpiracion)
+      ////console.log("Fecha de expiración formateada:", body.fechaExpiracion)
     }
     
     // Verificar que todos los campos requeridos estén presentes
@@ -80,8 +80,8 @@ export async function POST(request: NextRequest) {
     
     const apiUrl = `${baseUrl}/api/save/product`
     
-    //console.log("Enviando solicitud a:", apiUrl)
-    //console.log("Con token:", token ? "[TOKEN PRESENTE]" : "[SIN TOKEN]")
+    ////console.log("Enviando solicitud a:", apiUrl)
+    ////console.log("Con token:", token ? "[TOKEN PRESENTE]" : "[SIN TOKEN]")
     
     // Realizar la solicitud al endpoint externo
     const response = await fetch(apiUrl, {
@@ -93,7 +93,7 @@ export async function POST(request: NextRequest) {
       body: JSON.stringify(body)
     })
     
-    //console.log("Respuesta del servidor:", response.status, response.statusText)
+    ////console.log("Respuesta del servidor:", response.status, response.statusText)
     
     // Si la respuesta es 401 (No autorizado), probablemente el token expiró
     if (response.status === 401) {
@@ -126,11 +126,11 @@ export async function POST(request: NextRequest) {
       // Intentar parsear el error como JSON para obtener más detalles
       try {
         const errorJson = JSON.parse(errorText)
-        //console.log("Error JSON parseado:", errorJson)
+        ////console.log("Error JSON parseado:", errorJson)
         
         // Si es un error de fecha de expiración, dar un mensaje más específico
         if (errorJson.message && errorJson.message.includes("Error en la fecha de expiracion")) {
-          //console.log("Detectado error de fecha de expiración")
+          ////console.log("Detectado error de fecha de expiración")
           return NextResponse.json(
             { 
               error: "Error en la fecha de expiración", 
@@ -142,7 +142,7 @@ export async function POST(request: NextRequest) {
         }
       } catch (e) {
         // Si no se puede parsear como JSON, continuar con el manejo normal
-        //console.log("No se pudo parsear el error como JSON:", e)
+        ////console.log("No se pudo parsear el error como JSON:", e)
       }
       
       return NextResponse.json(
@@ -153,7 +153,7 @@ export async function POST(request: NextRequest) {
     
     // Obtener la respuesta como JSON
     const data = await response.json()
-    //console.log("Respuesta exitosa del servidor")
+    ////console.log("Respuesta exitosa del servidor")
     
     // Devolver la respuesta
     return NextResponse.json(data, {

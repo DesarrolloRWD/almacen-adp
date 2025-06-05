@@ -7,7 +7,7 @@ export async function POST(request: Request) {
     const body = await request.json();
     
     // Log para depuración
-    //console.log('Datos enviados al endpoint de entregas:', body);
+    ////console.log('Datos enviados al endpoint de entregas:', body);
     
     // URL del endpoint real
     const baseUrl = process.env.NEXT_PUBLIC_ENTREGAS_API_URL;
@@ -48,7 +48,7 @@ export async function POST(request: Request) {
     const data = await response.json();
     
     // Log para depuración
-    //console.log('Respuesta del endpoint de entregas:', data);
+    ////console.log('Respuesta del endpoint de entregas:', data);
     
     // Si la respuesta no es exitosa, devolver error
     if (!response.ok) {

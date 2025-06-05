@@ -94,11 +94,11 @@ export default function ConfiguracionPage() {
     setError("") // Limpiar errores anteriores
     try {
       const data = await api.getAllUsers()
-      // //console.log("Usuarios obtenidos:", data) // Log para depuración
+      // ////console.log("Usuarios obtenidos:", data) // Log para depuración
       
       if (Array.isArray(data)) {
         if (data.length === 0) {
-          // //console.log("No se encontraron usuarios")
+          // ////console.log("No se encontraron usuarios")
         }
         setUsers(data)
       } else if (data && typeof data === 'object') {
@@ -111,7 +111,7 @@ export default function ConfiguracionPage() {
           setUsers([data as User])
         }
       } else {
-        // //console.log("No se recibieron datos válidos")
+        // ////console.log("No se recibieron datos válidos")
         setUsers([])
       }
     } catch (err) {
@@ -181,7 +181,7 @@ export default function ConfiguracionPage() {
     setLoadingUserDetails(true)
     try {
       const userData = await api.getSpecificUser(username)
-      // //console.log("Detalles del usuario:", userData)
+      // ////console.log("Detalles del usuario:", userData)
       setSelectedUser(userData)
       setIsUserDialogOpen(true)
     } catch (err) {
