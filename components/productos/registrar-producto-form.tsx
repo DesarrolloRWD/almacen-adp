@@ -24,7 +24,7 @@ import { toast } from "@/components/ui/use-toast"
 import { Card, CardContent } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
 import { toast as sonnerToast } from "sonner"
-import QrScanner from "./qr-scanner"
+// QrScanner ya no es necesario con la captura automática
 
 // Esquema para las presentaciones
 const presentacionSchema = z.object({
@@ -141,13 +141,16 @@ export default function RegistrarProductoForm() {
   const router = useRouter()
   const { user } = useAuth() // Obtener el usuario del contexto de autenticación
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [showQrScanner, setShowQrScanner] = useState(false)
   const [cantidadRestante, setCantidadRestante] = useState(0)
   const [nombreUsuario, setNombreUsuario] = useState('')
   const [isLoadingUsers, setIsLoadingUsers] = useState(false)
   const [showSuccessAnimation, setShowSuccessAnimation] = useState(false)
   const [successMessage, setSuccessMessage] = useState('')
   const formRef = useRef<HTMLDivElement>(null)
+  
+  // Para captura automática de códigos QR con lector físico
+  const [qrBuffer, setQrBuffer] = useState('')
+  const [lastKeypressTime, setLastKeypressTime] = useState(0)
   
   // Opciones predefinidas para Unidad Base
   const unidadesBaseOptions = ["PIEZA", "CAJA", "KIT"]
@@ -522,79 +525,154 @@ export default function RegistrarProductoForm() {
   // Función para procesar los datos del QR escaneado
   const handleQrScanSuccess = (qrData: Record<string, any>) => {
     try {
-      // Actualizar los campos del formulario con los datos del QR
-      if (qrData.codigo) {
-        form.setValue("codigo", qrData.codigo);
-      }
+      console.log("Datos QR recibidos:", qrData);
+      
       // Verificar que los datos tienen la estructura esperada
       if (!qrData || typeof qrData !== 'object') {
         sonnerToast.error("Formato de QR inválido", {
-          description: "El código QR no contiene un objeto JSON válido."
+          description: "El código QR no contiene datos válidos."
         });
         return;
       }
       
       // Limpiar el formulario antes de llenarlo con nuevos datos
+      // Pero mantener los valores que no se van a actualizar
+      const currentValues = form.getValues();
       form.reset({
-        ...form.getValues(),
+        ...currentValues,
         codigo: "",
         descripcion: "",
         marca: "",
         unidadBase: "",
-        division: "",
-        linea: "",
-        sublinea: "",
-        lote: "",
-        creadoPor: "",
-        minimos: 0,
-        maximos: 0,
-        cantidadNeta: 0
+        lote: ""
       });
       
       // Actualizar el formulario con los datos del QR
       // Código
-      if (qrData.codigo) {
+      if (qrData.codigo !== undefined) {
         form.setValue("codigo", String(qrData.codigo).trim());
+        console.log("Campo código actualizado:", qrData.codigo);
       }
       
       // Descripción
-      if (qrData.descripcion) {
+      if (qrData.descripcion !== undefined) {
         form.setValue("descripcion", String(qrData.descripcion).trim());
+        console.log("Campo descripción actualizado:", qrData.descripcion);
       }
       
       // Marca
-      if (qrData.marca) {
+      if (qrData.marca !== undefined) {
         form.setValue("marca", String(qrData.marca).trim());
+        console.log("Campo marca actualizado:", qrData.marca);
       }
       
-      // Unidad Base
-      if (qrData.unidadBase) {
-        form.setValue("unidadBase", String(qrData.unidadBase).trim());
+      // Unidad Base - puede venir como unidad o unidadBase
+      console.log("Buscando campo unidad/unidadBase en datos QR:", qrData);
+      
+      if (qrData.unidadBase !== undefined || qrData.unidad !== undefined) {
+        // Obtener el valor de unidad del QR (de cualquiera de los dos campos posibles)
+        const unidadValue = String(qrData.unidadBase || qrData.unidad).trim();
+        let unidadFinal = unidadValue.toUpperCase();
+        
+        // Convertir PZ a PIEZA si es necesario
+        if (unidadFinal === "PZ") {
+          unidadFinal = "PIEZA";
+        }
+        
+        // Verificar si la unidad está en las opciones disponibles
+        let unidadSeleccionada = "";
+        if (unidadesBaseOptions.includes(unidadFinal)) {
+          unidadSeleccionada = unidadFinal;
+          form.setValue("unidadBase", unidadFinal);
+          console.log(`Campo unidadBase actualizado: '${unidadValue}' → '${unidadFinal}'`);
+        } else {
+          // Si no está en las opciones, usar la primera opción disponible y mostrar advertencia
+          unidadSeleccionada = unidadesBaseOptions[0];
+          form.setValue("unidadBase", unidadesBaseOptions[0]);
+          console.log(`Advertencia: La unidad '${unidadFinal}' no está en las opciones disponibles. Se usó '${unidadesBaseOptions[0]}' en su lugar.`);
+          sonnerToast.warning("Unidad base adaptada", {
+            description: `La unidad '${unidadFinal}' del QR no es válida. Se usó '${unidadesBaseOptions[0]}' en su lugar.`
+          });
+        }
+        
+        // Actualizar el tipo de presentación en todas las presentaciones existentes
+        const presentaciones = form.getValues("presentaciones");
+        if (presentaciones && presentaciones.length > 0) {
+          presentaciones.forEach((_, index) => {
+            form.setValue(`presentaciones.${index}.tipoPresentacion`, unidadSeleccionada);
+          });
+          console.log(`Se actualizó el tipo de presentación en ${presentaciones.length} presentaciones a: '${unidadSeleccionada}'`);
+        }
       }
       
       // División
-      if (qrData.division) {
+      if (qrData.division !== undefined) {
         form.setValue("division", String(qrData.division).trim());
+        console.log("Campo división actualizado:", qrData.division);
       }
       
       // Línea
-      if (qrData.linea) {
+      if (qrData.linea !== undefined) {
         form.setValue("linea", String(qrData.linea).trim());
+        console.log("Campo línea actualizado:", qrData.linea);
       }
       
       // Sublínea
-      if (qrData.sublinea) {
+      if (qrData.sublinea !== undefined) {
         form.setValue("sublinea", String(qrData.sublinea).trim());
+        console.log("Campo sublínea actualizado:", qrData.sublinea);
       }
       
-      // Lote
-      if (qrData.lote) {
-        form.setValue("lote", String(qrData.lote).trim());
+      // Lote - procesamiento simplificado con logs detallados
+      console.log("Buscando campo lote en datos QR:", qrData);
+      
+      // Buscar el lote en los campos más comunes
+      if (qrData.lote !== undefined) {
+        // Limpiar y formatear el valor del lote
+        let valorLote = String(qrData.lote).trim();
+        console.log(`Valor original de lote: '${valorLote}'`);
+        
+        // Eliminar caracteres especiales que puedan quedar del formato QR
+        valorLote = valorLote.replace(/[\[\]\*\u00d1\u00a8]/g, '');
+        console.log(`Valor de lote después de limpiar: '${valorLote}'`);
+        
+        // Establecer el valor directamente en el campo de texto
+        form.setValue("lote", valorLote);
+        console.log(`Campo lote actualizado: '${valorLote}'`);
+      } 
+      // Si no viene en el campo lote, buscar en otros campos comunes
+      else if (qrData.lot !== undefined) {
+        let valorLote = String(qrData.lot).trim();
+        console.log(`Valor original de lot: '${valorLote}'`);
+        valorLote = valorLote.replace(/[\[\]\*\u00d1\u00a8]/g, '');
+        form.setValue("lote", valorLote);
+        console.log(`Campo lote actualizado desde 'lot': '${valorLote}'`);
+      }
+      else if (qrData.numerolote !== undefined) {
+        let valorLote = String(qrData.numerolote).trim();
+        console.log(`Valor original de numerolote: '${valorLote}'`);
+        valorLote = valorLote.replace(/[\[\]\*\u00d1\u00a8]/g, '');
+        form.setValue("lote", valorLote);
+        console.log(`Campo lote actualizado desde 'numerolote': '${valorLote}'`);
+      }
+      else if (qrData.numlote !== undefined) {
+        let valorLote = String(qrData.numlote).trim();
+        console.log(`Valor original de numlote: '${valorLote}'`);
+        valorLote = valorLote.replace(/[\[\]\*\u00d1\u00a8]/g, '');
+        form.setValue("lote", valorLote);
+        console.log(`Campo lote actualizado desde 'numlote': '${valorLote}'`);
+      }
+      else {
+        console.log("No se encontró información de lote en los datos del QR");
       }
       
-      // Creado Por
-      if (qrData.creadoPor) {
+      // Creado Por - mantener el valor actual si no viene en el QR
+      if (qrData.creadoPor !== undefined) {
         form.setValue("creadoPor", String(qrData.creadoPor).trim());
+        console.log("Campo creadoPor actualizado:", qrData.creadoPor);
+      } else if (nombreUsuario) {
+        form.setValue("creadoPor", nombreUsuario);
+        console.log("Campo creadoPor mantenido como:", nombreUsuario);
       }
       
       // Actualizar campos numéricos - asegurar que sean números
@@ -627,24 +705,12 @@ export default function RegistrarProductoForm() {
       
       // No actualizamos las presentaciones, como se solicitó
       
-      setShowQrScanner(false); // Ocultar el escáner después de escanear
+      // La captura es automática ahora
       
-      sonnerToast.success("Datos cargados correctamente", {
-        description: `Se ha cargado la información del producto ${qrData.codigo}.`,
-        duration: 5000,
-        position: 'top-center',
-        style: { 
-          backgroundColor: '#10b981', 
-          color: 'white',
-          border: 'none',
-          fontSize: '16px',
-          padding: '16px',
-          borderRadius: '8px',
-          boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)'
-        },
-        icon: '✅',
-        closeButton: true
-      });
+      // Se eliminó la alerta de éxito para evitar interrupciones
+      
+      // La captura es automática ahora
+      
     } catch (error) {
       console.error("Error al procesar los datos del QR:", error);
       sonnerToast.error("Error al procesar el código QR", {
@@ -653,10 +719,96 @@ export default function RegistrarProductoForm() {
     }
   };
 
-  // Función para alternar la visibilidad del escáner QR
-  const toggleQrScanner = () => {
-    setShowQrScanner(!showQrScanner);
-  };
+  // Efecto para capturar automáticamente los datos del lector QR físico
+  useEffect(() => {
+    // Función para manejar eventos de teclado
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const currentTime = new Date().getTime();
+      
+      // Si ha pasado más de 500ms desde la última tecla, reiniciar el buffer
+      if (currentTime - lastKeypressTime > 500) {
+        setQrBuffer('');
+      }
+      
+      setLastKeypressTime(currentTime);
+      
+      // Ignorar teclas de control excepto Enter
+      if (e.key === 'Enter') {
+        // El lector QR generalmente termina con Enter
+        try {
+          // Intentar procesar el buffer como datos QR
+          console.log('Procesando datos del lector QR:', qrBuffer);
+          
+          // Intentar convertir el formato del lector QR
+          let processedData: Record<string, string> = {};
+          
+          // Formato observado: [codigo[Ñ[56535[,[marca[Ñ[ROCHE[,[descripcion[Ñ[ere[,[unidad[Ñ[PZ[,[lote[Ñ[LT001[*
+          if (qrBuffer.includes('[') && qrBuffer.includes('Ñ')) {
+            try {
+              // Extraer pares clave-valor usando expresiones regulares
+              const regex = /\[(\w+)\[Ñ\[([^\[,]+)(?:\[,|\[\*|$)/g;
+              let match;
+              
+              // Inicializar processedData como un objeto con propiedades tipadas
+              const tempData: Record<string, string> = {};
+              
+              while ((match = regex.exec(qrBuffer)) !== null) {
+                const key = match[1]; // Por ejemplo: 'codigo'
+                const value = match[2]; // Por ejemplo: '56535'
+                tempData[key] = value;
+              }
+              
+              // Asignar el objeto tipado a processedData
+              processedData = tempData;
+              
+              console.log('Datos procesados del QR:', processedData);
+              
+              // Verificar que se extrajeron datos
+              if (Object.keys(processedData).length > 0) {
+                // Se eliminó la alerta para evitar interrupciones
+                handleQrScanSuccess(processedData);
+              } else {
+                throw new Error('No se pudieron extraer datos del código QR');
+              }
+            } catch (err) {
+              console.error('Error al procesar el formato del lector QR:', err);
+              sonnerToast.error('Error al procesar el código QR', {
+                description: 'El formato no pudo ser procesado correctamente.'
+              });
+            }
+          } else {
+            try {
+              // Intentar parsear como JSON normal
+              processedData = JSON.parse(qrBuffer);
+              // Se eliminó la alerta para evitar interrupciones
+              handleQrScanSuccess(processedData);
+            } catch (err) {
+              console.error('No se pudo procesar como JSON:', err);
+            }
+          }
+          
+          // Limpiar el buffer después de procesar
+          setQrBuffer('');
+        } catch (error) {
+          console.error('Error al procesar datos del lector QR:', error);
+          setQrBuffer('');
+        }
+      } else if (e.key && e.key.length === 1) { // Solo caracteres imprimibles
+        // Añadir al buffer
+        setQrBuffer(prev => prev + e.key);
+      }
+    };
+    
+    // Agregar el event listener
+    window.addEventListener('keydown', handleKeyDown);
+    
+    // Limpiar al desmontar
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [qrBuffer, lastKeypressTime, handleQrScanSuccess]);
+
+
 
   // Función para manejar la finalización de la animación
   const handleAnimationComplete = () => {
@@ -675,48 +827,11 @@ export default function RegistrarProductoForm() {
         )}
       </AnimatePresence>
       
-      {showQrScanner && (
-        <QrScanner 
-          onCancel={() => setShowQrScanner(false)}
-          onScanSuccess={(data: Record<string, any>) => {
-            // Actualizar los campos del formulario con los datos del QR
-            if (data.codigo) form.setValue("codigo", String(data.codigo).trim());
-            if (data.descripcion) form.setValue("descripcion", String(data.descripcion).trim());
-            if (data.marca) form.setValue("marca", String(data.marca).trim());
-            if (data.unidadBase) form.setValue("unidadBase", String(data.unidadBase).trim());
-            
-            // Cerrar el escáner
-            setShowQrScanner(false);
-            
-            // Mostrar notificación de éxito
-            sonnerToast.success("Datos cargados correctamente", {
-              description: "Los datos del código QR han sido cargados en el formulario.",
-              duration: 3000
-            });
-          }}
-        />
-      )}
+      {/* El escáner QR ya no es necesario con la captura automática */}
 
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-        <div className="flex justify-end mb-2">
-          <Button 
-            type="button" 
-            variant="outline" 
-            onClick={toggleQrScanner}
-            className="text-naval-600 border-naval-200 hover:bg-naval-100"
-          >
-            <QrCode className="h-4 w-4 mr-2" />
-            {showQrScanner ? "Ocultar Escáner QR" : "Escanear QR"}
-          </Button>
-        </div>
-        
-        {showQrScanner && (
-          <QrScanner 
-            onScanSuccess={handleQrScanSuccess} 
-            onCancel={() => setShowQrScanner(false)}
-          />
-        )}
+        {/* Se eliminó el botón de escaneo QR ya que ahora la captura es automática */}
         <Card className="bg-naval-50/50 border-naval-100">
           <CardContent className="pt-6">
             <div className="flex items-center gap-2 mb-4 text-naval-700">
@@ -796,37 +911,37 @@ export default function RegistrarProductoForm() {
                   render={({ field }) => (
                     <FormItem className="flex-1">
                       <FormLabel className="text-naval-700">Unidad Base</FormLabel>
-                      <Select
-                        onValueChange={(value) => {
-                          field.onChange(value);
-                          
-                          // Actualizar el tipo de presentación en todas las presentaciones
-                          const presentaciones = form.getValues("presentaciones") || [];
-                          if (presentaciones.length > 0) {
-                            const updatedPresentaciones = presentaciones.map(p => ({
-                              ...p,
-                              tipoPresentacion: value,
-                              // Si la unidad base es PIEZA, establecer equivalenciaEnBase a 1
-                              ...(value === "PIEZA" ? { equivalenciaEnBase: 1 } : {})
-                            }));
-                            form.setValue("presentaciones", updatedPresentaciones);
-                          }
-                        }}
-                        defaultValue={field.value}
-                      >
-                        <FormControl>
+                      <FormControl>
+                        <Select
+                          value={field.value}
+                          onValueChange={(value) => {
+                            field.onChange(value);
+                            
+                            // Actualizar el tipo de presentación en todas las presentaciones
+                            const presentaciones = form.getValues("presentaciones") || [];
+                            if (presentaciones.length > 0) {
+                              const updatedPresentaciones = presentaciones.map(p => ({
+                                ...p,
+                                tipoPresentacion: value,
+                                // Si la unidad base es PIEZA, establecer equivalenciaEnBase a 1
+                                ...(value === "PIEZA" ? { equivalenciaEnBase: 1 } : {})
+                              }));
+                              form.setValue("presentaciones", updatedPresentaciones);
+                            }
+                          }}
+                        >
                           <SelectTrigger className="border-naval-200 focus-visible:ring-naval-500">
-                            <SelectValue placeholder="Selecciona una unidad base" />
+                            <SelectValue placeholder="Seleccionar unidad base" />
                           </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {unidadesBaseOptions.map((option) => (
-                            <SelectItem key={option} value={option}>
-                              {option}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                          <SelectContent>
+                            {unidadesBaseOptions.map((unidad) => (
+                              <SelectItem key={unidad} value={unidad}>
+                                {unidad}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -1119,17 +1234,7 @@ export default function RegistrarProductoForm() {
                                 )}
                               </AnimatePresence>
                               
-                              {showQrScanner && (
-                                <QrScanner 
-                                  onCancel={() => setShowQrScanner(false)}
-                                  onScanSuccess={(data: Record<string, any>) => {
-                                    setShowQrScanner(false)
-                                    if (data && data.codigo) {
-                                      form.setValue("codigo", data.codigo)
-                                    }
-                                  }}
-                                />
-                              )}
+                              {/* Se eliminó el componente QrScanner ya que ahora la captura es automática */}
                               
                               <Form {...form}>
                                 <div ref={formRef}>
