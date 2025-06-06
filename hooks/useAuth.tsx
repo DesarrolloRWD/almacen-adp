@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useState, useEffect, ReactNode } from "react"
 import { useRouter } from "next/navigation"
-import { login as apiLogin } from "@/lib/api"
+import { login as apiLogin, getSpecificUser } from "@/lib/api"
 
 interface AuthContextType {
   isAuthenticated: boolean
@@ -44,8 +44,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Si hay token en cualquiera de los dos lugares, establecer como autenticado
       setToken(token)
       setIsAuthenticated(true)
-      // Aquí podrías obtener información del usuario si es necesario
-      setUser({ nombre: "Usuario" }) // Placeholder
+      
+      // Intentar obtener el nombre de usuario del token JWT
+      let username = "";
+      try {
+        const base64Url = token.split('.')[1];
+        if (base64Url) {
+          const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+          const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+            return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+          }).join(''));
+          
+          const payload = JSON.parse(jsonPayload);
+          username = payload.sub || payload.usuario || "";
+        }
+      } catch (e) {
+        console.error("Error al decodificar el token JWT", e);
+      }
+      
+      // Si tenemos un nombre de usuario, obtener información completa
+      if (username) {
+        fetchUserInfo(username).then(userInfo => {
+          if (userInfo) {
+            setUser(userInfo);
+          } else {
+            setUser({ nombre: username }); // Fallback
+          }
+        });
+      } else {
+        setUser({ nombre: "Usuario" }); // Placeholder
+      }
       
       // Asegurar que el token esté en ambos lugares
       if (!storedToken && cookieToken) {
@@ -58,27 +86,70 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setIsLoading(false)
   }, [])
 
+  // Función para obtener información completa del usuario
+  const fetchUserInfo = async (username: string) => {
+    try {
+      
+      // Usar el endpoint local para evitar problemas de CORS
+      const response = await fetch('/api/users/specific', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem("token")}`
+        },
+        body: JSON.stringify({ value: username })
+      });
+      
+      
+      
+      if (response.ok) {
+        const userData = await response.json();
+        
+        // Asegurarse de que la imagen tenga una URL completa
+        const apiUrl = process.env.NEXT_PUBLIC_USUARIOS_API_URL || '';
+        if (userData && userData.image && !userData.image.startsWith('http')) {
+          userData.image = `${apiUrl}${userData.image.startsWith('/') ? '' : '/'}${userData.image}`;
+         
+        }
+        
+        return userData;
+      } else {
+        console.error('Error al obtener información del usuario, status:', response.status);
+        return null;
+      }
+    } catch (error) {
+      console.error("Error al obtener información del usuario:", error);
+      return null;
+    }
+  };
+
   // Función para iniciar sesión
   const login = async (usuario: string, password: string): Promise<boolean> => {
     try {
-      // Log para depuración
-      // //////console.log('Intentando login con:', { usuario, password: '***' })
+ 
       
       const result = await apiLogin({ usuario, pswd: password })
       
-      // Log para depuración
-      // //////console.log('Resultado del login:', result)
+    
       
       // Guardar el token en localStorage, cookie y en el estado
       if (result.success && result.token) {
-        // //////console.log('Login exitoso, guardando token')
+        
         localStorage.setItem("token", result.token)
         // Guardar en cookie para que el middleware pueda acceder
         document.cookie = `token=${result.token}; path=/; max-age=${60 * 60 * 24 * 7}; SameSite=Strict`
         setToken(result.token)
         setIsAuthenticated(true)
-        setUser({ nombre: usuario }) // Puedes guardar más información del usuario si la API la proporciona
-        return true
+        
+        // Obtener información completa del usuario
+        const userInfo = await fetchUserInfo(usuario);
+        if (userInfo) {
+          setUser(userInfo);
+        } else {
+          setUser({ nombre: usuario }); // Fallback si no se puede obtener la información completa
+        }
+        
+        return true;
       } else {
         console.error('Login fallido:', result.message || 'No se proporcionó mensaje de error')
         return false

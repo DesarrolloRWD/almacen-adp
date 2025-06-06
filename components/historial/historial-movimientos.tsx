@@ -22,6 +22,13 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 
 // Array vacío para resultados de búsqueda
 const resultadosBusquedaData: ResultadoBusqueda[] = [];
@@ -122,6 +129,12 @@ export default function HistorialMovimientos() {
   const [areaDestino, setAreaDestino] = useState("");
   const [responsableArea, setResponsableArea] = useState("");
   
+  // Lista de responsables de área predefinidos
+  const responsablesAreaOptions = [
+    "TTE ELYEL",
+    "TTE.KARLA"
+  ];
+  
   // Estado para el modal de comentarios específicos
   const [modalComentarioAbierto, setModalComentarioAbierto] = useState(false);
   const [comentarioActual, setComentarioActual] = useState("");
@@ -202,13 +215,11 @@ export default function HistorialMovimientos() {
       // Formateamos los datos exactamente como se muestra en Swagger
       const codigoFormateado = codigo.trim();
       const loteFormateado = lote.trim();
-      
-      ////console.log('Buscando presentaciones con:', { codigo: codigoFormateado, lote: loteFormateado });
+    
       
       // Llamada a la API para buscar presentaciones por código y lote
       const presentaciones = await api.getPresentacionByCodigoLote(codigoFormateado, loteFormateado);
       
-      ////console.log('Presentaciones encontradas:', presentaciones);
       
       if (!presentaciones || presentaciones.length === 0) {
         setErrorBusqueda("No se encontraron presentaciones con los criterios especificados");
@@ -437,21 +448,28 @@ export default function HistorialMovimientos() {
 
   // Función para generar el PDF con las observaciones
   const generarPDFConObservaciones = async () => {
-    if (generandoSalida) return;
-    
-    // Validar campos requeridos
+    // Validar que se hayan ingresado los datos requeridos
     if (!entregadoPor.trim()) {
-      toast.error("El campo 'Entregado Por' es requerido");
+      toast.error("Error", {
+        description: "Debe ingresar quién entrega los productos",
+        duration: 3000
+      });
       return;
     }
     
     if (!areaDestino.trim()) {
-      toast.error("El campo 'Área de Destino' es requerido");
+      toast.error("Error", {
+        description: "Debe ingresar el área de destino",
+        duration: 3000
+      });
       return;
     }
     
-    if (!responsableArea.trim()) {
-      toast.error("El campo 'Responsable del Área' es requerido");
+    if (!responsableArea) {
+      toast.error("Error", {
+        description: "Debe seleccionar el responsable del área",
+        duration: 3000
+      });
       return;
     }
     
@@ -478,8 +496,7 @@ export default function HistorialMovimientos() {
         }))
       };
       
-      // Mostrar en consola los datos que se enviarán
-      // //console.log('Datos que se enviarán al endpoint de entregas:', JSON.stringify(datosEntrega, null, 2));
+   
       
       // Enviar datos al endpoint
       const resultado = await generateEntrega(datosEntrega);
@@ -559,9 +576,7 @@ export default function HistorialMovimientos() {
     doc.setLineWidth(0.5);
     doc.line(0, 25, pageWidth, 25);
     
-    // Agregar logo o imagen (simulado con un rectángulo azul)
-    // doc.setFillColor(0, 51, 102); // Azul naval
-    // doc.rect(14, 10, 20, 20, 'F');
+   
     
     // Calcular el ancho máximo disponible para el título (dejando espacio para el número de documento)
     const docInfoWidth = 80; // Ancho del recuadro de info del documento (reducido)
@@ -772,6 +787,14 @@ export default function HistorialMovimientos() {
     
     // Mostrar mensaje de éxito
     alert("Se ha generado el PDF de salida correctamente.");
+    
+    // Limpiar los campos del formulario después de generar la salida
+    setEntregas([]);
+    setCantidadesSacadas({});
+    setObservaciones("");
+    setAreaDestino("");
+    setResponsableArea("");
+    setModalObservacionesAbierto(false);
   };
 
   return (
@@ -1205,14 +1228,18 @@ export default function HistorialMovimientos() {
             
             <div className="space-y-2">
               <Label htmlFor="responsableArea" className="font-medium">Responsable del Área <span className="text-red-500">*</span></Label>
-              <Input
-                id="responsableArea"
-                placeholder="Nombre del responsable del área"
-                className="border border-naval-200 focus-visible:ring-naval-500"
-                value={responsableArea}
-                onChange={(e) => setResponsableArea(e.target.value)}
-                required
-              />
+              <Select value={responsableArea} onValueChange={setResponsableArea}>
+                <SelectTrigger className="border border-naval-200 focus-visible:ring-naval-500">
+                  <SelectValue placeholder="Seleccione un responsable" />
+                </SelectTrigger>
+                <SelectContent>
+                  {responsablesAreaOptions.map((responsable) => (
+                    <SelectItem key={responsable} value={responsable}>
+                      {responsable}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             
             <div className="space-y-2">

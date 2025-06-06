@@ -23,7 +23,6 @@ import {
   AlertTriangle,
 } from "lucide-react"
 import { EditarProductoDialog } from "./editar-producto-dialog"
-import { ActivarProductoDialog } from "./activar-producto-dialog"
 
 // Definimos la interfaz para los productos según la estructura de la API
 interface ProductoAPI {
@@ -67,7 +66,6 @@ export default function ProductosTable() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [editarDialogOpen, setEditarDialogOpen] = useState(false)
-  const [activarDialogOpen, setActivarDialogOpen] = useState(false)
   const [productoSeleccionado, setProductoSeleccionado] = useState<Producto | null>(null)
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage] = useState(10)
@@ -146,14 +144,7 @@ export default function ProductosTable() {
     setEditarDialogOpen(true)
   }
   
-  // Función para manejar la acción de activar un producto
-  const handleActivarProducto = (productoAPI: ProductoAPI) => {
-    // Pasar directamente el producto de la API al diálogo de activación
-    // ya que ahora el formulario espera la misma estructura que la API
-    //////console.log('Activando producto:', productoAPI)
-    setProductoSeleccionado(productoAPI as unknown as Producto)
-    setActivarDialogOpen(true)
-  }
+
   
   // Función para actualizar la lista de productos después de una edición o activación exitosa
   const handleSuccess = () => {
@@ -207,22 +198,23 @@ export default function ProductosTable() {
           <Table>
             <TableHeader className="bg-naval-50">
               <TableRow>
-                <TableHead className="text-naval-700">Código</TableHead>
-                <TableHead className="text-naval-700">Descripción</TableHead>
-                <TableHead className="text-naval-700">División</TableHead>
-                <TableHead className="text-naval-700">Unidad Base</TableHead>
-                <TableHead className="text-naval-700">Mínimos</TableHead>
-                <TableHead className="text-naval-700">Cantidad Neta</TableHead>
-                <TableHead className="text-naval-700">Marca</TableHead>
-                <TableHead className="text-naval-700">Fecha Exp.</TableHead>
-                <TableHead className="text-naval-700">Estado</TableHead>
-                <TableHead className="text-right text-naval-700">Acciones</TableHead>
+                <TableHead className="text-naval-700 w-20">Código</TableHead>
+                <TableHead className="text-naval-700 w-20">Lote</TableHead>
+                <TableHead className="text-naval-700 w-32">Descripción</TableHead>
+                <TableHead className="text-naval-700 w-24">División</TableHead>
+                <TableHead className="text-naval-700 w-20">Unidad</TableHead>
+                <TableHead className="text-naval-700 w-16">Mín</TableHead>
+                <TableHead className="text-naval-700 w-16">Cant</TableHead>
+                <TableHead className="text-naval-700 w-20">Marca</TableHead>
+                <TableHead className="text-naval-700 w-20">Fecha</TableHead>
+                <TableHead className="text-naval-700 w-16">Estado</TableHead>
+                <TableHead className="text-naval-700 w-24 text-center">Acciones</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {currentItems.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={10} className="h-24 text-center">
+                  <TableCell colSpan={11} className="h-24 text-center">
                     No se encontraron insumos médicos.
                   </TableCell>
                 </TableRow>
@@ -230,6 +222,7 @@ export default function ProductosTable() {
                 currentItems.map((producto) => (
                   <TableRow key={producto.codigo} className="hover:bg-naval-50">
                     <TableCell className="font-medium">{producto.codigo}</TableCell>
+                    <TableCell>{producto.lote || "-"}</TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
                         {producto.estado === "porExpirar" && <AlertTriangle className="h-4 w-4 text-amber-500" />}
@@ -255,7 +248,7 @@ export default function ProductosTable() {
                         </Badge>
                       )}
                     </TableCell>
-                    <TableCell className="text-right">
+                    <TableCell className="text-center">
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button variant="ghost" className="h-8 w-8 p-0">
@@ -267,10 +260,6 @@ export default function ProductosTable() {
                           <DropdownMenuLabel>Acciones</DropdownMenuLabel>
                           <DropdownMenuItem onClick={() => handleEditarProducto(producto)}>
                             Editar producto
-                          </DropdownMenuItem>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem onClick={() => handleActivarProducto(producto)}>
-                            Activar producto
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
@@ -330,20 +319,12 @@ export default function ProductosTable() {
       )}
 
       {productoSeleccionado && (
-        <>
-          <EditarProductoDialog
-            producto={productoSeleccionado}
-            open={editarDialogOpen}
-            onOpenChange={setEditarDialogOpen}
-            onSuccess={handleSuccess}
-          />
-          <ActivarProductoDialog
-            producto={productoSeleccionado}
-            open={activarDialogOpen}
-            onOpenChange={setActivarDialogOpen}
-            onSuccess={handleSuccess}
-          />
-        </>
+        <EditarProductoDialog
+          producto={productoSeleccionado}
+          open={editarDialogOpen}
+          onOpenChange={setEditarDialogOpen}
+          onSuccess={handleSuccess}
+        />
       )}
     </div>
   )

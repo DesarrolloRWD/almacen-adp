@@ -19,7 +19,7 @@ import { Badge } from "@/components/ui/badge"
 
 export default function Header() {
   const [searchQuery, setSearchQuery] = useState("")
-  const { logout } = useAuth()
+  const { logout, user } = useAuth()
 
   return (
     <header className="sticky top-0 z-10 flex h-16 items-center gap-4 border-b bg-white px-4 sm:px-6 shadow-sm">
@@ -53,9 +53,20 @@ export default function Header() {
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" size="icon" className="rounded-full hover:bg-naval-50">
               <Avatar className="h-8 w-8 border-2 border-naval-100">
-                <AvatarImage src="/placeholder.svg" alt="Dr. Martínez" />
+                {user?.image ? (
+                  <AvatarImage 
+                    src={user.image} 
+                    alt={user?.nombre || "Usuario"} 
+                    onError={(e) => {
+                      const target = e.target as HTMLImageElement;
+                      target.src = "/placeholder.svg";
+                    }} 
+                  />
+                ) : (
+                  <AvatarImage src="/placeholder.svg" alt={user?.nombre || "Usuario"} />
+                )}
                 <AvatarFallback className="bg-naval-100 text-naval-700">
-                  <User className="h-4 w-4" />
+                  {user?.nombre ? user.nombre.charAt(0).toUpperCase() : <User className="h-4 w-4" />}
                 </AvatarFallback>
               </Avatar>
             </Button>
@@ -63,25 +74,30 @@ export default function Header() {
           <DropdownMenuContent align="end" className="w-56">
             <DropdownMenuLabel>
               <div className="flex flex-col space-y-1">
-                <p className="text-sm font-medium">Dr. Carlos Martínez</p>
-                <p className="text-xs text-muted-foreground">Jefe de Farmacia</p>
+                <p className="text-sm font-medium">
+                  {user ? (
+                    user.nombre && user.apdPaterno && user.apdMaterno ? 
+                      `${user.nombre} ${user.apdPaterno} ${user.apdMaterno}` : 
+                      (user.nombre || "Teniente Elyel Sánchez")
+                  ) : "Teniente Elyel Sánchez"}
+                </p>
+                <p className="text-xs text-muted-foreground">@{user?.usuario || user?.nombre || "usuario"}</p>
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>
-              <User className="mr-2 h-4 w-4" />
-              <span>Mi Perfil</span>
-            </DropdownMenuItem>
             <DropdownMenuItem asChild>
-              <Link href="/configuracion" className="flex cursor-pointer items-center">
+              <Link href="/configuracion" className="w-full cursor-pointer">
                 <Settings className="mr-2 h-4 w-4" />
-                <span>Configuración</span>
+                Configuración
               </Link>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem className="text-red-500 focus:text-red-500" onClick={logout}>
+            <DropdownMenuItem
+              className="cursor-pointer text-red-500 focus:text-red-500"
+              onClick={() => logout()}
+            >
               <LogOut className="mr-2 h-4 w-4" />
-              <span>Cerrar Sesión</span>
+              Cerrar Sesión
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
