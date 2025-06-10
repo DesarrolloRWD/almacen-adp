@@ -37,12 +37,18 @@ export const ENTREGAS_ENDPOINTS = {
   GENERATE_ENTREGA: '/api/generate/entrega',
 };
 
+// Endpoints para historial
+export const HISTORIAL_ENDPOINTS = {
+  GET_HISTORIAL: '/api/get/historial',
+};
+
 // Exportar todos los endpoints como un objeto
 export const API_ENDPOINTS = {
   ...AUTH_ENDPOINTS,
   ...USUARIOS_ENDPOINTS,
   ...ALMACEN_ENDPOINTS,
   ...ENTREGAS_ENDPOINTS,
+  ...HISTORIAL_ENDPOINTS,
 };
 
 export default API_ENDPOINTS;

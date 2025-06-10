@@ -381,6 +381,42 @@ export async function generateEntrega(entregaData: EntregaData): Promise<{ succe
   }
 }
 
+// Interfaz para productos agotados del historial
+export interface ProductoAgotado {
+  codigo: string;
+  descripcion: string;
+  marca: string;
+  unidadBase: string;
+  division: string;
+  linea: string;
+  sublinea: string;
+  lote: string;
+  fechaEliminacion: string;
+}
+
+// Función para obtener el historial de productos agotados
+export async function getHistorialProductosAgotados(): Promise<ProductoAgotado[]> {
+  try {
+    // Usar nuestra API route local como proxy para evitar problemas de CORS
+    const response = await fetch('/api/historial', {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    });
+    
+    if (!response.ok) {
+      throw new Error(`Error: ${response.status}`);
+    }
+    
+    const data = await response.json();
+    return Array.isArray(data) ? data.map(item => item.payload) : [];
+  } catch (error) {
+    console.error("Error al obtener historial de productos agotados:", error);
+    return [];
+  }
+}
+
 // Exportar todas las funciones como un objeto API
 export const api = {
   getProductos,
@@ -399,5 +435,6 @@ export const api = {
   updateUserStatus,
   updateUserImage,
   updateUserInformation,
+  getHistorialProductosAgotados,
   generateEntrega,
 }

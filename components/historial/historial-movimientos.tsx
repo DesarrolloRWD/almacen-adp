@@ -5,13 +5,13 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
-import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Search, Plus, X, Trash2, Loader2, Minus, FileText, PackageCheck, MoreVertical, MessageSquare } from "lucide-react"
+import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Search, Plus, X, Trash2, Loader2, Minus, FileText, PackageCheck, MoreVertical, MessageSquare, History, Filter } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { format } from "date-fns"
 import { api } from "@/lib/api"
-import { Presentacion, getAllUsers } from "@/lib/api"
+import { Presentacion, getAllUsers, ProductoAgotado } from "@/lib/api"
 import jsPDF from "jspdf"
 import autoTable from "jspdf-autotable"
 import { generateEntrega, EntregaData } from "@/lib/api"
@@ -128,6 +128,30 @@ export default function HistorialMovimientos() {
   // Estado para indicar carga
   const [cargando, setCargando] = useState(false);
   const [errorBusqueda, setErrorBusqueda] = useState("");
+  
+  // Estados para el historial de productos agotados
+  const [modalHistorialAbierto, setModalHistorialAbierto] = useState(false);
+  const [productosAgotados, setProductosAgotados] = useState<ProductoAgotado[]>([]);
+  const [cargandoHistorial, setCargandoHistorial] = useState(false);
+  const [errorHistorial, setErrorHistorial] = useState("");
+  const [productoSeleccionadoHistorial, setProductoSeleccionadoHistorial] = useState<ProductoAgotado | null>(null);
+  const [modalDetalleHistorialAbierto, setModalDetalleHistorialAbierto] = useState(false);
+  
+  // Estados para filtros del historial
+  const [filtroUnidad, setFiltroUnidad] = useState("");
+  const [filtroMarca, setFiltroMarca] = useState("");
+  const [filtroDivision, setFiltroDivision] = useState("");
+  const [filtroFechaInicio, setFiltroFechaInicio] = useState("");
+  const [filtroFechaFin, setFiltroFechaFin] = useState("");
+  const [productosFiltrados, setProductosFiltrados] = useState<ProductoAgotado[]>([]);
+  const [mostrarFiltros, setMostrarFiltros] = useState(false);
+  
+  // Estados para listas de opciones de filtros
+  const [unidadesUnicas, setUnidadesUnicas] = useState<string[]>([]);
+  const [marcasUnicas, setMarcasUnicas] = useState<string[]>([]);
+  const [divisionesUnicas, setDivisionesUnicas] = useState<string[]>([]);
+  
+  // El estado mostrarFiltros ya está definido arriba
   
   // Estado para el modal de observaciones
   const [modalObservacionesAbierto, setModalObservacionesAbierto] = useState(false);
@@ -307,6 +331,233 @@ export default function HistorialMovimientos() {
     } else {
       buscarTodasPresentaciones();
     }
+  };
+  
+  // Función para obtener el historial de productos agotados
+  const obtenerHistorialProductosAgotados = async () => {
+    setCargandoHistorial(true);
+    setErrorHistorial("");
+    setModalHistorialAbierto(true); // Abrimos el modal inmediatamente para mostrar el estado de carga
+    
+    try {
+      // Llamada a la API para obtener el historial de productos agotados
+      const productos = await api.getHistorialProductosAgotados();
+      
+      if (!productos || productos.length === 0) {
+        setErrorHistorial("No se encontraron productos agotados en el historial");
+        setProductosAgotados([]);
+        setProductosFiltrados([]);
+      } else {
+        setProductosAgotados(productos);
+        setProductosFiltrados(productos);
+        setErrorHistorial(""); // Limpiamos cualquier error previo
+        
+        // Extraer listas únicas para los filtros
+        const unidades = [...new Set(productos.map((p: ProductoAgotado) => p.unidadBase))].filter(Boolean) as string[];
+        const marcas = [...new Set(productos.map((p: ProductoAgotado) => p.marca))].filter(Boolean) as string[];
+        const divisiones = [...new Set(productos.map((p: ProductoAgotado) => p.division))].filter(Boolean) as string[];
+        
+        setUnidadesUnicas(unidades);
+        setMarcasUnicas(marcas);
+        setDivisionesUnicas(divisiones);
+        
+        // Limpiar filtros
+        setFiltroUnidad("");
+        setFiltroMarca("");
+        setFiltroDivision("");
+        setFiltroFechaInicio("");
+        setFiltroFechaFin("");
+      }
+    } catch (error) {
+      console.error("Error al obtener historial de productos agotados:", error);
+      setErrorHistorial("Ocurrió un error al obtener el historial de productos agotados. Inténtelo de nuevo.");
+      setProductosAgotados([]);
+      setProductosFiltrados([]);
+    } finally {
+      setCargandoHistorial(false);
+    }
+  };
+  
+  // Función para aplicar filtros al historial de productos
+  const aplicarFiltros = () => {
+    console.log("Aplicando filtros:", { 
+      filtroUnidad, 
+      filtroMarca, 
+      filtroDivision, 
+      filtroFechaInicio, 
+      filtroFechaFin,
+      totalProductos: productosAgotados.length
+    });
+    
+    let resultadosFiltrados = [...productosAgotados];
+    
+    // Filtrar por unidad
+    if (filtroUnidad) {
+      resultadosFiltrados = resultadosFiltrados.filter((p: ProductoAgotado) => 
+        p.unidadBase && p.unidadBase.toLowerCase() === filtroUnidad.toLowerCase()
+      );
+    }
+    
+    // Filtrar por marca
+    if (filtroMarca) {
+      resultadosFiltrados = resultadosFiltrados.filter((p: ProductoAgotado) => 
+        p.marca && p.marca.toLowerCase() === filtroMarca.toLowerCase()
+      );
+    }
+    
+    // Filtrar por división
+    if (filtroDivision) {
+      resultadosFiltrados = resultadosFiltrados.filter((p: ProductoAgotado) => 
+        p.division && p.division.toLowerCase() === filtroDivision.toLowerCase()
+      );
+    }
+    
+    // Filtrar por fecha
+    if (filtroFechaInicio || filtroFechaFin) {
+      console.log("Filtrando por fechas:", { filtroFechaInicio, filtroFechaFin });
+      
+      // Si ambas fechas están definidas y son iguales, filtramos por ese día específico
+      if (filtroFechaInicio && filtroFechaFin && filtroFechaInicio === filtroFechaFin) {
+        console.log("Fechas iguales, filtrando por un solo día:", filtroFechaInicio);
+        
+        // Convertir la fecha string a objeto Date
+        const fechaStr = filtroFechaInicio; // formato "YYYY-MM-DD"
+        
+        // Crear fechas para el inicio y fin del día
+        const [year, month, day] = fechaStr.split('-').map(num => parseInt(num));
+        const inicioDia = new Date(year, month - 1, day, 0, 0, 0, 0);
+        const finDia = new Date(year, month - 1, day, 23, 59, 59, 999);
+        
+        console.log("Rango de fechas para filtrar:", {
+          inicioDia: inicioDia.toISOString(),
+          finDia: finDia.toISOString()
+        });
+        
+        resultadosFiltrados = resultadosFiltrados.filter((p: ProductoAgotado) => {
+          const fechaProducto = new Date(p.fechaEliminacion);
+          const resultado = fechaProducto >= inicioDia && fechaProducto <= finDia;
+          
+          // Log para depuración
+          if (resultado) {
+            console.log("Producto coincide con la fecha:", {
+              codigo: p.codigo,
+              fechaProducto: fechaProducto.toISOString(),
+              coincide: resultado
+            });
+          }
+          
+          return resultado;
+        });
+      } else {
+        // Filtrado normal para rangos de fechas diferentes
+        if (filtroFechaInicio) {
+          const [year, month, day] = filtroFechaInicio.split('-').map(num => parseInt(num));
+          const fechaInicio = new Date(year, month - 1, day, 0, 0, 0, 0);
+          
+          console.log("Filtrando desde:", fechaInicio.toISOString());
+          
+          resultadosFiltrados = resultadosFiltrados.filter((p: ProductoAgotado) => {
+            const fechaProducto = new Date(p.fechaEliminacion);
+            return fechaProducto >= fechaInicio;
+          });
+        }
+        
+        if (filtroFechaFin) {
+          const [year, month, day] = filtroFechaFin.split('-').map(num => parseInt(num));
+          const fechaFin = new Date(year, month - 1, day, 23, 59, 59, 999);
+          
+          console.log("Filtrando hasta:", fechaFin.toISOString());
+          
+          resultadosFiltrados = resultadosFiltrados.filter((p: ProductoAgotado) => {
+            const fechaProducto = new Date(p.fechaEliminacion);
+            return fechaProducto <= fechaFin;
+          });
+        }
+      }
+    }
+    
+    console.log(`Resultados filtrados: ${resultadosFiltrados.length} de ${productosAgotados.length} productos`);
+    if (resultadosFiltrados.length > 0) {
+      console.log("Primer producto filtrado:", resultadosFiltrados[0]);
+    }
+    
+    setProductosFiltrados(resultadosFiltrados);
+  };
+  
+  // Función para limpiar todos los filtros
+  const limpiarFiltros = () => {
+    setFiltroUnidad("");
+    setFiltroMarca("");
+    setFiltroDivision("");
+    setFiltroFechaInicio("");
+    setFiltroFechaFin("");
+    setProductosFiltrados(productosAgotados);
+  };
+  
+  // Función para ver detalle del producto
+  const verDetalleProducto = (producto: ProductoAgotado) => {
+    setProductoSeleccionadoHistorial(producto);
+    setModalDetalleHistorialAbierto(true);
+  };
+  
+  // Definimos los colores de las divisiones (igual que en productos-table.tsx)
+  const divisionColors: {[key: string]: string} = {
+    "COAGULACIÓN": "#40E0D0",
+    "FRACCIONAMIENTO": "#87CEEB",
+    "TOMA DE MUESTRA/SANGRADO": "#FFD700",
+    "INMUNOHEMATOLOGIA": "#D3D3D3",
+    "CONFIRMATORIAS": "#FF9999",
+    "NAT": "#FFA07A",
+    "NAT PANTHER": "#A0522D",
+    "HEMATOLOGÍA": "#90EE90",
+    "SEROLOGÍA": "#6495ED",
+    "BIOLOGIA MOLECULAR": "#708090",
+    "CITOMETRÍA": "#DDA0DD"
+  };
+  
+  // Función para obtener el color hexadecimal de la división
+  const getColorHexForDivision = (division: string): string => {
+    return divisionColors[division] || "#D3D3D3"; // Color gris por defecto
+  };
+  
+  // Función para obtener el color de la división basado en los colores definidos en productos-table.tsx
+  const getColorDivision = (division: string) => {
+    // Mapa de colores hexadecimales a clases de Tailwind
+    const colorMap: {[key: string]: {bg: string, text: string, border: string}} = {
+      // COAGULACIÓN - Turquesa
+      "#40E0D0": {bg: "bg-cyan-50", text: "text-cyan-700", border: "border-cyan-100"},
+      // FRACCIONAMIENTO - Azul claro
+      "#87CEEB": {bg: "bg-blue-50", text: "text-blue-700", border: "border-blue-100"},
+      // TOMA DE MUESTRA/SANGRADO - Amarillo
+      "#FFD700": {bg: "bg-amber-50", text: "text-amber-700", border: "border-amber-100"},
+      // INMUNOHEMATOLOGIA - Gris claro
+      "#D3D3D3": {bg: "bg-gray-50", text: "text-gray-700", border: "border-gray-100"},
+      // CONFIRMATORIAS - Rosa claro
+      "#FF9999": {bg: "bg-rose-50", text: "text-rose-700", border: "border-rose-100"},
+      // NAT - Salmón
+      "#FFA07A": {bg: "bg-orange-50", text: "text-orange-700", border: "border-orange-100"},
+      // NAT PANTHER - Marrón
+      "#A0522D": {bg: "bg-amber-100", text: "text-amber-800", border: "border-amber-200"},
+      // HEMATOLOGÍA - Verde claro
+      "#90EE90": {bg: "bg-green-50", text: "text-green-700", border: "border-green-100"},
+      // SEROLOGÍA - Azul medio
+      "#6495ED": {bg: "bg-indigo-50", text: "text-indigo-700", border: "border-indigo-100"},
+      // BIOLOGIA MOLECULAR - Gris oscuro
+      "#708090": {bg: "bg-slate-100", text: "text-slate-700", border: "border-slate-200"},
+      // CITOMETRÍA - Lavanda
+      "#DDA0DD": {bg: "bg-purple-50", text: "text-purple-700", border: "border-purple-100"}
+    };
+    
+    // Obtener el color hexadecimal para la división
+    const hexColor = getColorHexForDivision(division);
+    
+    // Si encontramos un color para la división, devolver las clases de Tailwind correspondientes
+    if (colorMap[hexColor]) {
+      return colorMap[hexColor];
+    }
+    
+    // Color por defecto si no se encuentra
+    return {bg: "bg-gray-50", text: "text-gray-700", border: "border-gray-100"};
   };
   
   // Función para agregar una entrega desde los resultados de búsqueda
@@ -929,7 +1180,7 @@ export default function HistorialMovimientos() {
               )}
             </Button>
             
-            <div className="ml-auto">
+            <div className="ml-auto flex gap-2">
               <Button 
                 onClick={buscarTodasPresentaciones}
                 className="bg-green-600 hover:bg-green-700 text-white shadow-sm"
@@ -938,6 +1189,25 @@ export default function HistorialMovimientos() {
               >
                 <Search className="mr-2 h-4 w-4" />
                 Búsqueda General
+              </Button>
+              
+              <Button 
+                onClick={obtenerHistorialProductosAgotados}
+                className="bg-blue-600 hover:bg-blue-700 text-white shadow-sm"
+                disabled={cargandoHistorial}
+                size="sm"
+              >
+                {cargandoHistorial ? (
+                  <>
+                    <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+                    <span className="text-sm">Cargando...</span>
+                  </>
+                ) : (
+                  <>
+                    <History className="mr-2 h-4 w-4" />
+                    <span className="text-sm">Historial Productos</span>
+                  </>
+                )}
               </Button>
             </div>
           </div>
@@ -1270,6 +1540,390 @@ export default function HistorialMovimientos() {
               variant="outline" 
               onClick={() => setModalAbierto(false)}
               className="border-naval-200 text-naval-700 hover:bg-naval-50"
+            >
+              Cerrar
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Modal de historial de productos agotados */}
+      <Dialog open={modalHistorialAbierto} onOpenChange={setModalHistorialAbierto}>
+        <DialogContent 
+          className="w-[95vw] max-h-[90vh] sm:max-w-[90vw] md:max-w-[85vw] lg:max-w-[900px] p-0 overflow-hidden bg-white rounded-lg shadow-md" 
+          aria-describedby="historial-description"
+        >
+          {/* Encabezado del modal */}
+          <div className="bg-gradient-to-r from-blue-50 to-naval-50 p-4 border-b border-naval-100">
+            <DialogHeader className="pb-0">
+              <div>
+                <DialogTitle className="text-lg font-bold text-naval-800 flex items-center">
+                  <History className="h-4 w-4 mr-2 text-naval-600" />
+                  Historial de Productos Agotados
+                </DialogTitle>
+                <DialogDescription id="historial-description" className="text-naval-600 mt-1 text-xs">
+                  {errorHistorial ? (
+                    <span className="text-red-500 font-medium">{errorHistorial}</span>
+                  ) : (
+                    "Listado de productos que han sido agotados o eliminados del inventario."
+                  )}
+                </DialogDescription>
+              </div>
+            </DialogHeader>
+          </div>
+          
+          {/* Barra de acciones y filtros */}
+          <div className="bg-white border-b border-naval-100 px-3 sm:px-4 py-2 flex flex-wrap justify-between items-center gap-2">
+            <div className="flex items-center">
+              <span className="text-xs text-naval-700 font-medium">{productosFiltrados.length} productos</span>
+            </div>
+            <Button 
+              variant={mostrarFiltros ? "default" : "outline"} 
+              size="sm" 
+              onClick={() => setMostrarFiltros(!mostrarFiltros)}
+              className={`text-xs transition-all duration-200 ${mostrarFiltros 
+                ? "bg-naval-600 hover:bg-naval-700 text-white" 
+                : "border-naval-200 hover:bg-naval-50 text-naval-700"}`}
+            >
+              {mostrarFiltros 
+                ? <><X className="h-3 w-3 mr-1" /> Ocultar filtros</> 
+                : <><Filter className="h-3 w-3 mr-1" /> Filtrar</>}
+            </Button>
+          </div>
+          
+          {/* Sección de filtros con animación */}
+          <div 
+            className={`overflow-hidden transition-all duration-300 ease-in-out ${mostrarFiltros ? 'max-h-[800px] opacity-100' : 'max-h-0 opacity-0'}`}
+          >
+            <div className="bg-gradient-to-r from-naval-50 to-blue-50/30 p-3 sm:p-4 border-b border-naval-100 shadow-sm">
+              <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2 sm:gap-3 text-xs">
+                <div className="bg-white p-2 rounded-md shadow-sm border border-naval-100">
+                  <label className="text-naval-700 font-medium mb-1 text-xs flex items-center">
+                    <span className="bg-naval-100/50 p-1 rounded-full mr-1">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a2 2 0 0 1-2 2Zm0 0a2 2 0 0 1-2-2v-9c0-1.1.9-2 2-2h2"/></svg>
+                    </span>
+                    Unidad
+                  </label>
+                  <select 
+                    value={filtroUnidad}
+                    onChange={(e) => setFiltroUnidad(e.target.value)}
+                    className="w-full rounded-md border border-naval-200 text-xs py-1.5 px-2 focus:ring-1 focus:ring-naval-400 focus:border-naval-400 outline-none"
+                  >
+                    <option value="">Todas</option>
+                    {unidadesUnicas.map((unidad, index) => (
+                      <option key={index} value={unidad}>{unidad}</option>
+                    ))}
+                  </select>
+                </div>
+                
+                <div className="bg-white p-2 rounded-md shadow-sm border border-naval-100">
+                  <label className="text-naval-700 font-medium mb-1 text-xs flex items-center">
+                    <span className="bg-naval-100/50 p-1 rounded-full mr-1">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3.85 8.62a4 4 0 0 1 4.78-4.77 4 4 0 0 1 6.74 0 4 4 0 0 1 4.78 4.78 4 4 0 0 1 0 6.74 4 4 0 0 1-4.77 4.78 4 4 0 0 1-6.75 0 4 4 0 0 1-4.78-4.77 4 4 0 0 1 0-6.76Z"/></svg>
+                    </span>
+                    Marca
+                  </label>
+                  <select 
+                    value={filtroMarca}
+                    onChange={(e) => setFiltroMarca(e.target.value)}
+                    className="w-full rounded-md border border-naval-200 text-xs py-1.5 px-2 focus:ring-1 focus:ring-naval-400 focus:border-naval-400 outline-none"
+                  >
+                    <option value="">Todas</option>
+                    {marcasUnicas.map((marca, index) => (
+                      <option key={index} value={marca}>{marca}</option>
+                    ))}
+                  </select>
+                </div>
+                
+                <div className="bg-white p-2 rounded-md shadow-sm border border-naval-100">
+                  <label className="text-naval-700 font-medium mb-1 text-xs flex items-center">
+                    <span className="bg-naval-100/50 p-1 rounded-full mr-1">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M8 3H7a2 2 0 0 0-2 2v5a2 2 0 0 0 2 2h1"/><path d="M17 3h1a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-1"/><path d="M12 12h.01"/><path d="M12 22v-6"/><path d="M8 22h8"/><path d="M2 8h20"/></svg>
+                    </span>
+                    División
+                  </label>
+                  <select 
+                    value={filtroDivision}
+                    onChange={(e) => setFiltroDivision(e.target.value)}
+                    className="w-full rounded-md border border-naval-200 text-xs py-1.5 px-2 focus:ring-1 focus:ring-naval-400 focus:border-naval-400 outline-none"
+                  >
+                    <option value="">Todas</option>
+                    {divisionesUnicas.map((division, index) => (
+                      <option key={index} value={division}>{division}</option>
+                    ))}
+                  </select>
+                </div>
+                
+                <div className="bg-white p-2 rounded-md shadow-sm border border-naval-100">
+                  <label className="text-naval-700 font-medium mb-1 text-xs flex items-center">
+                    <span className="bg-naval-100/50 p-1 rounded-full mr-1">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/><path d="M8 14h.01"/><path d="M12 14h.01"/><path d="M16 14h.01"/><path d="M8 18h.01"/><path d="M12 18h.01"/><path d="M16 18h.01"/></svg>
+                    </span>
+                    Fecha inicio
+                  </label>
+                  <input 
+                    type="date" 
+                    value={filtroFechaInicio}
+                    onChange={(e) => setFiltroFechaInicio(e.target.value)}
+                    className="w-full rounded-md border border-naval-200 text-xs py-1.5 px-2 focus:ring-1 focus:ring-naval-400 focus:border-naval-400 outline-none"
+                  />
+                </div>
+                
+                <div className="bg-white p-2 rounded-md shadow-sm border border-naval-100">
+                  <label className="text-naval-700 font-medium mb-1 text-xs flex items-center">
+                    <span className="bg-naval-100/50 p-1 rounded-full mr-1">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/><path d="M8 14h.01"/><path d="M12 14h.01"/><path d="M16 14h.01"/><path d="M8 18h.01"/><path d="M12 18h.01"/><path d="M16 18h.01"/></svg>
+                    </span>
+                    Fecha fin
+                  </label>
+                  <input 
+                    type="date" 
+                    value={filtroFechaFin}
+                    onChange={(e) => setFiltroFechaFin(e.target.value)}
+                    className="w-full rounded-md border border-naval-200 text-xs py-1.5 px-2 focus:ring-1 focus:ring-naval-400 focus:border-naval-400 outline-none"
+                  />
+                </div>
+              </div>
+              
+              <div className="flex flex-col sm:flex-row justify-between items-center gap-2 mt-4 pb-2">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={limpiarFiltros}
+                  className="text-xs border-naval-200 hover:bg-naval-50 text-naval-700 transition-colors duration-200 w-full sm:w-auto"
+                >
+                  <X className="h-3 w-3 mr-1" />
+                  Limpiar
+                </Button>
+                <Button 
+                  variant="default" 
+                  size="sm" 
+                  onClick={aplicarFiltros}
+                  className="text-xs bg-naval-600 hover:bg-naval-700 text-white transition-colors duration-200 shadow-sm w-full sm:w-auto"
+                >
+                  <Search className="h-3 w-3 mr-1" />
+                  Aplicar filtros
+                </Button>
+              </div>
+            </div>
+          </div>
+          
+          {/* Estado de carga */}
+          {cargandoHistorial ? (
+            <div className="flex justify-center items-center h-[200px] bg-white">
+              <div className="flex flex-col items-center">
+                <Loader2 className="h-8 w-8 animate-spin text-naval-600 mb-2" />
+                <span className="text-naval-700 text-sm">Cargando historial...</span>
+              </div>
+            </div>
+          ) : (
+            <div className="max-h-[50vh] overflow-y-auto">
+              {/* Sin resultados */}
+              {productosFiltrados.length === 0 ? (
+                <div className="flex flex-col items-center justify-center h-[200px] bg-white">
+                  {errorHistorial ? (
+                    <>
+                      <div className="w-12 h-12 bg-red-50 rounded-full flex items-center justify-center mb-3">
+                        <X className="h-6 w-6 text-red-500" />
+                      </div>
+                      <h3 className="text-base font-semibold text-red-700 mb-1">Error en la consulta</h3>
+                      <p className="text-red-500 text-center text-sm max-w-md">{errorHistorial}</p>
+                    </>
+                  ) : productosAgotados.length === 0 ? (
+                    <>
+                      <div className="w-12 h-12 bg-naval-50 rounded-full flex items-center justify-center mb-3">
+                        <History className="h-6 w-6 text-naval-500" />
+                      </div>
+                      <h3 className="text-base font-semibold text-naval-700 mb-1">No se encontraron productos</h3>
+                      <p className="text-naval-500 text-center text-sm max-w-md">No hay productos agotados en el historial.</p>
+                    </>
+                  ) : (
+                    <>
+                      <div className="w-12 h-12 bg-naval-50 rounded-full flex items-center justify-center mb-3">
+                        <Filter className="h-6 w-6 text-naval-500" />
+                      </div>
+                      <h3 className="text-base font-semibold text-naval-700 mb-1">Sin resultados para los filtros</h3>
+                      <p className="text-naval-500 text-center text-sm max-w-md">No se encontraron productos que coincidan con los filtros seleccionados.</p>
+                    </>
+                  )}
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  {/* Tabla de resultados compacta */}
+                  <table className="w-full border-collapse text-xs min-w-[800px]">
+                    <thead className="bg-naval-50">
+                      <tr>
+                        <th className="py-2 px-2 text-left text-naval-700 font-medium border-b border-gray-100 whitespace-nowrap">Unidad</th>
+                        <th className="py-2 px-2 text-left text-naval-700 font-medium border-b border-gray-100 whitespace-nowrap">Código</th>
+                        <th className="py-2 px-2 text-left text-naval-700 font-medium border-b border-gray-100 whitespace-nowrap">Lote</th>
+                        <th className="py-2 px-2 text-left text-naval-700 font-medium border-b border-gray-100 whitespace-nowrap">Marca</th>
+                        <th className="py-2 px-2 text-left text-naval-700 font-medium border-b border-gray-100 whitespace-nowrap">Div.</th>
+                        <th className="py-2 px-2 text-left text-naval-700 font-medium border-b border-gray-100">Descripción</th>
+                        <th className="py-2 px-2 text-left text-naval-700 font-medium border-b border-gray-100 whitespace-nowrap">Fecha</th>
+                        <th className="py-2 px-2 text-center text-naval-700 font-medium border-b border-gray-100 whitespace-nowrap">Acción</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {productosFiltrados.map((producto, index) => (
+                        <tr key={index} className="border-b border-gray-100 hover:bg-naval-50/30 transition-colors">
+                          <td className="py-2 px-2">
+                            <span className="text-naval-700">{producto.unidadBase}</span>
+                          </td>
+                          <td className="py-2 px-2 overflow-hidden text-ellipsis">
+                            <span className="font-medium text-naval-800">{producto.codigo}</span>
+                          </td>
+                          <td className="py-2 px-2 overflow-hidden text-ellipsis">
+                            <span className="text-naval-800">{producto.lote}</span>
+                          </td>
+                          <td className="py-2 px-2">
+                            <Badge className="bg-blue-50 text-blue-700 border-blue-100 px-1.5 py-0.5 text-[10px]">
+                              {producto.marca}
+                            </Badge>
+                          </td>
+                          <td className="py-2 px-2">
+                            {producto.division && (
+                              <div className="flex items-center gap-1">
+                                <div 
+                                  className="w-3 h-3 rounded-full inline-block flex-shrink-0"
+                                  style={{ 
+                                    backgroundColor: getColorHexForDivision(producto.division),
+                                    border: '1px solid rgba(0,0,0,0.1)' 
+                                  }}
+                                />
+                                <span className="text-[10px] text-naval-700 truncate">{producto.division}</span>
+                              </div>
+                            )}
+                          </td>
+                          <td className="py-2 px-2 overflow-hidden text-ellipsis">
+                            <span className="text-naval-800">{producto.descripcion}</span>
+                          </td>
+                          <td className="py-2 px-2 whitespace-nowrap">
+                            <span className="text-naval-700 text-[10px]">
+                              {new Date(producto.fechaEliminacion).toLocaleDateString('es-MX', {
+                                year: '2-digit',
+                                month: 'numeric',
+                                day: 'numeric'
+                              })}
+                            </span>
+                          </td>
+                          <td className="py-2 px-2 text-center">
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              className="h-6 w-6 p-0" 
+                              onClick={() => verDetalleProducto(producto)}
+                            >
+                              <FileText className="h-3.5 w-3.5 text-naval-600" />
+                            </Button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          )}
+          
+          {/* Pie del modal */}
+          <div className="p-3 sm:p-4 bg-gray-50 border-t border-gray-100 flex justify-end">
+            <Button 
+              variant="outline" 
+              onClick={() => setModalHistorialAbierto(false)}
+              className="border-naval-200 text-naval-700 hover:bg-naval-50 px-4 py-1 text-xs"
+              size="sm"
+            >
+              Cerrar
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Modal de detalle del producto */}
+      <Dialog open={modalDetalleHistorialAbierto} onOpenChange={setModalDetalleHistorialAbierto}>
+        <DialogContent className="w-[95vw] sm:max-w-[90vw] md:max-w-[500px] p-0 overflow-hidden bg-white rounded-lg shadow-md max-h-[90vh] overflow-y-auto">
+          {/* Encabezado del modal */}
+          <div className="bg-gradient-to-r from-blue-50 to-naval-50 p-4 border-b border-naval-100">
+            <DialogHeader className="pb-0">
+              <DialogTitle className="text-base font-bold text-naval-800 flex items-center">
+                <FileText className="h-4 w-4 mr-2 text-naval-600" />
+                Detalle del Producto
+              </DialogTitle>
+              <DialogDescription className="text-naval-600 mt-1 text-xs">
+                Información completa del producto agotado
+              </DialogDescription>
+            </DialogHeader>
+          </div>
+          
+          {/* Contenido del detalle */}
+          {productoSeleccionadoHistorial && (
+            <div className="p-4 max-h-[400px] overflow-y-auto">
+              <div className="grid grid-cols-1 gap-3 text-sm">
+                <div className="bg-naval-50/30 p-3 rounded-md">
+                  <h3 className="font-semibold text-naval-800 text-base mb-1">{productoSeleccionadoHistorial.descripcion}</h3>
+                  <div className="flex items-center gap-2 mb-1">
+                    <Badge className="bg-blue-50 text-blue-700 border-blue-100">{productoSeleccionadoHistorial.marca}</Badge>
+                    {productoSeleccionadoHistorial.division && (
+                      <div className="flex items-center gap-1">
+                        <div 
+                          className="w-3 h-3 rounded-full inline-block"
+                          style={{ 
+                            backgroundColor: getColorHexForDivision(productoSeleccionadoHistorial.division),
+                            border: '1px solid rgba(0,0,0,0.1)' 
+                          }}
+                        />
+                        <span className="text-xs text-naval-700">{productoSeleccionadoHistorial.division}</span>
+                      </div>
+                    )}
+                  </div>
+                  <p className="text-naval-600 text-xs">Código: <span className="font-medium text-naval-800">{productoSeleccionadoHistorial.codigo}</span></p>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="border border-gray-100 rounded-md p-3">
+                    <p className="text-xs text-naval-500 mb-1">Unidad Base</p>
+                    <p className="font-medium text-naval-800">{productoSeleccionadoHistorial.unidadBase}</p>
+                  </div>
+                  <div className="border border-gray-100 rounded-md p-3">
+                    <p className="text-xs text-naval-500 mb-1">Lote</p>
+                    <p className="font-medium text-naval-800">{productoSeleccionadoHistorial.lote}</p>
+                  </div>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="border border-gray-100 rounded-md p-3">
+                    <p className="text-xs text-naval-500 mb-1">Línea</p>
+                    <p className="font-medium text-naval-800">{productoSeleccionadoHistorial.linea || 'N/A'}</p>
+                  </div>
+                  <div className="border border-gray-100 rounded-md p-3">
+                    <p className="text-xs text-naval-500 mb-1">Sublínea</p>
+                    <p className="font-medium text-naval-800">{productoSeleccionadoHistorial.sublinea || 'N/A'}</p>
+                  </div>
+                </div>
+                
+                <div className="border border-gray-100 rounded-md p-3">
+                  <p className="text-xs text-naval-500 mb-1">Fecha de Eliminación</p>
+                  <p className="font-medium text-naval-800">
+                    {new Date(productoSeleccionadoHistorial.fechaEliminacion).toLocaleDateString('es-MX', {
+                      year: 'numeric',
+                      month: 'long',
+                      day: 'numeric',
+                      hour: '2-digit',
+                      minute: '2-digit'
+                    })}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+          
+          {/* Pie del modal */}
+          <div className="p-3 bg-gray-50 border-t border-gray-100 flex justify-end">
+            <Button 
+              variant="outline" 
+              onClick={() => setModalDetalleHistorialAbierto(false)}
+              className="border-naval-200 text-naval-700 hover:bg-naval-50 px-4 py-1 text-xs"
+              size="sm"
             >
               Cerrar
             </Button>
