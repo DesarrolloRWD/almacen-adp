@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { useAuth } from "@/hooks"
 import Link from "next/link"
-import { Bell, Search, User, HelpCircle, Settings, LogOut } from "lucide-react"
+import { Search, User, HelpCircle, Settings, LogOut } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import {
@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
+import WebSocketNotifications from "@/components/notifications/websocket-notifications"
 
 export default function Header() {
   const [searchQuery, setSearchQuery] = useState("")
@@ -41,13 +42,7 @@ export default function Header() {
           <span className="sr-only">Ayuda</span>
         </Button>
 
-        <Button variant="ghost" size="icon" className="relative text-naval-600 hover:text-naval-700 hover:bg-naval-50">
-          <Bell className="h-5 w-5" />
-          <Badge className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] text-white">
-            3
-          </Badge>
-          <span className="sr-only">Notificaciones</span>
-        </Button>
+        <WebSocketNotifications />
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>

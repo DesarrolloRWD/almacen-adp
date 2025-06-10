@@ -16,10 +16,10 @@ export default function HistorialPage() {
       </div>
 
       <Card className="naval-card">
-        <CardHeader className="pb-3">
+        {/* <CardHeader className="pb-3">
           <CardTitle className="text-naval-800">Registro de Entregas</CardTitle>
           <CardDescription>Seleccione productos por lote y catálogo para registrar entregas</CardDescription>
-        </CardHeader>
+        </CardHeader> */}
         <CardContent>
           <HistorialMovimientos />
         </CardContent>

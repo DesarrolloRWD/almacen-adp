@@ -105,6 +105,13 @@ export default function HistorialMovimientos() {
   const [codigo, setCodigo] = useState("");
   const [lote, setLote] = useState("");
   
+  // Estado para controlar el tipo de búsqueda activa
+  const [tipoBusqueda, setTipoBusqueda] = useState<'codigoLote' | 'general'>('codigoLote');
+  
+  // Estado para la lista de todas las presentaciones
+  const [todasPresentaciones, setTodasPresentaciones] = useState<Presentacion[]>([]);
+  const [cargandoPresentaciones, setCargandoPresentaciones] = useState(false);
+  
   // Estado para el modal
   const [modalAbierto, setModalAbierto] = useState(false);
   const [resultadosBusqueda, setResultadosBusqueda] = useState<ResultadoBusqueda[]>([]);
@@ -201,7 +208,7 @@ export default function HistorialMovimientos() {
   }, []);
   
   // Función para buscar productos por código y lote
-  const buscarProductos = async () => {
+  const buscarProductosPorCodigoLote = async () => {
     if (!codigo && !lote) {
       setErrorBusqueda("Debe ingresar al menos un código o lote para buscar");
       return;
@@ -249,6 +256,56 @@ export default function HistorialMovimientos() {
       setResultadosBusqueda([]);
     } finally {
       setCargando(false);
+    }
+  };
+  
+  // Función para buscar todas las presentaciones
+  const buscarTodasPresentaciones = async () => {
+    setCargando(true);
+    setErrorBusqueda("");
+    setModalAbierto(true); // Abrimos el modal inmediatamente para mostrar el estado de carga
+    
+    try {
+      // Llamada a la API para obtener todas las presentaciones
+      const presentaciones = await api.getPresentaciones();
+      
+      if (!presentaciones || presentaciones.length === 0) {
+        setErrorBusqueda("No se encontraron presentaciones disponibles");
+        setResultadosBusqueda([]);
+      } else {
+        // Convertir las presentaciones al formato que necesitamos
+        const resultados = presentaciones.map(convertirPresentacionAResultado);
+        
+        // Actualizar los resultados con las cantidades ya sacadas
+        const resultadosActualizados = resultados.map(res => {
+          const presentacionKey = `${res.id}_${res.lote}`;
+          const cantidadYaSacada = cantidadesSacadas[presentacionKey] || 0;
+          
+          // Restar la cantidad ya sacada del total disponible
+          return {
+            ...res,
+            totalEquivalenciaEnBase: Math.max(0, res.totalEquivalenciaEnBase - cantidadYaSacada)
+          };
+        });
+        
+        setResultadosBusqueda(resultadosActualizados);
+        setErrorBusqueda(""); // Limpiamos cualquier error previo
+      }
+    } catch (error) {
+      console.error("Error al buscar presentaciones:", error);
+      setErrorBusqueda("Ocurrió un error al buscar las presentaciones. Inténtelo de nuevo.");
+      setResultadosBusqueda([]);
+    } finally {
+      setCargando(false);
+    }
+  };
+  
+  // Función que decide qué tipo de búsqueda realizar
+  const buscarProductos = () => {
+    if (tipoBusqueda === 'codigoLote') {
+      buscarProductosPorCodigoLote();
+    } else {
+      buscarTodasPresentaciones();
     }
   };
   
@@ -799,60 +856,93 @@ export default function HistorialMovimientos() {
 
   return (
     <div className="space-y-4">
-      {/* Formulario de búsqueda */}
+
+      
+      {/* Formulario de búsqueda - Diseño mejorado */}
       <div className="bg-white rounded-xl border border-naval-100 shadow-sm overflow-hidden">
-        <div className="p-4 pt-5">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-            <div className="space-y-2">
-              <Label htmlFor="codigo" className="text-naval-700 font-medium">Código del Producto</Label>
+        
+        <div className="p-4">
+          <div className="flex items-center mb-3 bg-gray-50 p-2 rounded-md border border-gray-200">
+            <div className="text-sm text-gray-600">
+              <span className="font-medium">Ingrese código y/o lote para una búsqueda específica, o use "Búsqueda General" para ver todas las presentaciones disponibles.</span> 
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-3 items-end mb-4">
+            <div className="w-full sm:w-auto">
+              <div className="flex items-center mb-1">
+                <FileText className="h-4 w-4 mr-1 text-naval-500" />
+                <Label htmlFor="codigo" className="text-naval-700 text-sm font-medium">
+                  Código
+                </Label>
+              </div>
               <div className="relative">
                 <Input
                   id="codigo"
                   placeholder="Ej. PR001"
-                  className="border-naval-200 focus-visible:ring-naval-500 pl-9"
+                  className="border-naval-200 focus-visible:ring-naval-500 pl-8 h-9 text-sm"
                   value={codigo}
                   onChange={(e) => setCodigo(e.target.value)}
                 />
-                <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                  <FileText className="h-4 w-4 text-naval-400" />
+                <div className="absolute inset-y-0 left-0 flex items-center pl-2 pointer-events-none">
+                  <FileText className="h-3 w-3 text-naval-400" />
                 </div>
               </div>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="lote" className="text-naval-700 font-medium">Número de Lote</Label>
+            
+            <div className="w-full sm:w-auto">
+              <div className="flex items-center mb-1">
+                <PackageCheck className="h-4 w-4 mr-1 text-naval-500" />
+                <Label htmlFor="lote" className="text-naval-700 text-sm font-medium">
+                  Lote
+                </Label>
+              </div>
               <div className="relative">
                 <Input
                   id="lote"
                   placeholder="Ej. LOT20230527"
-                  className="border-naval-200 focus-visible:ring-naval-500 pl-9"
+                  className="border-naval-200 focus-visible:ring-naval-500 pl-8 h-9 text-sm"
                   value={lote}
                   onChange={(e) => setLote(e.target.value)}
                 />
-                <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                  <PackageCheck className="h-4 w-4 text-naval-400" />
+                <div className="absolute inset-y-0 left-0 flex items-center pl-2 pointer-events-none">
+                  <PackageCheck className="h-3 w-3 text-naval-400" />
                 </div>
               </div>
+            </div>
+            
+            <Button 
+              onClick={buscarProductosPorCodigoLote}
+              className="bg-naval-600 hover:bg-naval-700 text-white shadow-sm h-9"
+              disabled={cargando}
+              size="sm"
+            >
+              {cargando ? (
+                <>
+                  <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+                  <span className="text-sm">Buscando...</span>
+                </>
+              ) : (
+                <>
+                  <FileText className="mr-1 h-3 w-3" />
+                  <span className="text-sm">Buscar</span>
+                </>
+              )}
+            </Button>
+            
+            <div className="ml-auto">
+              <Button 
+                onClick={buscarTodasPresentaciones}
+                className="bg-green-600 hover:bg-green-700 text-white shadow-sm"
+                disabled={cargando}
+                size="sm"
+              >
+                <Search className="mr-2 h-4 w-4" />
+                Búsqueda General
+              </Button>
             </div>
           </div>
           
           <div className="flex flex-wrap gap-3 justify-between items-center border-t border-naval-100 pt-4">
-            <Button 
-              onClick={buscarProductos}
-              className="bg-naval-600 hover:bg-naval-700 text-white shadow-sm"
-              disabled={cargando}
-            >
-              {cargando ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Buscando...
-                </>
-              ) : (
-                <>
-                  <Search className="mr-2 h-4 w-4" />
-                  Buscar Productos
-                </>
-              )}
-            </Button>
             
             {entregas.length > 0 && (
               <div className="flex flex-wrap gap-2">
@@ -996,7 +1086,7 @@ export default function HistorialMovimientos() {
 
       {/* Modal de resultados de búsqueda */}
       <Dialog open={modalAbierto} onOpenChange={setModalAbierto}>
-        <DialogContent className="sm:max-w-[900px] p-0 overflow-hidden bg-white rounded-xl shadow-xl">
+        <DialogContent className="sm:max-w-[900px] p-0 overflow-hidden bg-white rounded-xl shadow-xl" aria-describedby="busqueda-description">
           {/* Encabezado del modal */}
           <div className="bg-gradient-to-r from-naval-50 to-blue-50 p-5 border-b border-naval-100">
             <DialogHeader>
@@ -1004,7 +1094,7 @@ export default function HistorialMovimientos() {
                 <Search className="h-5 w-5 mr-2 text-naval-600" />
                 Resultados de búsqueda
               </DialogTitle>
-              <DialogDescription className="text-naval-600 mt-1">
+              <DialogDescription id="busqueda-description" className="text-naval-600 mt-1">
                 {errorBusqueda ? (
                   <span className="text-red-500 font-medium">{errorBusqueda}</span>
                 ) : (
@@ -1189,13 +1279,13 @@ export default function HistorialMovimientos() {
       
       {/* Modal de observaciones */}
       <Dialog open={modalObservacionesAbierto} onOpenChange={setModalObservacionesAbierto}>
-        <DialogContent className="sm:max-w-[500px]">
+        <DialogContent className="sm:max-w-[500px]" aria-describedby="datos-salida-description">
           <DialogHeader>
             <DialogTitle>Datos para la salida</DialogTitle>
+            <DialogDescription id="datos-salida-description">
+              Complete la información requerida para generar la salida.
+            </DialogDescription>
           </DialogHeader>
-          <div className="text-sm text-gray-500 mb-4">
-            Complete la información requerida para generar la salida.
-          </div>
           
           <div className="space-y-4">
             <div className="space-y-2">
@@ -1282,13 +1372,13 @@ export default function HistorialMovimientos() {
 
       {/* Modal de comentarios específicos para cada presentación */}
       <Dialog open={modalComentarioAbierto} onOpenChange={setModalComentarioAbierto}>
-        <DialogContent className="sm:max-w-[500px]">
+        <DialogContent className="sm:max-w-[500px]" aria-describedby="comentario-especifico-description">
           <DialogHeader>
             <DialogTitle>Comentario específico para esta presentación</DialogTitle>
+            <DialogDescription id="comentario-especifico-description">
+              Este comentario se mostrará únicamente en el PDF para esta presentación específica.
+            </DialogDescription>
           </DialogHeader>
-          <div className="text-sm text-gray-500 mb-4">
-            Este comentario se mostrará únicamente en el PDF para esta presentación específica.
-          </div>
           
           <div className="space-y-4">
             <div className="space-y-2">

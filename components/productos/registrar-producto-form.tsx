@@ -9,7 +9,7 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
 import { format } from "date-fns"
 import { es } from "date-fns/locale"
-import { CalendarIcon, Stethoscope, PackageOpen, PlusCircle, Trash2, QrCode, CheckCircle } from "lucide-react"
+import { CalendarIcon, Stethoscope, PackageOpen, PlusCircle, Trash2, QrCode, CheckCircle, Check, ChevronsUpDown } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 
 import { Button } from "@/components/ui/button"
@@ -24,7 +24,29 @@ import { toast } from "@/components/ui/use-toast"
 import { Card, CardContent } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
 import { toast as sonnerToast } from "sonner"
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+} from "@/components/ui/command"
 // QrScanner ya no es necesario con la captura automática
+
+// Definimos las divisiones con sus colores correspondientes
+const divisiones = [
+  { value: "COAGULACIÓN", label: "COAGULACIÓN", color: "#40E0D0" },
+  { value: "FRACCIONAMIENTO", label: "FRACCIONAMIENTO", color: "#87CEEB" },
+  { value: "TOMA DE MUESTRA/SANGRADO", label: "TOMA DE MUESTRA/SANGRADO", color: "#FFD700" },
+  { value: "INMUNOHEMATOLOGIA", label: "INMUNOHEMATOLOGIA", color: "#D3D3D3" },
+  { value: "CONFIRMATORIAS", label: "CONFIRMATORIAS", color: "#FF9999" },
+  { value: "NAT", label: "NAT", color: "#FFA07A" },
+  { value: "NAT PANTHER", label: "NAT PANTHER", color: "#A0522D" },
+  { value: "HEMATOLOGÍA", label: "HEMATOLOGÍA", color: "#90EE90" },
+  { value: "SEROLOGÍA", label: "SEROLOGÍA", color: "#6495ED" },
+  { value: "BIOLOGIA MOLECULAR", label: "BIOLOGIA MOLECULAR", color: "#708090" },
+  { value: "CITOMETRÍA", label: "CITOMETRÍA", color: "#DDA0DD" },
+]
 
 // Esquema para las presentaciones
 const presentacionSchema = z.object({
@@ -988,13 +1010,69 @@ export default function RegistrarProductoForm() {
                   render={({ field }) => (
                     <FormItem className="flex-1">
                       <FormLabel className="text-naval-700">División</FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder="Ej. Insumos Médicos"
-                          {...field}
-                          className="border-naval-200 focus-visible:ring-naval-500"
-                        />
-                      </FormControl>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <FormControl>
+                            <Button
+                              variant="outline"
+                              role="combobox"
+                              className={cn(
+                                "w-full justify-between border-naval-200 focus-visible:ring-naval-500",
+                                !field.value && "text-muted-foreground"
+                              )}
+                              style={{
+                                backgroundColor: field.value ? 
+                                  `${divisiones.find(d => d.value === field.value)?.color}20` : ""
+                              }}
+                            >
+                              {field.value ? (
+                                <>
+                                  <div 
+                                    className="w-4 h-4 rounded-full mr-2" 
+                                    style={{ 
+                                      backgroundColor: divisiones.find(d => d.value === field.value)?.color || "transparent" 
+                                    }}
+                                  />
+                                  {field.value}
+                                </>
+                              ) : (
+                                "Seleccione una división"
+                              )}
+                              <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                            </Button>
+                          </FormControl>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-full p-0">
+                          <Command>
+                            <CommandInput placeholder="Buscar división..." />
+                            <CommandEmpty>No se encontraron divisiones.</CommandEmpty>
+                            <CommandGroup>
+                              {divisiones.map((division) => (
+                                <CommandItem
+                                  key={division.value}
+                                  value={division.value}
+                                  onSelect={() => {
+                                    form.setValue("division", division.value);
+                                  }}
+                                  className="flex items-center"
+                                >
+                                  <div 
+                                    className="w-4 h-4 rounded-full mr-2" 
+                                    style={{ backgroundColor: division.color }}
+                                  />
+                                  <span>{division.label}</span>
+                                  <Check
+                                    className={cn(
+                                      "ml-auto h-4 w-4",
+                                      field.value === division.value ? "opacity-100" : "opacity-0"
+                                    )}
+                                  />
+                                </CommandItem>
+                              ))}
+                            </CommandGroup>
+                          </Command>
+                        </PopoverContent>
+                      </Popover>
                       <FormMessage />
                     </FormItem>
                   )}

@@ -24,6 +24,21 @@ import {
 } from "lucide-react"
 import { EditarProductoDialog } from "./editar-producto-dialog"
 
+// Definimos las divisiones con sus colores correspondientes
+const divisiones = [
+  { value: "COAGULACIÓN", label: "COAGULACIÓN", color: "#40E0D0" },
+  { value: "FRACCIONAMIENTO", label: "FRACCIONAMIENTO", color: "#87CEEB" },
+  { value: "TOMA DE MUESTRA/SANGRADO", label: "TOMA DE MUESTRA/SANGRADO", color: "#FFD700" },
+  { value: "INMUNOHEMATOLOGIA", label: "INMUNOHEMATOLOGIA", color: "#D3D3D3" },
+  { value: "CONFIRMATORIAS", label: "CONFIRMATORIAS", color: "#FF9999" },
+  { value: "NAT", label: "NAT", color: "#FFA07A" },
+  { value: "NAT PANTHER", label: "NAT PANTHER", color: "#A0522D" },
+  { value: "HEMATOLOGÍA", label: "HEMATOLOGÍA", color: "#90EE90" },
+  { value: "SEROLOGÍA", label: "SEROLOGÍA", color: "#6495ED" },
+  { value: "BIOLOGIA MOLECULAR", label: "BIOLOGIA MOLECULAR", color: "#708090" },
+  { value: "CITOMETRÍA", label: "CITOMETRÍA", color: "#DDA0DD" },
+]
+
 // Definimos la interfaz para los productos según la estructura de la API
 interface ProductoAPI {
   codigo: string
@@ -219,8 +234,8 @@ export default function ProductosTable() {
                   </TableCell>
                 </TableRow>
               ) : (
-                currentItems.map((producto) => (
-                  <TableRow key={producto.codigo} className="hover:bg-naval-50">
+                currentItems.map((producto, index) => (
+                  <TableRow key={`${producto.codigo}-${producto.lote || 'sin-lote'}-${index}`} className="hover:bg-naval-50">
                     <TableCell className="font-medium">{producto.codigo}</TableCell>
                     <TableCell>{producto.lote || "-"}</TableCell>
                     <TableCell>
@@ -229,7 +244,17 @@ export default function ProductosTable() {
                         {producto.descripcion}
                       </div>
                     </TableCell>
-                    <TableCell>{producto.division}</TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <div 
+                          className="w-3 h-3 rounded-full" 
+                          style={{ 
+                            backgroundColor: divisiones.find(d => d.value === producto.division)?.color || "#cccccc" 
+                          }}
+                        />
+                        <span>{producto.division}</span>
+                      </div>
+                    </TableCell>
                     <TableCell>{producto.unidadBase}</TableCell>
                     <TableCell>{producto.minimos}</TableCell>
                     <TableCell>{producto.cantidadNeta}</TableCell>

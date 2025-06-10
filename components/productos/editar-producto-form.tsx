@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { Check, ChevronsUpDown } from "lucide-react"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import * as z from "zod"
@@ -28,7 +29,29 @@ import {
 } from "@/components/ui/popover"
 import { toast } from "@/components/ui/use-toast"
 import { Textarea } from "@/components/ui/textarea"
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+} from "@/components/ui/command"
 import { cn } from "@/lib/utils"
+
+// Definimos las divisiones con sus colores correspondientes
+const divisiones = [
+  { value: "COAGULACIÓN", label: "COAGULACIÓN", color: "#40E0D0" },
+  { value: "FRACCIONAMIENTO", label: "FRACCIONAMIENTO", color: "#87CEEB" },
+  { value: "TOMA DE MUESTRA/SANGRADO", label: "TOMA DE MUESTRA/SANGRADO", color: "#FFD700" },
+  { value: "INMUNOHEMATOLOGIA", label: "INMUNOHEMATOLOGIA", color: "#D3D3D3" },
+  { value: "CONFIRMATORIAS", label: "CONFIRMATORIAS", color: "#FF9999" },
+  { value: "NAT", label: "NAT", color: "#FFA07A" },
+  { value: "NAT PANTHER", label: "NAT PANTHER", color: "#A0522D" },
+  { value: "HEMATOLOGÍA", label: "HEMATOLOGÍA", color: "#90EE90" },
+  { value: "SEROLOGÍA", label: "SEROLOGÍA", color: "#6495ED" },
+  { value: "BIOLOGIA MOLECULAR", label: "BIOLOGIA MOLECULAR", color: "#708090" },
+  { value: "CITOMETRÍA", label: "CITOMETRÍA", color: "#DDA0DD" },
+]
 
 // Definimos el esquema de validación completo con todos los campos necesarios para la API
 const formSchema = z.object({
@@ -228,11 +251,71 @@ export function EditarProductoForm({ producto, onSuccess, onCancel }: EditarProd
             control={form.control}
             name="division"
             render={({ field }) => (
-              <FormItem>
+              <FormItem className="flex flex-col">
                 <FormLabel>División</FormLabel>
-                <FormControl>
-                  <Input placeholder="Ej. Farmacia" {...field} />
-                </FormControl>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <FormControl>
+                      <Button
+                        variant="outline"
+                        role="combobox"
+                        className={cn(
+                          "w-full justify-between",
+                          !field.value && "text-muted-foreground",
+                          field.value && (() => {
+                            const selectedDivision = divisiones.find(d => d.value === field.value);
+                            return selectedDivision ? `bg-[${selectedDivision.color}] bg-opacity-20` : "";
+                          })()
+                        )}
+                      >
+                        {field.value ? (
+                          <>
+                            <div 
+                              className="w-4 h-4 rounded-full mr-2" 
+                              style={{ 
+                                backgroundColor: divisiones.find(d => d.value === field.value)?.color || "transparent" 
+                              }}
+                            />
+                            {field.value}
+                          </>
+                        ) : (
+                          "Seleccione una división"
+                        )}
+                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                      </Button>
+                    </FormControl>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-full p-0">
+                    <Command>
+                      <CommandInput placeholder="Buscar división..." />
+                      <CommandEmpty>No se encontraron divisiones.</CommandEmpty>
+                      <CommandGroup>
+                        {divisiones.map((division) => (
+                          <CommandItem
+                            key={division.value}
+                            value={division.value}
+                            onSelect={() => {
+                              form.setValue("division", division.value);
+                            }}
+                            className="flex items-center"
+                          >
+                            <div 
+                              className="w-4 h-4 rounded-full mr-2" 
+                              style={{ backgroundColor: division.color }}
+                            />
+                            <span>{division.label}</span>
+                            <Check
+                              className={cn(
+                                "ml-auto h-4 w-4",
+                                field.value === division.value ? "opacity-100" : "opacity-0"
+                              )}
+                            />
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
                 <FormMessage />
               </FormItem>
             )}
