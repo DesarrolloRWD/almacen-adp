@@ -100,7 +100,7 @@ export default function Sidebar() {
               ? "bg-yellow-100 text-yellow-700"
               : "bg-blue-100 text-blue-700"
           )}>
-            {process.env.NEXT_PUBLIC_APP_ENV?.toUpperCase() || 'DESARROLLO'}
+            {process.env.NEXT_PUBLIC_APP_ENV === 'production' ? 'PRODUCCIÓN' : 'DESARROLLO'}
           </div>
         )}
       </div>

@@ -414,11 +414,9 @@ export default function HistorialMovimientos() {
     
     // Filtrar por fecha
     if (filtroFechaInicio || filtroFechaFin) {
-      console.log("Filtrando por fechas:", { filtroFechaInicio, filtroFechaFin });
       
       // Si ambas fechas están definidas y son iguales, filtramos por ese día específico
       if (filtroFechaInicio && filtroFechaFin && filtroFechaInicio === filtroFechaFin) {
-        console.log("Fechas iguales, filtrando por un solo día:", filtroFechaInicio);
         
         // Convertir la fecha string a objeto Date
         const fechaStr = filtroFechaInicio; // formato "YYYY-MM-DD"
@@ -428,10 +426,7 @@ export default function HistorialMovimientos() {
         const inicioDia = new Date(year, month - 1, day, 0, 0, 0, 0);
         const finDia = new Date(year, month - 1, day, 23, 59, 59, 999);
         
-        console.log("Rango de fechas para filtrar:", {
-          inicioDia: inicioDia.toISOString(),
-          finDia: finDia.toISOString()
-        });
+
         
         resultadosFiltrados = resultadosFiltrados.filter((p: ProductoAgotado) => {
           const fechaProducto = new Date(p.fechaEliminacion);
@@ -1191,24 +1186,7 @@ export default function HistorialMovimientos() {
                 Búsqueda General
               </Button>
               
-              <Button 
-                onClick={obtenerHistorialProductosAgotados}
-                className="bg-blue-600 hover:bg-blue-700 text-white shadow-sm"
-                disabled={cargandoHistorial}
-                size="sm"
-              >
-                {cargandoHistorial ? (
-                  <>
-                    <Loader2 className="mr-1 h-3 w-3 animate-spin" />
-                    <span className="text-sm">Cargando...</span>
-                  </>
-                ) : (
-                  <>
-                    <History className="mr-2 h-4 w-4" />
-                    <span className="text-sm">Historial Productos</span>
-                  </>
-                )}
-              </Button>
+
             </div>
           </div>
           
