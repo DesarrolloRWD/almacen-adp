@@ -41,6 +41,11 @@ const navItems: NavItem[] = [
     href: "/historial",
     icon: <History className="h-5 w-5" />,
   },
+  {
+    title: "Historial de Salidas",
+    href: "/historial-salidas",
+    icon: <PackageOpen className="h-5 w-5" />,
+  },
 ]
 
 export default function Sidebar() {
@@ -86,7 +91,18 @@ export default function Sidebar() {
         </nav>
       </ScrollArea>
       <div className="p-4 border-t text-center text-xs text-muted-foreground">
-        {!isCollapsed && <div>DESARROLLO</div>}
+        {!isCollapsed && (
+          <div className={cn(
+            "font-medium py-1 px-2 rounded",
+            process.env.NEXT_PUBLIC_APP_ENV === 'production' 
+              ? "bg-red-100 text-red-700"
+              : process.env.NEXT_PUBLIC_APP_ENV === 'staging'
+              ? "bg-yellow-100 text-yellow-700"
+              : "bg-blue-100 text-blue-700"
+          )}>
+            {process.env.NEXT_PUBLIC_APP_ENV?.toUpperCase() || 'DESARROLLO'}
+          </div>
+        )}
       </div>
     </div>
   )

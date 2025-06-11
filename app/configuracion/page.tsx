@@ -75,7 +75,7 @@ export default function ConfiguracionPage() {
     telefono: "",
     rfc: "",
     image: "",
-    roles: [{ nombre: "Admin" }]
+    roles: [{ nombre: process.env.NEXT_PUBLIC_APP_ENV === 'production' ? 'ROLE_ADMIN' : 'Admin' }]
   })
   
   // Estado para la previsualización de la imagen
@@ -509,16 +509,23 @@ export default function ConfiguracionPage() {
                     <div className="space-y-2">
                       <Label htmlFor="role">Rol <span className="text-red-500">*</span></Label>
                       <Select 
-                        onValueChange={handleRoleChange} 
-                        defaultValue="Admin"
+                        value={newUser.roles?.[0]?.nombre || ''}
+                        onValueChange={(value) => 
+                          setNewUser({...newUser, roles: [{ nombre: value }]})
+                        }
                       >
                         <SelectTrigger>
                           <SelectValue placeholder="Seleccionar rol" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="Admin">Administrador</SelectItem>
-                          <SelectItem value="User">Usuario</SelectItem>
-                          <SelectItem value="Guest">Invitado</SelectItem>
+                          {process.env.NEXT_PUBLIC_APP_ENV === 'production' ? (
+                            <>
+                              <SelectItem value="ROLE_ADMIN">Administrador</SelectItem>
+                              <SelectItem value="ROLE_SUPERUSER">Super Usuario</SelectItem>
+                            </>
+                          ) : (
+                            <SelectItem value="Admin">Administrador</SelectItem>
+                          )}
                         </SelectContent>
                       </Select>
                     </div>
