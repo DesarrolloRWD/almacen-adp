@@ -51,94 +51,113 @@ const NotificationDetail = memo(({ notification, onClose }: NotificationDetailPr
   // Acceder directamente a los datos del producto desde el payload parseado
   const productCode = data.codigo || 'N/A';
   const productName = data.descripcion || 'Producto';
+  const lotNumber = data.lote || 'N/A';
   
-  // Para stock y niveles, usar valores predeterminados para notificaciones de stock agotado
-  const currentStock = data.type === 'PRODUCTO_AGOTADO' ? 0 : (data.stock || 0);
-  const criticalLevel = data.nivelCritico || 0;
-  const warningLevel = data.nivelPreventivo || 0;
+  // Información de stock - usar cantidadNetaActual como stock actual
+  const currentStock = data.cantidadNetaActual !== undefined ? data.cantidadNetaActual : 0;
+  const previousStock = data.stockAnterior !== undefined ? data.stockAnterior : 0;
+  const minStock = data.minimos !== undefined ? data.minimos : 0;
+  const maxStock = data.maximos !== undefined ? data.maximos : 0;
   
   // Calcular porcentaje para la barra de progreso
-  const maxLevel = Math.max(warningLevel * 1.5, criticalLevel * 2, currentStock * 1.2, 100);
-  const stockPercentage = Math.max(0, Math.min(100, (currentStock / maxLevel) * 100));
+  // Si el máximo es 0, usar 100 como valor predeterminado para evitar división por cero
+  const maxForCalculation = maxStock > 0 ? maxStock : 100;
+  // Limitar el porcentaje entre 0 y 100
+  const stockPercentage = Math.max(0, Math.min(100, (currentStock / maxForCalculation) * 100));
   
   // Determinar color de la barra de progreso según el nivel de stock
   const getProgressColor = () => {
-    if (currentStock <= criticalLevel) return 'bg-red-500';
-    if (currentStock <= warningLevel) return 'bg-amber-500';
+    if (currentStock <= minStock) return 'bg-red-500';
+    if (currentStock <= minStock * 1.5) return 'bg-amber-500';
     return 'bg-green-500';
   };
 
   return (
-    <div className="p-4">
-      <div className="flex items-center gap-3 mb-4">
-        <div className={`p-2 rounded-full ${notification.type === 'critico' ? 'bg-red-100' : 'bg-amber-100'}`}>
+    <div className="p-3">
+      <div className="flex items-center gap-2 mb-3">
+        <div className={`p-1.5 rounded-full ${notification.type === 'critico' ? 'bg-red-100' : 'bg-amber-100'}`}>
           {notification.type === 'critico' ? (
-            <AlertTriangle className="h-5 w-5 text-red-600" />
+            <AlertTriangle className="h-4 w-4 text-red-600" />
           ) : (
-            <Info className="h-5 w-5 text-amber-600" />
+            <Info className="h-4 w-4 text-amber-600" />
           )}
         </div>
         <div>
-          <h3 className="font-medium text-lg">
+          <h3 className="font-medium">
             {notification.type === 'critico' ? 'Alerta Crítica' : 'Alerta Preventiva'}
           </h3>
-          <p className="text-sm text-gray-500">
+          <p className="text-xs text-gray-500">
             {formatDate(notification.timestamp)}
           </p>
         </div>
       </div>
       
-      <div className="mb-4">
-        <p className="text-gray-700">{notification.message}</p>
+      <div className="mb-3">
+        <p className="text-sm text-gray-700">{notification.message}</p>
       </div>
       
-      <div className="bg-gray-50 p-4 rounded-lg mb-4">
-        <div className="flex items-center gap-2 mb-2">
-          <Package className="h-4 w-4 text-gray-500" />
-          <h4 className="font-medium">Información del Producto</h4>
+      <div className="bg-gray-50 p-3 rounded-md mb-3">
+        <div className="flex items-center gap-1.5 mb-2">
+          <Package className="h-3.5 w-3.5 text-gray-500" />
+          <h4 className="text-sm font-medium">Información del Producto</h4>
         </div>
         
-        <div className="grid grid-cols-2 gap-2 mb-3">
-          <div>
+        <div className="grid grid-cols-2 gap-2 mb-2">
+          <div className="bg-white p-1.5 rounded border border-gray-100">
             <p className="text-xs text-gray-500">Código</p>
-            <p className="font-medium">{productCode}</p>
+            <p className="text-sm font-medium">{productCode}</p>
           </div>
-          <div>
+          <div className="bg-white p-1.5 rounded border border-gray-100">
             <p className="text-xs text-gray-500">Producto</p>
-            <p className="font-medium">{productName}</p>
+            <p className="text-sm font-medium truncate">{productName}</p>
           </div>
         </div>
         
-        <div className="grid grid-cols-3 gap-2 mb-3">
-          <div>
+        <div className="grid grid-cols-2 gap-2 mb-2">
+          <div className="bg-white p-1.5 rounded border border-gray-100">
+            <p className="text-xs text-gray-500">Lote</p>
+            <p className="text-sm font-medium">{lotNumber}</p>
+          </div>
+          <div className="bg-white p-1.5 rounded border border-gray-100">
+            <p className="text-xs text-gray-500">Stock Anterior</p>
+            <p className="text-sm font-medium">{previousStock}</p>
+          </div>
+        </div>
+        
+        <div className="grid grid-cols-3 gap-2 mb-2">
+          <div className="bg-white p-1.5 rounded border border-gray-100">
             <p className="text-xs text-gray-500">Stock Actual</p>
-            <p className="font-medium">{currentStock}</p>
+            <p className="text-sm font-medium">{currentStock}</p>
           </div>
-          <div>
-            <p className="text-xs text-gray-500">Nivel Crítico</p>
-            <p className="font-medium text-red-600">{criticalLevel}</p>
+          <div className="bg-white p-1.5 rounded border border-gray-100">
+            <p className="text-xs text-gray-500">Mínimo</p>
+            <p className="text-sm font-medium text-red-600">{minStock}</p>
           </div>
-          <div>
-            <p className="text-xs text-gray-500">Nivel Preventivo</p>
-            <p className="font-medium text-amber-600">{warningLevel}</p>
+          <div className="bg-white p-1.5 rounded border border-gray-100">
+            <p className="text-xs text-gray-500">Máximo</p>
+            <p className="text-sm font-medium text-green-600">{maxStock}</p>
           </div>
         </div>
         
-        <div>
+        <div className="bg-white p-2 rounded border border-gray-100">
           <div className="flex justify-between text-xs mb-1">
             <span>Nivel de Stock</span>
             <span>{stockPercentage.toFixed(0)}%</span>
           </div>
-          <div className="w-full bg-gray-200 rounded-full h-2">
+          <div className="w-full bg-gray-200 rounded-full h-2 mb-1">
             <div 
               className={`h-2 rounded-full ${getProgressColor()}`}
               style={{ width: `${stockPercentage}%` }}
             ></div>
           </div>
+          <div className="flex justify-between text-xs">
+            <span className="text-red-600">Min: {minStock}</span>
+            <span className="text-green-600">Max: {maxStock}</span>
+          </div>
         </div>
       </div>
       
-      <div className="text-xs text-gray-500 mb-4">
+      <div className="text-xs text-gray-500 mb-3">
         <p>Notificación recibida el {new Intl.DateTimeFormat('es-ES', {
           day: '2-digit',
           month: '2-digit',
@@ -150,10 +169,10 @@ const NotificationDetail = memo(({ notification, onClose }: NotificationDetailPr
         </p>
       </div>
       
-      <div className="flex justify-end pt-2">
+      <div className="flex justify-end">
         <Button 
           onClick={onClose}
-          className="bg-naval-600 hover:bg-naval-700 text-white"
+          className="bg-naval-600 hover:bg-naval-700 text-white text-sm py-1 h-8"
         >
           Cerrar
         </Button>
@@ -401,9 +420,13 @@ const WebSocketNotifications = () => {
                   // Acceder directamente a los datos del producto desde el payload parseado
                   const productCode = data.codigo || '';
                   const productName = data.descripcion || '';
+                  const lotNumber = data.lote || '';
                   
-                  // Para stock, usar valores predeterminados para notificaciones de stock agotado
-                  const currentStock = data.type === 'PRODUCTO_AGOTADO' ? 0 : (data.stock || 0);
+                  // Información de stock - usar cantidadNetaActual como stock actual
+                  const currentStock = data.cantidadNetaActual !== undefined ? data.cantidadNetaActual : 0;
+                  const previousStock = data.stockAnterior !== undefined ? data.stockAnterior : 0;
+                  const minStock = data.minimos !== undefined ? data.minimos : 0;
+                  const maxStock = data.maximos !== undefined ? data.maximos : 0;
                   
                   return (
                     <div 
@@ -465,15 +488,36 @@ const WebSocketNotifications = () => {
                             </div>
                           </div>
                           
-                          {currentStock !== undefined && (
+                          {lotNumber && (
                             <div className="mt-1 flex items-center gap-1">
+                              <BarChart3 className="h-3.5 w-3.5 text-gray-500" />
+                              <span className="text-xs text-gray-600">Lote: </span>
+                              <span className="text-xs font-medium text-gray-700">{lotNumber}</span>
+                            </div>
+                          )}
+                          
+                          <div className="mt-1 flex items-center justify-between">
+                            <div className="flex items-center gap-1">
                               <Layers className="h-3.5 w-3.5 text-gray-500" />
                               <span className="text-xs text-gray-600">Stock: </span>
                               <span className={`text-xs font-medium ${notification.type === 'critico' ? 'text-red-600' : 'text-amber-600'}`}>
-                                {currentStock} unidades
+                                {currentStock}
                               </span>
                             </div>
-                          )}
+                            <div className="flex items-center gap-1">
+                              <span className="text-xs text-gray-600">Anterior: </span>
+                              <span className="text-xs font-medium text-gray-700">{previousStock}</span>
+                            </div>
+                          </div>
+                          
+                          <div className="mt-1 flex items-center justify-between">
+                            <div className="flex items-center gap-1">
+                              <span className="text-xs text-red-600">Min: {minStock}</span>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <span className="text-xs text-green-600">Max: {maxStock}</span>
+                            </div>
+                          </div>
                         </div>
                       )}
                       
