@@ -12,7 +12,7 @@ export async function GET() {
       );
     }
     
-    const apiUrl = `${baseUrl}/api/get/products`;
+    const apiUrl = `${baseUrl}/get/products`;
     
     // Realizar la solicitud a la API externa
     const response = await fetch(apiUrl, {

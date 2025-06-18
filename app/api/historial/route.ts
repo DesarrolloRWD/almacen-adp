@@ -12,7 +12,7 @@ export async function GET() {
     }
 
     // Usar la URL del API de historial
-    const urlCompleta = `${historialApiUrl}/api/get/historial`;
+    const urlCompleta = `${historialApiUrl}/get/historial`;
     
     const response = await fetch(urlCompleta, {
       method: 'GET',

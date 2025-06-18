@@ -28,7 +28,7 @@ export async function POST(request: NextRequest) {
       )
     }
     
-    const apiUrl = `${baseUrl}/api/update/status`
+    const apiUrl = `${baseUrl}/update/status`
 
     // //////console.log('Enviando solicitud a:', apiUrl)
     // //////console.log('Datos:', body)

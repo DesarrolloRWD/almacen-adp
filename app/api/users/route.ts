@@ -24,7 +24,7 @@ export async function GET(request: Request) {
       )
     }
     
-    const usersUrl = `${baseUrl}/api/get/all-users`
+    const usersUrl = `${baseUrl}/get/all-users`
     // ////console.log("URL del endpoint de usuarios:", usersUrl)
     
     // Realizar la solicitud al servidor real

@@ -20,7 +20,7 @@ export async function POST(request: Request) {
       );
     }
     
-    const entregaUrl = `${baseUrl}/api/generate/entrega`;
+    const entregaUrl = `${baseUrl}/generate/entrega`;
     
     // Obtener el token de autenticación de las cookies
     const cookieStore = await cookies();

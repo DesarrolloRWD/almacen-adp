@@ -9,7 +9,7 @@ export async function POST(req: NextRequest) {
     const token = authHeader ? authHeader.split(' ')[1] : null
     
     // Construir la URL completa para el microservicio
-    const apiUrl = `${process.env.NEXT_PUBLIC_ALMACEN_API_URL}/api/get/specific/presentacion`
+    const apiUrl = `${process.env.NEXT_PUBLIC_ALMACEN_API_URL}/get/specific/presentacion`
     
     //////console.log('Enviando solicitud a:', apiUrl)
     //////console.log('Con datos:', body)

@@ -32,7 +32,7 @@ export async function POST(request: NextRequest) {
     ////console.log('Buscando presentaciones con:', { codigo, lote });
     
     // URL de la API externa
-    const apiUrl = process.env.NEXT_PUBLIC_ALMACEN_API_URL + '/api/get/presentation/by/codigo/lote';
+    const apiUrl = process.env.NEXT_PUBLIC_ALMACEN_API_URL + '/get/presentation/by/codigo/lote';
     
     // Realizar la solicitud a la API externa
     const response = await fetch(apiUrl, {

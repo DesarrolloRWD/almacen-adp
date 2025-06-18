@@ -25,7 +25,7 @@ export async function POST(request: Request) {
       )
     }
     
-    const createUserUrl = `${baseUrl}/api/save/information`
+    const createUserUrl = `${baseUrl}/save/information`
     
     // Realizar la solicitud al servidor real
     const response = await fetch(createUserUrl, {

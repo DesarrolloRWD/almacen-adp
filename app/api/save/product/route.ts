@@ -78,7 +78,7 @@ export async function POST(request: NextRequest) {
       )
     }
     
-    const apiUrl = `${baseUrl}/api/save/product`
+    const apiUrl = `${baseUrl}/save/product`
     
     ////console.log("Enviando solicitud a:", apiUrl)
     ////console.log("Con token:", token ? "[TOKEN PRESENTE]" : "[SIN TOKEN]")

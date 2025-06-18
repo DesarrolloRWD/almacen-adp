@@ -33,7 +33,7 @@ export async function POST(request: Request) {
       )
     }
     
-    const specificUserUrl = `${baseUrl}/api/specific/user`
+    const specificUserUrl = `${baseUrl}/specific/user`
     
     // //console.log(`Obteniendo información del usuario: ${username}`)
     

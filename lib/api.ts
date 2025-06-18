@@ -398,7 +398,7 @@ export interface ProductoAgotado {
 export async function getHistorialProductosAgotados(): Promise<ProductoAgotado[]> {
   try {
     // Usar nuestra API route local como proxy para evitar problemas de CORS
-    const response = await fetch('/api/historial', {
+    const response = await fetch('/historial', {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json'
