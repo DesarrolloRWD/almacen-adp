@@ -11,25 +11,25 @@ export const AUTH_ENDPOINTS = {
 
 // Endpoints para usuarios
 export const USUARIOS_ENDPOINTS = {
-  ALL_USERS: '/api/users',
-  SPECIFIC_USER: '/api/users/specific',
-  CREATE_USER: '/api/users/create',
-  UPDATE_STATUS: '/api/users/update-status',
-  UPDATE_IMAGE: '/api/users/update-image',
-  UPDATE_INFORMATION: '/api/users/update-information',
+  ALL_USERS: '/users',
+  SPECIFIC_USER: '/users/specific',
+  CREATE_USER: '/users/create',
+  UPDATE_STATUS: '/users/update-status',
+  UPDATE_IMAGE: '/users/update-image',
+  UPDATE_INFORMATION: '/users/update-information',
 };
 
 // Endpoints para almacén
 export const ALMACEN_ENDPOINTS = {
-  GET_PRODUCTOS: '/api/productos',
-  SAVE_PRODUCTO: '/api/productos/save',
-  UPDATE_PRODUCTO: '/api/productos/update',
-  GET_PRODUCTOS_ACTIVOS: '/api/productos/activos',
-  ACTIVAR_PRODUCTO: '/api/productos/activar',
-  ENTREGAR_PRODUCTO: '/api/productos/entregar',
-  GET_PRESENTACIONES: '/api/productos/presentaciones',
-  GET_PRESENTACION_ESPECIFICA: '/api/productos/presentacion/especifica',
-  GET_PRESENTACION_BY_CODIGO_LOTE: '/api/presentaciones',
+  GET_PRODUCTOS: '/productos',
+  SAVE_PRODUCTO: '/productos/save',
+  UPDATE_PRODUCTO: '/productos/update',
+  GET_PRODUCTOS_ACTIVOS: '/productos/activos',
+  ACTIVAR_PRODUCTO: '/productos/activar',
+  ENTREGAR_PRODUCTO: '/productos/entregar',
+  GET_PRESENTACIONES: '/productos/presentaciones',
+  GET_PRESENTACION_ESPECIFICA: '/productos/presentacion/especifica',
+  GET_PRESENTACION_BY_CODIGO_LOTE: '/presentaciones',
 };
 
 // Endpoints para entregas
@@ -39,7 +39,7 @@ export const ENTREGAS_ENDPOINTS = {
 
 // Endpoints para historial
 export const HISTORIAL_ENDPOINTS = {
-  GET_HISTORIAL: '/api/get/historial',
+  GET_HISTORIAL: '/get/historial',
 };
 
 // Exportar todos los endpoints como un objeto

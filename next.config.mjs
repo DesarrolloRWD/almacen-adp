@@ -20,72 +20,72 @@ const nextConfig = {
       
       // Proxy para usuarios
       {
-        source: '/api/users',
-        destination: `${process.env.NEXT_PUBLIC_USUARIOS_API_URL}/api/get/all-users`,
+        source: '/users',
+        destination: `${process.env.NEXT_PUBLIC_USUARIOS_API_URL}/get/all-users`,
       },
       {
-        source: '/api/users/specific',
-        destination: `${process.env.NEXT_PUBLIC_USUARIOS_API_URL}/api/specific/user`,
+        source: '/users/specific',
+        destination: `${process.env.NEXT_PUBLIC_USUARIOS_API_URL}/specific/user`,
       },
       {
-        source: '/api/users/create',
-        destination: `${process.env.NEXT_PUBLIC_USUARIOS_API_URL}/api/save/information`,
+        source: '/users/create',
+        destination: `${process.env.NEXT_PUBLIC_USUARIOS_API_URL}/save/information`,
       },
       {
-        source: '/api/users/update-status',
-        destination: `${process.env.NEXT_PUBLIC_USUARIOS_API_URL}/api/update/status`,
+        source: '/users/update-status',
+        destination: `${process.env.NEXT_PUBLIC_USUARIOS_API_URL}/update/status`,
       },
       {
-        source: '/api/users/update-image',
-        destination: `${process.env.NEXT_PUBLIC_USUARIOS_API_URL}/api/update/image`,
+        source: '/users/update-image',
+        destination: `${process.env.NEXT_PUBLIC_USUARIOS_API_URL}/update/image`,
       },
       {
-        source: '/api/users/update-information',
-        destination: `${process.env.NEXT_PUBLIC_USUARIOS_API_URL}/api/update/information`,
+        source: '/users/update-information',
+        destination: `${process.env.NEXT_PUBLIC_USUARIOS_API_URL}/update/information`,
       },
       
       // Proxy para almacén
       {
-        source: '/api/productos/presentaciones',
+        source: '/productos/presentaciones',
         destination: `${process.env.NEXT_PUBLIC_ALMACEN_API_URL}/get/all/presentaciones`,
       },
       {
-        source: '/api/productos/presentacion/especifica',
-        destination: `${process.env.NEXT_PUBLIC_ALMACEN_API_URL}/api/get/specific/presentacion`,
+        source: '/productos/presentacion/especifica',
+        destination: `${process.env.NEXT_PUBLIC_ALMACEN_API_URL}/get/specific/presentacion`,
       },
       {
-        source: '/api/get/presentation/by/codigo/lote',
-        destination: `${process.env.NEXT_PUBLIC_ALMACEN_API_URL}/api/get/presentation/by/codigo/lote`,
+        source: '/get/presentation/by/codigo/lote',
+        destination: `${process.env.NEXT_PUBLIC_ALMACEN_API_URL}/get/presentation/by/codigo/lote`,
       },
       {
-        source: '/api/productos',
-        destination: `${process.env.NEXT_PUBLIC_ALMACEN_API_URL}/api/get/products`,
+        source: '/productos',
+        destination: `${process.env.NEXT_PUBLIC_ALMACEN_API_URL}/get/products`,
       },
       {
-        source: '/api/productos/save',
-        destination: `${process.env.NEXT_PUBLIC_ALMACEN_API_URL}/api/save/product`,
+        source: '/productos/save',
+        destination: `${process.env.NEXT_PUBLIC_ALMACEN_API_URL}/save/product`,
       },
       {
-        source: '/api/productos/update',
-        destination: `${process.env.NEXT_PUBLIC_ALMACEN_API_URL}/api/update/product`,
+        source: '/productos/update',
+        destination: `${process.env.NEXT_PUBLIC_ALMACEN_API_URL}/update/product`,
       },
       {
-        source: '/api/productos/activos',
-        destination: `${process.env.NEXT_PUBLIC_ALMACEN_API_URL}/api/get/productos/activos`,
+        source: '/productos/activos',
+        destination: `${process.env.NEXT_PUBLIC_ALMACEN_API_URL}/get/productos/activos`,
       },
       {
-        source: '/api/productos/activar',
-        destination: `${process.env.NEXT_PUBLIC_ALMACEN_API_URL}/api/save/active/producto`,
+        source: '/productos/activar',
+        destination: `${process.env.NEXT_PUBLIC_ALMACEN_API_URL}/save/active/producto`,
       },
       {
-        source: '/api/productos/entregar',
-        destination: `${process.env.NEXT_PUBLIC_ALMACEN_API_URL}/api/save/active/entrega/producto`,
+        source: '/productos/entregar',
+        destination: `${process.env.NEXT_PUBLIC_ALMACEN_API_URL}/save/active/entrega/producto`,
       },
       
       // Proxy para entregas
       {
         source: '/api/generate/entrega',
-        destination: `${process.env.NEXT_PUBLIC_ENTREGAS_API_URL}/api/generate/entrega`,
+        destination: `${process.env.NEXT_PUBLIC_ENTREGAS_API_URL}/generate/entrega`,
       },
     ];
   },
@@ -94,7 +94,8 @@ const nextConfig = {
   async headers() {
     return [
       {
-        source: '/api/:path*',
+        // source: '/api/:path*',
+        source: '/:path*',
         headers: [
           { key: 'Access-Control-Allow-Credentials', value: 'true' },
           { key: 'Access-Control-Allow-Origin', value: '*' },
