@@ -12,11 +12,11 @@ export const AUTH_ENDPOINTS = {
 // Endpoints para usuarios
 export const USUARIOS_ENDPOINTS = {
   ALL_USERS: '/users',
-  SPECIFIC_USER: '/users/specific',
-  CREATE_USER: '/users/create',
-  UPDATE_STATUS: '/users/update-status',
-  UPDATE_IMAGE: '/users/update-image',
-  UPDATE_INFORMATION: '/users/update-information',
+  SPECIFIC_USER: '/api/users/specific',
+  CREATE_USER: '/api/users/create',
+  UPDATE_STATUS: '/api/users/update-status',
+  UPDATE_IMAGE: '/api/users/update-image',
+  UPDATE_INFORMATION: '/api/users/update-information',
 };
 
 // Endpoints para almacén

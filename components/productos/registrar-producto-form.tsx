@@ -9,7 +9,7 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
 import { format } from "date-fns"
 import { es } from "date-fns/locale"
-import { CalendarIcon, Stethoscope, PackageOpen, PlusCircle, Trash2, QrCode, CheckCircle, Check, ChevronsUpDown } from "lucide-react"
+import { CalendarIcon, Stethoscope, PackageOpen, PlusCircle, Trash2, QrCode, CheckCircle, Check, ChevronsUpDown, ChevronRight } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 
 import { Button } from "@/components/ui/button"
@@ -173,6 +173,14 @@ export default function RegistrarProductoForm() {
   // Para captura automática de códigos QR con lector físico
   const [qrBuffer, setQrBuffer] = useState('')
   const [lastKeypressTime, setLastKeypressTime] = useState(0)
+  
+  // Estado para controlar qué presentación está expandida
+  const [expandedPresentacion, setExpandedPresentacion] = useState<number | null>(0)
+  
+  // Función para alternar la presentación expandida
+  const togglePresentacion = (index: number) => {
+    setExpandedPresentacion(expandedPresentacion === index ? null : index);
+  };
   
   // Opciones predefinidas para Unidad Base
   const unidadesBaseOptions = ["PIEZA", "CAJA", "KIT"]
@@ -993,6 +1001,17 @@ export default function RegistrarProductoForm() {
           </CardContent>
         </Card>
 
+        <div className="mt-8">
+          <div className="flex items-center mb-4">
+            <div className="h-px bg-naval-200 flex-1"></div>
+            <h2 className="text-lg font-semibold text-naval-800 px-4 flex items-center">
+              <PackageOpen className="h-5 w-5 mr-2 text-naval-600" />
+              Clasificación y Detalles
+            </h2>
+            <div className="h-px bg-naval-200 flex-1"></div>
+          </div>
+        </div>
+
         <Card className="bg-naval-50/50 border-naval-100">
           <CardContent className="pt-6">
             <div className="flex items-center gap-2 mb-4 text-naval-700">
@@ -1161,6 +1180,17 @@ export default function RegistrarProductoForm() {
             </div>
           </CardContent>
         </Card>
+
+        <div className="mt-8">
+          <div className="flex items-center mb-4">
+            <div className="h-px bg-naval-200 flex-1"></div>
+            <h2 className="text-lg font-semibold text-naval-800 px-4 flex items-center">
+              <PackageOpen className="h-5 w-5 mr-2 text-naval-600" />
+              Información de Inventario
+            </h2>
+            <div className="h-px bg-naval-200 flex-1"></div>
+          </div>
+        </div>
 
         <Card className="bg-naval-50/50 border-naval-100">
           <CardContent className="pt-6">
@@ -1418,18 +1448,33 @@ export default function RegistrarProductoForm() {
           </CardContent>
         </Card>
 
-        <Card className="bg-naval-50/50 border-naval-100">
+        <div className="mt-8">
+          <div className="flex items-center mb-4">
+            <div className="h-px bg-naval-200 flex-1"></div>
+            <h2 className="text-lg font-semibold text-naval-800 px-4 flex items-center">
+              <PackageOpen className="h-5 w-5 mr-2 text-naval-600" />
+              Lotes 
+            </h2>
+            <div className="h-px bg-naval-200 flex-1"></div>
+          </div>
+        </div>
+
+        <Card className="bg-slate-100 border-2 border-naval-100 shadow-sm">
           <CardContent className="pt-6">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2 text-naval-700">
-                <PackageOpen className="h-5 w-5" />
-                <h3 className="font-medium">Presentaciones</h3>
+                <PackageOpen className="h-50 w-50" />
+                {/* <h3 className="font-medium">Presentaciones</h3> */}
               </div>
               <Button 
                 type="button" 
                 variant="outline" 
                 size="sm" 
-                onClick={addPresentacion}
+                onClick={() => {
+                  const newIndex = form.getValues("presentaciones").length;
+                  addPresentacion();
+                  setExpandedPresentacion(newIndex);
+                }}
                 className="text-naval-600 border-naval-200 hover:bg-naval-100"
               >
                 <PlusCircle className="h-4 w-4 mr-2" />
@@ -1437,30 +1482,76 @@ export default function RegistrarProductoForm() {
               </Button>
             </div>
 
-            {form.watch("presentaciones").map((_, index) => (
-              <div key={index} className="mb-6">
-                <div className="flex items-center justify-between mb-2">
-                  <h4 className="text-sm font-medium text-naval-600">Presentación {index + 1}</h4>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => removePresentacion(index)}
-                    className="h-8 px-2 text-red-500 hover:text-red-700 hover:bg-red-50"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+              {form.watch("presentaciones").map((_, index) => (
+                <div key={index} className="border border-naval-100 rounded-md overflow-hidden h-full flex flex-col">
+                <div 
+                  className="flex items-center justify-between p-3 cursor-pointer bg-white hover:bg-naval-50 transition-colors border-b border-naval-100"
+                  onClick={() => togglePresentacion(index)}
+                >
+                  <div className="flex items-center">
+                    <div className={`transform transition-transform mr-3 ${expandedPresentacion === index ? 'rotate-90 text-naval-600' : 'text-naval-400'}`}>
+                      <ChevronRight className="h-4 w-4" />
+                    </div>
+                    <div className="flex flex-col">
+                      <div className="flex items-center space-x-3">
+                        <span className="text-sm font-semibold text-naval-700">
+                          Presentación {index + 1}
+                        </span>
+                        {form.watch(`presentaciones.${index}.tipoPresentacion`) && (
+                          <span className="px-2 py-0.5 text-xs font-medium bg-naval-100 text-naval-700 rounded-full">
+                            {form.watch(`presentaciones.${index}.tipoPresentacion`)}
+                          </span>
+                        )}
+                      </div>
+                      {form.watch(`presentaciones.${index}.descripcionPresentacion`) && (
+                        <p className="text-xs text-naval-500 mt-1 line-clamp-1">
+                          {form.watch(`presentaciones.${index}.descripcionPresentacion`)}
+                        </p>
+                      )}
+                      {form.watch(`presentaciones.${index}.tipoPresentacion`) !== "PIEZA" && (
+                        <div className="flex items-center mt-1">
+                          <span className="text-xs font-medium text-naval-600">
+                            {form.watch(`presentaciones.${index}.cantidad`) || 0} x {form.watch(`presentaciones.${index}.equivalenciaEnBase`) || 0} = 
+                            <span className="ml-1 font-bold">
+                              {(form.watch(`presentaciones.${index}.cantidad`) || 0) * (form.watch(`presentaciones.${index}.equivalenciaEnBase`) || 0)} unidades
+                            </span>
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        removePresentacion(index);
+                        if (expandedPresentacion === index) {
+                          const total = form.getValues("presentaciones").length;
+                          setExpandedPresentacion(total > 1 ? (index > 0 ? index - 1 : 0) : null);
+                        }
+                      }}
+                      className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-full"
+                      title="Eliminar presentación"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
                 </div>
-                <div className="p-4 border border-naval-100 rounded-md bg-white">
-                  {/* Usamos un layout más estructurado con alturas fijas para evitar descuadres */}
-                  <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-                    {/* Primera fila: Código y Tipo de Presentación */}
-                    <div className="flex flex-col h-24"> {/* Altura fija para cada contenedor */}
+                <div 
+                  className={`overflow-hidden transition-all duration-300 flex-1 flex flex-col ${expandedPresentacion === index ? 'max-h-[1000px] opacity-100 p-4 bg-white' : 'max-h-0 opacity-0 p-0'}`}
+                >
+                  <div className="space-y-4">
+                    {/* 1. Código en la parte superior */}
+                    <div className="flex flex-col">
                       <FormField
                         control={form.control}
                         name={`presentaciones.${index}.codigo`}
                         render={({ field }) => (
-                          <FormItem className="flex-1">
+                          <FormItem>
                             <FormLabel className="text-naval-700">Código</FormLabel>
                             <FormControl>
                               <Input
@@ -1473,40 +1564,94 @@ export default function RegistrarProductoForm() {
                           </FormItem>
                         )}
                       />
-                    </div>
-
-                    <div className="flex flex-col h-24"> {/* Altura fija para cada contenedor */}
-                      <FormField
-                        control={form.control}
-                        name={`presentaciones.${index}.tipoPresentacion`}
-                        render={({ field }) => (
-                          <FormItem className="flex-1">
-                            <FormLabel className="text-naval-700">Tipo de Presentación</FormLabel>
-                            <FormControl>
-                              <Input
-                                placeholder="Ej. Caja"
-                                {...field}
-                                className="border-naval-200 focus-visible:ring-naval-500 bg-gray-50"
-                                readOnly={true}
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
+                      <input 
+                        type="hidden" 
+                        {...form.register(`presentaciones.${index}.tipoPresentacion`)}
+                        value={form.watch(`presentaciones.${index}.tipoPresentacion`)}
                       />
                     </div>
 
-                    {/* Segunda fila: Descripción y Cantidad */}
-                    <div className="flex flex-col h-24"> {/* Altura fija para cada contenedor */}
+                    {/* 2. Cantidad y Equivalencia en la misma línea */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {/* Cantidad */}
+                      <div className="flex flex-col">
+                        <FormField
+                          control={form.control}
+                          name={`presentaciones.${index}.cantidad`}
+                          render={({ field }) => {
+                            const tipo = form.watch(`presentaciones.${index}.tipoPresentacion`) || 'unidad';
+                            const label = tipo === 'PIEZA' ? 'Piezas' : 
+                                          tipo === 'CAJA' ? 'Cajas' : 
+                                          tipo === 'KIT' ? 'Kits' : 'Unidades';
+                                          
+                            return (
+                              <FormItem>
+                                <FormLabel className="text-naval-700">{label}</FormLabel>
+                                <FormControl>
+                                  <Input
+                                    type="number"
+                                    min="1"
+                                    {...field}
+                                    className="border-naval-200 focus-visible:ring-naval-500"
+                                  />
+                                </FormControl>
+                                {form.watch('cantidadNeta') > 0 && cantidadRestante !== 0 && (
+                                  <p className={`text-xs mt-1 ${cantidadRestante > 0 ? 'text-amber-600' : 'text-red-600'}`}>
+                                    {cantidadRestante > 0 
+                                      ? `Faltan ${cantidadRestante} unidades por asignar` 
+                                      : `Exceso de ${Math.abs(cantidadRestante)} unidades`}
+                                  </p>
+                                )}
+                                <FormMessage />
+                              </FormItem>
+                            );
+                          }}
+                        />
+                      </div>
+
+                      {/* Equivalencia (solo si no es PIEZA) */}
+                      {form.watch(`presentaciones.${index}.tipoPresentacion`) !== "PIEZA" && (
+                        <div className="flex flex-col">
+                          <FormField
+                            control={form.control}
+                            name={`presentaciones.${index}.equivalenciaEnBase`}
+                            render={({ field }) => {
+                              const tipo = form.watch(`presentaciones.${index}.tipoPresentacion`) || 'unidad';
+                              const label = tipo === 'PIEZA' ? 'Piezas' : 
+                                            tipo === 'CAJA' ? 'Caja' : 
+                                            tipo === 'KIT' ? 'Kit' : 'Piezas';
+                                            
+                              return (
+                              <FormItem>
+                                <FormLabel className="text-naval-700">Piezas por {label}</FormLabel>
+                                <FormControl>
+                                  <Input
+                                    type="number"
+                                    min="1"
+                                    {...field}
+                                    className="border-naval-200 focus-visible:ring-naval-500"
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                              );
+                            }}
+                          />
+                        </div>
+                      )}
+                    </div>
+
+                    {/* 3. Descripción en la parte inferior */}
+                    <div className="flex flex-col">
                       <FormField
                         control={form.control}
                         name={`presentaciones.${index}.descripcionPresentacion`}
                         render={({ field }) => (
-                          <FormItem className="flex-1">
+                          <FormItem>
                             <FormLabel className="text-naval-700">Descripción</FormLabel>
                             <FormControl>
                               <Input
-                                placeholder="Ej. Caja con 100 unidades"
+                                placeholder="Ej. Caja con 100 piezas"
                                 {...field}
                                 className="border-naval-200 focus-visible:ring-naval-500"
                               />
@@ -1517,99 +1662,45 @@ export default function RegistrarProductoForm() {
                       />
                     </div>
 
-                    <div className="flex flex-col h-24"> {/* Altura fija para cada contenedor */}
-                      <FormField
-                        control={form.control}
-                        name={`presentaciones.${index}.cantidad`}
-                        render={({ field }) => (
-                          <FormItem className="flex-1">
-                            <FormLabel className="text-naval-700">Cantidad</FormLabel>
-                            <FormControl>
-                              <Input
-                                type="number"
-                                min="1"
-                                {...field}
-                                className="border-naval-200 focus-visible:ring-naval-500"
-                              />
-                            </FormControl>
-                            {form.watch('cantidadNeta') > 0 && cantidadRestante !== 0 && (
-                              <p className={`text-xs mt-1 ${cantidadRestante > 0 ? 'text-amber-600' : 'text-red-600'}`}>
-                                {cantidadRestante > 0 
-                                  ? `Faltan ${cantidadRestante} unidades por asignar` 
-                                  : `Exceso de ${Math.abs(cantidadRestante)} unidades`}
-                              </p>
-                            )}
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-
-                    {/* Tercera fila: Equivalencia en Unidad Base (solo si no es PIEZA) */}
-                    {form.watch(`presentaciones.${index}.tipoPresentacion`) !== "PIEZA" && (
-                      <div className="flex flex-col h-24 md:col-span-2"> {/* Altura fija para cada contenedor */}
-                        <FormField
-                          control={form.control}
-                          name={`presentaciones.${index}.equivalenciaEnBase`}
-                          render={({ field }) => (
-                            <FormItem className="flex-1">
-                              <FormLabel className="text-naval-700">Equivalencia en Unidad Base</FormLabel>
-                              <FormControl>
-                                <Input
-                                  type="number"
-                                  min="1"
-                                  {...field}
-                                  className="border-naval-200 focus-visible:ring-naval-500"
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      </div>
-                    )}
-                    
                     {/* Si es PIEZA, mantener el valor 1 pero no mostrar el campo */}
                     {form.watch(`presentaciones.${index}.tipoPresentacion`) === "PIEZA" && (
                       <input 
-                        type="hidden" 
-                        {...form.register(`presentaciones.${index}.equivalenciaEnBase`)} 
-                        value="1" 
+                        type="hidden"
+                        {...form.register(`presentaciones.${index}.equivalenciaEnBase`)}
+                        value="1"
                       />
                     )}
                   </div>
                 </div>
-                {index < form.watch("presentaciones").length - 1 && (
-                  <Separator className="my-4" />
-                )}
               </div>
             ))}
-          </CardContent>
-        </Card>
-
-        {/* Mensaje de advertencia antes del botón para evitar descuadres */}
-        {/* {form.watch('cantidadNeta') > 0 && cantidadRestante !== 0 && (
-          <div className="mb-4 text-sm w-full">
-            <p className={`p-2 rounded-md ${cantidadRestante > 0 ? 'bg-amber-50 text-amber-700 border border-amber-200' : 'bg-red-50 text-red-700 border border-red-200'}`}>
-              {cantidadRestante > 0 
-                ? `⚠️ Faltan ${cantidadRestante} unidades por asignar en presentaciones` 
-                : `⚠️ Hay un exceso de ${Math.abs(cantidadRestante)} unidades en presentaciones`}
-            </p>
           </div>
-        )} */}
+        </CardContent>
+      </Card>
 
-        {/* Botón de envío */}
-        <div className="flex justify-end">
-          <Button 
-            type="submit" 
-            disabled={isSubmitting || (form.watch('cantidadNeta') > 0 && cantidadRestante !== 0)} 
-            className="bg-naval-600 hover:bg-naval-700"
-          >
-            {isSubmitting ? "Registrando..." : "Registrar Producto"}
-          </Button>
+      {/* Mensaje de advertencia antes del botón para evitar descuadres */}
+      {form.watch('cantidadNeta') > 0 && cantidadRestante !== 0 && (
+        <div className="mb-4 text-sm w-full">
+          <p className={`p-2 rounded-md ${cantidadRestante > 0 ? 'bg-amber-50 text-amber-700 border border-amber-200' : 'bg-red-50 text-red-700 border border-red-200'}`}>
+            {cantidadRestante > 0 
+              ? `⚠️ Faltan ${cantidadRestante} unidades por asignar en presentaciones` 
+              : `⚠️ Hay un exceso de ${Math.abs(cantidadRestante)} unidades en presentaciones`}
+          </p>
         </div>
-      </form>
-    </Form>
-    </>
+      )}
+
+      {/* Botón de envío */}
+      <div className="flex justify-end">
+        <Button 
+          type="submit" 
+          disabled={isSubmitting || (form.watch('cantidadNeta') > 0 && cantidadRestante !== 0)} 
+          className="bg-naval-600 hover:bg-naval-700"
+        >
+          {isSubmitting ? "Registrando..." : "Registrar Producto"}
+        </Button>
+      </div>
+    </form>
+  </Form>
+  </>
   )
 }
