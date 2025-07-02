@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 
+export const dynamic = 'force-dynamic'; // No cachear esta ruta
+
 export async function POST(request: Request) {
   try {
     // Obtener los datos de la petición

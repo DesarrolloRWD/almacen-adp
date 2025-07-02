@@ -139,6 +139,7 @@ export function PresentacionesTable() {
         observaciones: "", // Esto podría venir de un modal con un campo de texto
         detalles: presentacionesSeleccionadas.map(presentacion => ({
           id: presentacion.id,
+          lote: presentacion.lote || '', // Agregar campo lote
           cantidadEntregada: presentacion.cantidad || 0,
           observaciones: "",
           nombreProducto: presentacion.item?.descripcion || presentacion.descripcionPresentacion

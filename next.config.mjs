@@ -54,7 +54,7 @@ const nextConfig = {
         destination: `${process.env.NEXT_PUBLIC_ALMACEN_API_URL}/get/specific/presentacion`,
       },
       {
-        source: '/get/presentation/by/codigo/lote',
+        source: '/presentaciones',
         destination: `${process.env.NEXT_PUBLIC_ALMACEN_API_URL}/get/presentation/by/codigo/lote`,
       },
       {
@@ -86,6 +86,18 @@ const nextConfig = {
       {
         source: '/api/generate/entrega',
         destination: `${process.env.NEXT_PUBLIC_ENTREGAS_API_URL}/generate/entrega`,
+      },
+
+      // Proxy para historial
+      {
+        source: '/api/get/historial',
+        destination: `${process.env.NEXT_PUBLIC_HISTORIAL_API_URL}/get/historial`,
+      },
+      
+      // Proxy para obtener productos
+      {
+        source: '/api/get/productos',
+        destination: `${process.env.NEXT_PUBLIC_ALMACEN_API_URL}/get/products`,
       },
     ];
   },

@@ -1,12 +1,26 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
+import { cookies } from 'next/headers'
 
-export async function POST(req: NextRequest) {
+export const dynamic = 'force-dynamic'; // Asegura que la ruta no sea cacheada
+
+export async function POST(req: Request) {
   try {
     const body = await req.json()
     
-    // Obtener el token de la cookie o del encabezado de autorización
-    const authHeader = req.headers.get('authorization')
-    const token = authHeader ? authHeader.split(' ')[1] : null
+    // Obtener el token de autenticación desde las cookies usando el método asíncrono
+    const cookieStore = await cookies();
+    const token = cookieStore.get('token')?.value;
+    
+    // Si no hay token, devolver error de autenticación
+    if (!token) {
+      console.warn('No se encontró token de autenticación para presentacion especifica');
+      return NextResponse.json(
+        { error: 'No se proporcionó token de autenticación' },
+        { status: 401 }
+      );
+    }
+    
+    console.log('Token de autenticación encontrado para presentacion especifica');
     
     // Construir la URL completa para el microservicio
     const apiUrl = `${process.env.NEXT_PUBLIC_ALMACEN_API_URL}/get/specific/presentacion`

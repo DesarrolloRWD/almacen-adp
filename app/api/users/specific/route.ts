@@ -1,16 +1,24 @@
 import { NextResponse } from "next/server"
+import { cookies } from "next/headers"
+
+export const dynamic = 'force-dynamic'; // Asegura que la ruta no sea cacheada
 
 export async function POST(request: Request) {
   try {
-    // Obtener el token de la solicitud
-    const authHeader = request.headers.get("Authorization")
+    // Obtener el token de autenticación desde las cookies usando el método asíncrono
+    const cookieStore = await cookies();
+    const token = cookieStore.get('token')?.value;
     
-    if (!authHeader) {
+    // Si no hay token, devolver error de autenticación
+    if (!token) {
+      console.warn('No se encontró token de autenticación para usuarios/specific');
       return NextResponse.json(
         { error: "No se proporcionó token de autenticación" },
         { status: 401 }
       )
     }
+    
+    console.log('Token de autenticación encontrado para usuarios/specific');
     
     // Obtener el nombre de usuario de la solicitud
     const body = await request.json()
@@ -41,7 +49,7 @@ export async function POST(request: Request) {
     const response = await fetch(specificUserUrl, {
       method: "POST",
       headers: {
-        "Authorization": authHeader,
+        "Authorization": `Bearer ${token}`,
         "Content-Type": "application/json"
       },
       body: JSON.stringify({ value: username })

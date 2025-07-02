@@ -1,29 +1,24 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
+import { cookies } from 'next/headers';
 
-// Función para obtener el token de autorización de las cookies
-function getAuthToken(request: NextRequest): string | null {
-  const cookieHeader = request.headers.get('cookie');
-  if (!cookieHeader) return null;
-  
-  const cookies = cookieHeader.split(';').map(cookie => cookie.trim());
-  const tokenCookie = cookies.find(cookie => cookie.startsWith('token='));
-  
-  if (!tokenCookie) return null;
-  return tokenCookie.split('=')[1];
-}
+export const dynamic = 'force-dynamic'; // Asegura que la ruta no sea cacheada
 
-export async function POST(request: NextRequest) {
+export async function POST(request: Request) {
   try {
-    // Obtener el token de autorización
-    const token = getAuthToken(request);
+    // Obtener el token de autenticación desde las cookies usando el método asíncrono
+    const cookieStore = await cookies();
+    const token = cookieStore.get('token')?.value;
     
     // Si no hay token, devolver error de autenticación
     if (!token) {
+      console.warn('No se encontró token de autenticación para presentaciones');
       return NextResponse.json(
         { error: 'No se proporcionó token de autenticación' },
         { status: 401 }
       );
     }
+    
+    console.log('Token de autenticación encontrado para presentaciones');
     
     // Obtener los datos del cuerpo de la solicitud
     const body = await request.json();

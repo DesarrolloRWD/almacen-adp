@@ -358,7 +358,8 @@ export interface EntregaData {
   responsableArea: string;
   observaciones: string;
   detalles: {
-    id: number;
+    id: string | number; // Puede ser string (UUID) o number
+    lote: string; // Campo requerido por la API externa
     cantidadEntregada: number;
     observaciones: string;
     nombreProducto: string;
@@ -368,10 +369,12 @@ export interface EntregaData {
 // Función para generar una entrega
 export async function generateEntrega(entregaData: EntregaData): Promise<{ success: boolean; message: string }> {
   try {
-    // //console.log('URL del endpoint:', API_ENDPOINTS.GENERATE_ENTREGA);
-    // //console.log('Datos enviados:', JSON.stringify(entregaData, null, 2));
+    // Mostrar los datos que se van a enviar
+    console.log('URL del endpoint:', API_ENDPOINTS.GENERATE_ENTREGA);
+    console.log('DATOS ENVIADOS A LA API:', JSON.stringify(entregaData, null, 2));
+    
     const response = await authPost(API_ENDPOINTS.GENERATE_ENTREGA, entregaData);
-    // //console.log('Respuesta del servidor:', response);
+    console.log('Respuesta del servidor:', response);
     return { success: true, message: "Entrega generada exitosamente" };
   } catch (error: any) {
     console.error("Error al generar entrega:", error);

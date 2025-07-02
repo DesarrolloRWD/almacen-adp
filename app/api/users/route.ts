@@ -1,18 +1,24 @@
 import { NextResponse } from "next/server"
+import { cookies } from "next/headers"
 
-export async function GET(request: Request) {
+export const dynamic = 'force-dynamic'; // Asegura que la ruta no sea cacheada
+
+export async function GET() {
   try {
-    // Obtener el token de la solicitud
-    const authHeader = request.headers.get("Authorization")
+    // Obtener el token de autenticación desde las cookies usando el método asíncrono
+    const cookieStore = await cookies();
+    const token = cookieStore.get('token')?.value;
     
-    // ////console.log("Obteniendo usuarios con token:", authHeader ? "[TOKEN PRESENTE]" : "[SIN TOKEN]")
-    
-    if (!authHeader) {
+    // Si no hay token, devolver error de autenticación
+    if (!token) {
+      console.warn('No se encontró token de autenticación para usuarios');
       return NextResponse.json(
         { error: "No se proporcionó token de autenticación" },
         { status: 401 }
       )
     }
+    
+    console.log('Token de autenticación encontrado para usuarios');
     
     // URL del endpoint real
     const baseUrl = process.env.NEXT_PUBLIC_USUARIOS_API_URL
@@ -32,7 +38,7 @@ export async function GET(request: Request) {
     const response = await fetch(usersUrl, {
       method: "GET",
       headers: {
-        "Authorization": authHeader,
+        "Authorization": `Bearer ${token}`,
         "Content-Type": "application/json"
       }
     })

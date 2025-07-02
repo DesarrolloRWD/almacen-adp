@@ -78,17 +78,31 @@ export const authGet = async (url: string, options: RequestInit = {}): Promise<a
 
 // Función para realizar peticiones POST autenticadas
 export const authPost = async (url: string, data: any, options: RequestInit = {}): Promise<any> => {
+  console.log('authPost - URL:', url);
+  console.log('authPost - Datos enviados:', JSON.stringify(data, null, 2));
+  
   const response = await authFetch(url, {
     ...options,
     method: 'POST',
     body: JSON.stringify(data)
   })
   
+  console.log('authPost - Status de respuesta:', response.status, response.statusText);
+  
   if (!response.ok) {
-    throw new Error(`Error: ${response.status}`)
+    // Intentar obtener el cuerpo de la respuesta para ver el mensaje de error
+    try {
+      const errorBody = await response.text();
+      console.error('authPost - Cuerpo de respuesta de error:', errorBody);
+      throw new Error(`Error: ${response.status} - ${errorBody}`);
+    } catch (e) {
+      throw new Error(`Error: ${response.status}`);
+    }
   }
   
-  return response.json()
+  const jsonResponse = await response.json();
+  console.log('authPost - Respuesta JSON:', jsonResponse);
+  return jsonResponse;
 }
 
 // Función para realizar peticiones PUT autenticadas

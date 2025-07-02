@@ -1,26 +1,27 @@
 import { NextRequest, NextResponse } from "next/server"
 import { cookies } from "next/headers"
 
+export const dynamic = 'force-dynamic'; // No cachear esta ruta
+
 // Método POST para guardar un nuevo producto
 export async function POST(request: NextRequest) {
   try {
-    // Obtener el token de la solicitud
-    const authHeader = request.headers.get("Authorization")
-    let token = authHeader ? authHeader.replace("Bearer ", "") : null
+    console.log("API save/product: Iniciando procesamiento de solicitud");
     
-    // Si no hay token en los headers, intentar obtenerlo de las cookies
-    if (!token) {
-      token = request.cookies.get('token')?.value || null
-    }
+    // Obtener el token de autenticación de las cookies usando el método asíncrono
+    const cookieStore = await cookies();
+    const token = cookieStore.get('token')?.value;
     
     // Verificar si hay token
     if (!token) {
-      console.error("No se encontró token de autorización")
+      console.error("API save/product: No se encontró token de autorización")
       return NextResponse.json(
         { error: "No autorizado", details: "No se encontró token de autenticación" },
         { status: 401 }
       )
     }
+    
+    console.log("API save/product: Token de autenticación encontrado");
     
     // Obtener los datos del cuerpo de la solicitud
     const body = await request.json()

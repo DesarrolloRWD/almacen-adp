@@ -806,6 +806,7 @@ export default function HistorialMovimientos() {
         observaciones: observaciones, // Observaciones generales para toda la entrega
         detalles: entregas.map(entrega => ({
           id: entrega.id,
+          lote: entrega.lote || '', // Agregar campo lote
           cantidadEntregada: entrega.totalSeleccionado || entrega.cantidad,
           observaciones: observaciones, // Solo las observaciones generales, no los comentarios específicos
           nombreProducto: entrega.producto.descripcion

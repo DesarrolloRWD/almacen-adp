@@ -1,10 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { cookies } from 'next/headers';
+
+export const dynamic = 'force-dynamic'; // No cachear esta ruta
 
 export async function POST(request: NextRequest) {
   try {
+    console.log('API update/producto: Iniciando procesamiento de solicitud');
+    
     // Obtener los datos del request
     const data = await request.json();
-    //////console.log('Datos recibidos:', JSON.stringify(data, null, 2));
+    console.log('API update/producto: Datos recibidos:', JSON.stringify(data).substring(0, 200) + '...');
     
     // URL de la API externa para actualizar productos
     const baseUrl = process.env.NEXT_PUBLIC_ALMACEN_API_URL;
@@ -18,7 +23,22 @@ export async function POST(request: NextRequest) {
     
     const apiUrl = `${baseUrl}/update/product`;
     
-    //////console.log('Enviando a URL:', apiUrl);
+    console.log('API update/producto: Enviando a URL:', apiUrl);
+    
+    // Obtener el token de autenticación de las cookies
+    const cookieStore = await cookies();
+    const token = cookieStore.get('token')?.value;
+    
+    // Si no hay token, devolver error
+    if (!token) {
+      console.error('API update/producto: No se encontró token de autenticación');
+      return NextResponse.json(
+        { error: 'No autorizado', details: 'No se encontró token de autenticación' },
+        { status: 401 }
+      );
+    }
+    
+    console.log('API update/producto: Token de autenticación encontrado');
     
     // Intentar realizar la solicitud a la API externa
     try {
@@ -26,8 +46,10 @@ export async function POST(request: NextRequest) {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify(data),
+        cache: 'no-store' // No cachear la respuesta
       });
       
       // Verificar si la respuesta fue exitosa
