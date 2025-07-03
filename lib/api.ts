@@ -81,6 +81,7 @@ export interface User {
 
 import { authGet, authPost, authPut } from "./auth-fetch"
 import { API_ENDPOINTS } from "./config"
+import { getTenantFromToken } from "./jwt-utils"
 
 // Funciones para interactuar con la API
 export async function getProductos(): Promise<Producto[]> {
@@ -274,12 +275,25 @@ export async function getAllUsers(): Promise<User[]> {
 
 export async function createUser(user: User): Promise<{ success: boolean; message: string }> {
   try {
+    // Obtener el tenant del token JWT
+    const tenantName = getTenantFromToken();
+    
+    // Crear una copia del usuario con el tenant incluido
+    const userWithTenant = {
+      ...user,
+      tenant: {
+        nombre: tenantName
+      }
+    };
+    
+    console.log("authPost - Datos enviados:", JSON.stringify(userWithTenant, null, 2));
+    
     // Usar el endpoint proxy local en lugar del servidor externo directamente
-    await authPost(API_ENDPOINTS.CREATE_USER, user)
-    return { success: true, message: "Usuario creado exitosamente" }
+    await authPost(API_ENDPOINTS.CREATE_USER, userWithTenant);
+    return { success: true, message: "Usuario creado exitosamente" };
   } catch (error) {
-    console.error("Error al crear usuario:", error)
-    return { success: false, message: "Error al crear el usuario" }
+    console.error("Error al crear usuario:", error);
+    return { success: false, message: "Error al crear el usuario" };
   }
 }
 
@@ -420,10 +434,30 @@ export async function getHistorialProductosAgotados(): Promise<ProductoAgotado[]
   }
 }
 
+// Interfaz para los roles de usuario
+export interface Role {
+  nombre: string;
+}
+
+// Función para obtener todos los roles disponibles
+export async function getRoles(): Promise<Role[]> {
+  try {
+    // Usar el endpoint local que actúa como proxy para el servidor externo
+    console.log('Obteniendo roles desde:', API_ENDPOINTS.GET_ROLES);
+    const response = await authGet(API_ENDPOINTS.GET_ROLES);
+    console.log('Roles obtenidos:', response);
+    return Array.isArray(response) ? response : [];
+  } catch (error) {
+    console.error("Error al obtener roles:", error);
+    return [];
+  }
+}
+
 // Exportar todas las funciones como un objeto API
 export const api = {
   getProductos,
   saveProducto,
+  getRoles,
   updateProducto,
   getProductosActivos,
   saveProductoActivo,

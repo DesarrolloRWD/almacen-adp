@@ -105,11 +105,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (response.ok) {
         const userData = await response.json();
         
-        // Asegurarse de que la imagen tenga una URL completa
-        const apiUrl = process.env.NEXT_PUBLIC_USUARIOS_API_URL || '';
-        if (userData && userData.image && !userData.image.startsWith('http')) {
-          userData.image = `${apiUrl}${userData.image.startsWith('/') ? '' : '/'}${userData.image}`;
-         
+        // No se requiere la imagen del usuario
+        if (userData && userData.image) {
+          delete userData.image;
         }
         
         return userData;

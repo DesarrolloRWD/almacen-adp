@@ -17,6 +17,7 @@ export const USUARIOS_ENDPOINTS = {
   UPDATE_STATUS: '/api/users/update-status',
   UPDATE_IMAGE: '/api/users/update-image',
   UPDATE_INFORMATION: '/api/users/update-information',
+  GET_ROLES: '/api/usuarios/get/roles',
 };
 
 // Endpoints para almacén

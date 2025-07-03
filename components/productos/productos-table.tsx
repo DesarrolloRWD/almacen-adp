@@ -269,7 +269,7 @@ export default function ProductosTable() {
                         </Badge>
                       ) : (
                         <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-                          Normal
+                          Disponible
                         </Badge>
                       )}
                     </TableCell>

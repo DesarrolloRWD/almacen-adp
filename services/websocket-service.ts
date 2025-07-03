@@ -1,5 +1,6 @@
 import { Client, IMessage } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
+import { getTenantFromToken } from '@/lib/jwt-utils';
 
 // Tipos de notificación
 export type NotificationType = 'critico' | 'preventivo';
@@ -109,6 +110,21 @@ class WebSocketService {
     try {
       const body = JSON.parse(message.body);
       
+      // Procesar el mensaje recibido (sin logs)
+      
+      // Obtener el tenantId de la notificación
+      const notificationTenantId = body.tenantId;
+      
+      // Obtener el tenantId del usuario actual
+      const currentUserTenantId = getTenantFromToken();
+      
+      // Comparar tenants (sin logs)
+      
+      // Si los tenantId no coinciden, ignorar la notificación
+      if (notificationTenantId && currentUserTenantId !== 'string' && notificationTenantId !== currentUserTenantId) {
+        return;
+      }
+      
       // Generar un ID único para este mensaje basado en su contenido
       const messageId = this.generateMessageId(type, body);
       
@@ -127,28 +143,52 @@ class WebSocketService {
       
     
       
-      // Intentar parsear el payload si existe y es un string JSON
+      // Manejar el payload (puede ser un objeto JSON o un string simple)
       let parsedPayload: Record<string, any> = {};
       if (body.payload && typeof body.payload === 'string') {
         try {
-          parsedPayload = JSON.parse(body.payload);
+          // Intentar parsear como JSON solo si parece ser un objeto JSON (comienza con { o [)
+          if (body.payload.trim().startsWith('{') || body.payload.trim().startsWith('[')) {
+            parsedPayload = JSON.parse(body.payload);
+          } else {
+            // Si no parece ser JSON, guardarlo como mensaje de texto
+            parsedPayload = { mensaje: body.payload };
+          }
         } catch (e) {
-          console.error('Error al parsear el payload:', e);
+          // Si falla el parseo, guardarlo como mensaje de texto
+          parsedPayload = { mensaje: body.payload };
         }
+      } else if (body.payload) {
+        parsedPayload = body.payload;
       }
       
       
       
       // Determinar el mensaje basado en el tipo de notificación
       let notificationMessage = body.message || 'Nueva notificación';
-      if (body.type === 'PRODUCTO_AGOTADO' && parsedPayload) {
+      
+      // Si el payload contiene un mensaje de texto simple, usarlo como mensaje de notificación
+      if (parsedPayload.mensaje && typeof parsedPayload.mensaje === 'string' && !parsedPayload.descripcion) {
+        notificationMessage = parsedPayload.mensaje;
+      }
+      // Si es una notificación de tipo PRODUCTO_AGOTADO
+      else if (body.type === 'PRODUCTO_AGOTADO' && parsedPayload) {
         const descripcion = parsedPayload.descripcion || '';
         const codigo = parsedPayload.codigo || '';
         notificationMessage = `Producto agotado: ${descripcion} (${codigo})`;
-      } else if (body.type === 'STOCK_BAJO' && parsedPayload) {
+      } 
+      // Si es una notificación de tipo STOCK_BAJO
+      else if (body.type === 'STOCK_BAJO' && parsedPayload) {
         const descripcion = parsedPayload.descripcion || '';
         const codigo = parsedPayload.codigo || '';
         notificationMessage = `Stock bajo: ${descripcion} (${codigo})`;
+      }
+      // Si el tipo es CRITICO o PREVENTIVO y no tiene formato específico
+      else if (body.type === 'CRITICO' || body.type === 'PREVENTIVO') {
+        // Usar el payload como mensaje si es un string
+        if (typeof body.payload === 'string') {
+          notificationMessage = body.payload;
+        }
       }
       
       const notification: Notification = {
@@ -162,13 +202,15 @@ class WebSocketService {
         }
       };
 
+      // Notificación lista para ser enviada a los listeners
+
       // Notificar a todos los listeners registrados para este tipo
       const typeListeners = this.listeners.get(type) || [];
       typeListeners.forEach(callback => {
         try {
           callback(notification);
         } catch (error) {
-          console.error(`Error en callback de notificación ${type}:`, error);
+          console.error(`❌ Error en callback de notificación ${type}:`, error);
         }
       });
     } catch (error) {

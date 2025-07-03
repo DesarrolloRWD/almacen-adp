@@ -259,6 +259,7 @@ export function EditarProductoForm({ producto, onSuccess, onCancel }: EditarProd
                       <Button
                         variant="outline"
                         role="combobox"
+                        disabled
                         className={cn(
                           "w-full justify-between",
                           !field.value && "text-muted-foreground",
@@ -342,7 +343,7 @@ export function EditarProductoForm({ producto, onSuccess, onCancel }: EditarProd
               <FormItem>
                 <FormLabel>Unidad Base</FormLabel>
                 <FormControl>
-                  <Input placeholder="Ej. CAJA" {...field} />
+                  <Input placeholder="Ej. CAJA" {...field} disabled />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -364,6 +365,7 @@ export function EditarProductoForm({ producto, onSuccess, onCancel }: EditarProd
                     onBlur={field.onBlur}
                     name={field.name}
                     ref={field.ref}
+                    disabled
                   />
                 </FormControl>
                 <FormMessage />
@@ -386,6 +388,7 @@ export function EditarProductoForm({ producto, onSuccess, onCancel }: EditarProd
                     onBlur={field.onBlur}
                     name={field.name}
                     ref={field.ref}
+                    disabled
                   />
                 </FormControl>
                 <FormMessage />
@@ -408,6 +411,7 @@ export function EditarProductoForm({ producto, onSuccess, onCancel }: EditarProd
                           "pl-3 text-left font-normal",
                           !field.value && "text-muted-foreground"
                         )}
+                        disabled
                       >
                         {field.value ? (
                           format(field.value, "PPP", { locale: es })
@@ -423,7 +427,7 @@ export function EditarProductoForm({ producto, onSuccess, onCancel }: EditarProd
                       mode="single"
                       selected={field.value}
                       onSelect={field.onChange}
-                      disabled={(date) => date < new Date()}
+                      disabled={true}
                       initialFocus
                     />
                   </PopoverContent>
@@ -468,7 +472,7 @@ export function EditarProductoForm({ producto, onSuccess, onCancel }: EditarProd
               <FormItem>
                 <FormLabel>Lote</FormLabel>
                 <FormControl>
-                  <Input placeholder="Ej. LOT123456" {...field} />
+                  <Input placeholder="Ej. LOT123456" {...field} disabled />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -490,6 +494,7 @@ export function EditarProductoForm({ producto, onSuccess, onCancel }: EditarProd
                     onBlur={field.onBlur}
                     name={field.name}
                     ref={field.ref}
+                    disabled
                   />
                 </FormControl>
                 <FormMessage />
@@ -504,7 +509,7 @@ export function EditarProductoForm({ producto, onSuccess, onCancel }: EditarProd
               <FormItem>
                 <FormLabel>Creado Por</FormLabel>
                 <FormControl>
-                  <Input placeholder="Ej. sistema" {...field} />
+                  <Input placeholder="Ej. sistema" {...field} disabled />
                 </FormControl>
                 <FormMessage />
               </FormItem>

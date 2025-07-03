@@ -333,8 +333,9 @@ export default function RegistrarProductoForm() {
         linea: values.linea,
         sublinea: values.sublinea,
         lote: values.lote,
-        // Usar exactamente el formato que funciona en Postman
-        fechaExpiracion: `${values.fechaExpiracion.getFullYear()}-${String(values.fechaExpiracion.getMonth() + 1).padStart(2, '0')}-${String(values.fechaExpiracion.getDate()).padStart(2, '0')}T00:00:00.000Z`,
+        // Formato de fecha sin zona horaria para evitar problemas de cambio de día
+        fechaExpiracion: `${values.fechaExpiracion.getFullYear()}-${String(values.fechaExpiracion.getMonth() + 1).padStart(2, '0')}-${String(values.fechaExpiracion.getDate()).padStart(2, '0')}`,
+        // Guardar la fecha exacta seleccionada sin conversión de zona horaria
         minimos: Number(values.minimos),
         maximos: Number(values.maximos),
         creadoPor: values.creadoPor,

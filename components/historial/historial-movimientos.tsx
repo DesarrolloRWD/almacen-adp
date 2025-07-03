@@ -762,6 +762,8 @@ export default function HistorialMovimientos() {
   
   // Estado para controlar si se está generando la salida
   const [generandoSalida, setGenerandoSalida] = useState(false);
+  // Estado para controlar la visibilidad del modal de carga
+  const [modalCargaAbierto, setModalCargaAbierto] = useState(false);
 
   // Función para generar el PDF con las observaciones
   const generarPDFConObservaciones = async () => {
@@ -791,6 +793,8 @@ export default function HistorialMovimientos() {
     }
     
     setGenerandoSalida(true);
+    // Mostrar el modal de carga
+    setModalCargaAbierto(true);
     
     try {
       // Cerrar el modal de observaciones
@@ -827,26 +831,18 @@ export default function HistorialMovimientos() {
         // Limpiar las entregas
         setEntregas([]);
         
-        // Mostrar notificación de éxito
-        toast.success("Salida generada correctamente", {
-          description: "Se ha registrado la salida y generado el PDF",
-          duration: 5000
-        });
+        // Ya no mostramos notificación toast, solo el modal de carga
       } else {
-        // Mostrar notificación de error
-        toast.error("Error al generar la salida", {
-          description: "No se pudo registrar la salida",
-          duration: 5000
-        });
+        // Mostrar error en consola
+        console.error('Error al generar la salida');
       }
     } catch (error) {
       console.error('Error al generar la entrega:', error);
-      toast.error("Error al generar la salida", {
-        description: "Ocurrió un error inesperado",
-        duration: 5000
-      });
+      // Ya no mostramos notificación toast de error
     } finally {
       setGenerandoSalida(false);
+      // Ocultar el modal de carga
+      setModalCargaAbierto(false);
     }
   };
   
@@ -1103,8 +1099,7 @@ export default function HistorialMovimientos() {
     // Guardar el PDF
     doc.save(`Salida_Almacen_${fechaActual.toISOString().split('T')[0]}_${numeroDocumento}.pdf`);
     
-    // Mostrar mensaje de éxito
-    alert("Se ha generado el PDF de salida correctamente.");
+
     
     // Limpiar los campos del formulario después de generar la salida
     setEntregas([]);
@@ -2054,6 +2049,21 @@ export default function HistorialMovimientos() {
                 Guardar comentario
               </Button>
             </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal de carga durante la generación de la entrega */}
+      <Dialog open={modalCargaAbierto} onOpenChange={() => {}}>
+        <DialogContent className="sm:max-w-[400px] flex flex-col items-center justify-center p-6 bg-white/95 backdrop-blur-sm z-50">
+          <div className="flex flex-col items-center justify-center space-y-4">
+            <Loader2 className="h-16 w-16 animate-spin text-naval-600" />
+            <DialogTitle className="text-xl font-semibold text-naval-700">Procesando entrega</DialogTitle>
+            <DialogDescription className="text-center">
+              Por favor espere mientras se genera la entrega y el PDF correspondiente.
+              <br />
+              Este proceso puede tomar unos momentos.
+            </DialogDescription>
           </div>
         </DialogContent>
       </Dialog>

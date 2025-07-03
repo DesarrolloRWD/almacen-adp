@@ -59,6 +59,9 @@ export default function ConfiguracionPage() {
   const [newImage, setNewImage] = useState<string | null>(null)
   const [isEditMode, setIsEditMode] = useState(false)
   const [editForm, setEditForm] = useState<api.UserInformationUpdate>({})
+  // Estado para almacenar los roles obtenidos del catálogo
+  const [roles, setRoles] = useState<api.Role[]>([])
+  const [loadingRoles, setLoadingRoles] = useState(false)
   
   // Referencias para el input de archivo
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -75,16 +78,47 @@ export default function ConfiguracionPage() {
     telefono: "",
     rfc: "",
     image: "",
-    roles: [{ nombre: process.env.NEXT_PUBLIC_APP_ENV === 'production' ? 'ROLE_ADMIN' : 'Admin' }]
+    roles: [] // No usar roles predefinidos, se seleccionarán del catálogo
   })
   
   // Estado para la previsualización de la imagen
   const [imagePreview, setImagePreview] = useState<string>("")
 
-  // Cargar usuarios al montar el componente
+  // Función para cargar los roles disponibles
+  const fetchRoles = async () => {
+    // Siempre intentar cargar los roles del catálogo
+    setLoadingRoles(true)
+    setError("") // Limpiar errores anteriores
+    try {
+      const rolesData = await api.getRoles()
+      
+      if (Array.isArray(rolesData) && rolesData.length > 0) {
+        // Filtrar duplicados por nombre
+        const uniqueRoles = rolesData.filter((role, index, self) =>
+          index === self.findIndex((r) => r.nombre === role.nombre)
+        );
+        
+        console.log(`Se encontraron ${uniqueRoles.length} roles únicos en el catálogo`)
+        setRoles(uniqueRoles)
+      } else {
+        console.warn("No se encontraron roles en el catálogo")
+        setRoles([]) // No usar roles predefinidos, dejar vacío
+        setError("No se pudieron cargar los roles del servidor. Por favor, verifica la conexión e intenta de nuevo.")
+      }
+    } catch (err) {
+      console.error("Error al obtener roles:", err)
+      setError("Error al cargar los roles disponibles. Por favor, verifica la conexión e intenta de nuevo.")
+      setRoles([]) // No usar roles predefinidos, dejar vacío
+    } finally {
+      setLoadingRoles(false)
+    }
+  }
+
+  // Cargar usuarios y roles al montar el componente
   useEffect(() => {
     if (isAuthenticated) {
       fetchUsers()
+      fetchRoles()
     }
   }, [isAuthenticated])
 
@@ -344,6 +378,13 @@ export default function ConfiguracionPage() {
         setIsLoading(false)
         return
       }
+      
+      // Validar que se haya seleccionado al menos un rol
+      if (!newUser.roles || newUser.roles.length === 0) {
+        setError("Por favor selecciona al menos un rol para el usuario")
+        setIsLoading(false)
+        return
+      }
 
       await api.createUser(newUser)
       setSuccess("Usuario creado exitosamente")
@@ -360,7 +401,7 @@ export default function ConfiguracionPage() {
         telefono: "",
         rfc: "",
         image: "",
-        roles: [{ nombre: "Admin" }]
+        roles: [] // Sin roles predefinidos
       })
       
       // Recargar lista de usuarios
@@ -513,18 +554,31 @@ export default function ConfiguracionPage() {
                         onValueChange={(value) => 
                           setNewUser({...newUser, roles: [{ nombre: value }]})
                         }
+                        disabled={loadingRoles}
                       >
                         <SelectTrigger>
-                          <SelectValue placeholder="Seleccionar rol" />
+                          {loadingRoles ? (
+                            <div className="flex items-center">
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              <span>Cargando roles...</span>
+                            </div>
+                          ) : (
+                            <SelectValue placeholder="Seleccionar rol" />
+                          )}
                         </SelectTrigger>
                         <SelectContent>
-                          {process.env.NEXT_PUBLIC_APP_ENV === 'production' ? (
-                            <>
-                              <SelectItem value="ROLE_ADMIN">Administrador</SelectItem>
-                              <SelectItem value="ROLE_SUPERUSER">Super Usuario</SelectItem>
-                            </>
+                          {roles.length > 0 ? (
+                            roles.map((role) => (
+                                <SelectItem key={role.nombre} value={role.nombre}>
+                                  {role.nombre === "ROLE_ADMIN" ? "Administrador" : 
+                                   role.nombre === "ROLE_USER" ? "Usuario" : 
+                                   role.nombre}
+                                </SelectItem>
+                            ))
                           ) : (
-                            <SelectItem value="Admin">Administrador</SelectItem>
+                            <SelectItem value="ROLE_USER" disabled>
+                              No hay roles disponibles
+                            </SelectItem>
                           )}
                         </SelectContent>
                       </Select>
