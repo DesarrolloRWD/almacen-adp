@@ -110,8 +110,18 @@ export default function ProductosTable() {
       
       // Procesar los datos para agregar el estado basado en la fecha de expiración
       const productosConEstado = data.map((producto: ProductoAPI) => {
-        const fechaExp = new Date(producto.fechaExpiracion)
-        const hoy = new Date()
+        // Extraer la fecha sin la hora para evitar problemas de zona horaria
+        const fechaStr = producto.fechaExpiracion.split('T')[0];
+        const [año, mes, día] = fechaStr.split('-');
+        // Crear fecha de expiración sin ajuste de zona horaria
+        const fechaExp = new Date(parseInt(año), parseInt(mes)-1, parseInt(día));
+        
+        // Obtener fecha actual sin componente de hora
+        const hoyStr = new Date().toISOString().split('T')[0];
+        const [añoHoy, mesHoy, díaHoy] = hoyStr.split('-');
+        const hoy = new Date(parseInt(añoHoy), parseInt(mesHoy)-1, parseInt(díaHoy));
+        
+        // Calcular diferencia en días
         const diferenciaDias = Math.ceil((fechaExp.getTime() - hoy.getTime()) / (1000 * 60 * 60 * 24))
         
         return {
@@ -260,7 +270,15 @@ export default function ProductosTable() {
                     <TableCell>{producto.cantidadNeta}</TableCell>
                     <TableCell>{producto.marca}</TableCell>
                     <TableCell>
-                      {new Date(producto.fechaExpiracion).toLocaleDateString()}
+                      {(() => {
+                        // Extraer solo la fecha sin la hora para evitar problemas de zona horaria
+                        const fechaStr = producto.fechaExpiracion.split('T')[0];
+                        // Crear la fecha usando año, mes y día explícitamente para evitar ajustes de zona horaria
+                        const [año, mes, día] = fechaStr.split('-');
+                        // Crear una fecha local con esos componentes (mes-1 porque en JS los meses van de 0-11)
+                        const fecha = new Date(parseInt(año), parseInt(mes)-1, parseInt(día));
+                        return fecha.toLocaleDateString();
+                      })()}
                     </TableCell>
                     <TableCell>
                       {producto.estado === "porExpirar" ? (

@@ -322,6 +322,10 @@ export default function RegistrarProductoForm() {
   // Manejar envío del formulario
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     setIsSubmitting(true)
+    
+    // Log para ver la fecha original seleccionada
+    console.log('Fecha seleccionada (original):', values.fechaExpiracion);
+    
     try {
       // Formatear los valores del formulario según la estructura requerida por la API
       const formattedValues = {
@@ -333,9 +337,32 @@ export default function RegistrarProductoForm() {
         linea: values.linea,
         sublinea: values.sublinea,
         lote: values.lote,
-        // Formato de fecha sin zona horaria para evitar problemas de cambio de día
-        fechaExpiracion: `${values.fechaExpiracion.getFullYear()}-${String(values.fechaExpiracion.getMonth() + 1).padStart(2, '0')}-${String(values.fechaExpiracion.getDate()).padStart(2, '0')}`,
-        // Guardar la fecha exacta seleccionada sin conversión de zona horaria
+        // Formato de fecha con ajuste de zona horaria para evitar problemas de cambio de día
+        fechaExpiracion: (() => {
+          // Crear una copia de la fecha para no modificar la original
+          const fecha = new Date(values.fechaExpiracion);
+          
+          // Log para ver la fecha antes del ajuste
+          console.log('Fecha antes del ajuste:', fecha.toISOString());
+          console.log('Fecha local (antes):', fecha.toLocaleDateString());
+          
+          // Ajustar la fecha para compensar la zona horaria
+          const offset = fecha.getTimezoneOffset();
+          console.log('Offset de zona horaria (minutos):', offset);
+          
+          fecha.setMinutes(fecha.getMinutes() + offset);
+          
+          // Log para ver la fecha después del ajuste
+          console.log('Fecha después del ajuste:', fecha.toISOString());
+          console.log('Fecha local (después):', fecha.toLocaleDateString());
+          
+          // Formatear la fecha en formato ISO (YYYY-MM-DD)
+          const fechaFormateada = fecha.toISOString().split('T')[0];
+          console.log('Fecha formateada enviada al servidor:', fechaFormateada);
+          
+          return fechaFormateada;
+        })(),
+        // La solución anterior garantiza que la fecha seleccionada sea la misma que se envía al servidor
         minimos: Number(values.minimos),
         maximos: Number(values.maximos),
         creadoPor: values.creadoPor,
@@ -354,6 +381,9 @@ export default function RegistrarProductoForm() {
       
       // Obtener el token de autenticación del localStorage
       const token = localStorage.getItem('token')
+      
+      // Log para mostrar todos los datos que se envían al servidor
+      console.log('Datos completos enviados al servidor:', formattedValues);
       
       // Usar el proxy local para evitar problemas de CORS
       const response = await fetch(`/api/save/product`, {

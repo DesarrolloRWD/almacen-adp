@@ -13,12 +13,25 @@ export function middleware(request: NextRequest) {
     request.nextUrl.pathname === route || request.nextUrl.pathname.startsWith(`${route}/`)
   )
 
+  // Si es la ruta raíz, redirigir según si hay token o no
+  if (request.nextUrl.pathname === '/') {
+    if (token) {
+      // Si hay token, redirigir a la página principal
+      const homeUrl = new URL('/productos', request.url)
+      return NextResponse.redirect(homeUrl)
+    } else {
+      // Si no hay token, redirigir al login
+      const loginUrl = new URL('/login', request.url)
+      return NextResponse.redirect(loginUrl)
+    }
+  }
+
   // Si no hay token y la ruta no es pública, redirigir al login
   if (!token && !isPublicRoute) {
     const loginUrl = new URL('/login', request.url)
     return NextResponse.redirect(loginUrl)
   }
-
+  
   // Si hay token y la ruta es /login, redirigir a la página principal
   if (token && request.nextUrl.pathname === '/login') {
     const homeUrl = new URL('/productos', request.url)

@@ -24,66 +24,41 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Verificar si hay un token guardado al cargar la página
   useEffect(() => {
-    // Obtener token del localStorage
-    const storedToken = localStorage.getItem("token")
-    
-    // Obtener token de las cookies
-    const getCookie = (name: string) => {
-      const value = `; ${document.cookie}`
-      const parts = value.split(`; ${name}=`)
-      if (parts.length === 2) return parts.pop()?.split(';').shift()
-      return undefined
-    }
-    
-    const cookieToken = getCookie("token")
-    
-    // Usar el token de localStorage o de cookies
-    const token = storedToken || cookieToken
-    
-    if (token) {
-      // Si hay token en cualquiera de los dos lugares, establecer como autenticado
-      setToken(token)
-      setIsAuthenticated(true)
+    const checkToken = async () => {
+      setIsLoading(true)
+      const storedToken = localStorage.getItem("token")
       
-      // Intentar obtener el nombre de usuario del token JWT
-      let username = "";
-      try {
-        const base64Url = token.split('.')[1];
-        if (base64Url) {
-          const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-          const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
-            return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
-          }).join(''));
+      if (storedToken) {
+        try {
+          // Verificar si el token es válido obteniendo información del usuario
+          const response = await fetch('/api/users/me', {
+            headers: {
+              'Authorization': `Bearer ${storedToken}`
+            }
+          })
           
-          const payload = JSON.parse(jsonPayload);
-          username = payload.sub || payload.usuario || "";
-        }
-      } catch (e) {
-        console.error("Error al decodificar el token JWT", e);
-      }
-      
-      // Si tenemos un nombre de usuario, obtener información completa
-      if (username) {
-        fetchUserInfo(username).then(userInfo => {
-          if (userInfo) {
-            setUser(userInfo);
+          if (response.ok) {
+            const userData = await response.json()
+            setToken(storedToken)
+            setUser(userData)
+            setIsAuthenticated(true)
           } else {
-            setUser({ nombre: username }); // Fallback
+            // Token inválido, limpiar
+            localStorage.removeItem("token")
+            document.cookie = "token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Strict"
           }
-        });
-      } else {
-        setUser({ nombre: "Usuario" }); // Placeholder
+        } catch (error) {
+          console.error("Error al verificar el token:", error)
+          // En caso de error, limpiar el token
+          localStorage.removeItem("token")
+          document.cookie = "token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Strict"
+        }
       }
       
-      // Asegurar que el token esté en ambos lugares
-      if (!storedToken && cookieToken) {
-        localStorage.setItem("token", cookieToken)
-      } else if (storedToken && !cookieToken) {
-        document.cookie = `token=${storedToken}; path=/; max-age=${60 * 60 * 24 * 7}; SameSite=Strict`
-      }
+      setIsLoading(false)
     }
     
-    setIsLoading(false)
+    checkToken()
   }, [])
 
   // Función para obtener información completa del usuario
