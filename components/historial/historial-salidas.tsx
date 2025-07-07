@@ -5,7 +5,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
-import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Search, Filter, Loader2, PackageOpen, Calendar, Download, FileDown, ArrowUpDown } from "lucide-react"
+import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Search, Filter, Loader2, PackageOpen, Calendar, Download, FileDown, ArrowUpDown, Clock, AlertTriangle } from "lucide-react"
 import { format, parseISO, isValid, compareDesc, compareAsc } from "date-fns"
 import { es } from "date-fns/locale"
 import { toast } from "sonner"
@@ -25,134 +25,225 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { jsPDF } from "jspdf"
 import autoTable from "jspdf-autotable"
+import { Card, CardContent } from "@/components/ui/card"
+import { ProductoAgotado, ProductoExpirado } from "@/types/historial"
 
-// Interfaz para productos agotados del historial
-interface ProductoAgotado {
-  type: string;
-  payload: {
-    codigo: string;
-    descripcion: string;
-    marca: string;
-    unidadBase: string;
-    division: string;
-    linea: string;
-    sublinea: string;
-    lote: string;
-    fechaEliminacion: string;
-  };
-  timestamp: number;
-  source: string;
-  correlationId: string;
-  routingKey: string;
+interface HistorialSalidasProps {
+  tipoHistorialSeleccionado?: 'agotados' | 'expirados';
 }
 
-export default function HistorialSalidas() {
+export default function HistorialSalidas({ tipoHistorialSeleccionado = 'agotados' }: HistorialSalidasProps) {
+  // Estado para controlar qué tipo de historial se muestra
+  const [tipoHistorial, setTipoHistorial] = useState<'agotados' | 'expirados'>(tipoHistorialSeleccionado)
+  
   // Estados para manejar los datos y la paginación
-  const [productos, setProductos] = useState<ProductoAgotado[]>([])
+  const [productosAgotados, setProductosAgotados] = useState<ProductoAgotado[]>([])
+  const [productosExpirados, setProductosExpirados] = useState<ProductoExpirado[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage, setItemsPerPage] = useState(10)
   const [searchTerm, setSearchTerm] = useState('')
-  const [filteredProductos, setFilteredProductos] = useState<ProductoAgotado[]>([])
+  const [filteredProductosAgotados, setFilteredProductosAgotados] = useState<ProductoAgotado[]>([])
+  const [filteredProductosExpirados, setFilteredProductosExpirados] = useState<ProductoExpirado[]>([])
   const [filterDivision, setFilterDivision] = useState<string>('all')
   const [filterLinea, setFilterLinea] = useState<string>('all')
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc')
   const [filterDate, setFilterDate] = useState<string>('')
   const [generatingPDF, setGeneratingPDF] = useState(false)
   
-  // Obtener datos del historial
-  useEffect(() => {
-    const fetchHistorial = async () => {
-      try {
-        setLoading(true)
-        const response = await fetch('/api/historial', {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          cache: 'no-store'
-        })
-        
-        if (!response.ok) {
-          throw new Error(`Error: ${response.status}`)
-        }
-        
-        const data = await response.json()
-        setProductos(Array.isArray(data) ? data : [])
-        setError(null)
-      } catch (error) {
-        console.error("Error al obtener historial de productos agotados:", error)
-        setError("Error al cargar el historial. Por favor, intente nuevamente.")
-        toast.error("Error al cargar el historial de salidas")
-      } finally {
-        setLoading(false)
+  // Función para cargar los productos agotados
+  const fetchProductosAgotados = async () => {
+    try {
+      setLoading(true)
+      const response = await fetch('/api/historial/agotados', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        cache: 'no-store'
+      })
+      
+      if (!response.ok) {
+        throw new Error(`Error: ${response.status}`)
       }
+      
+      const data = await response.json()
+      setProductosAgotados(Array.isArray(data) ? data : [])
+      setError(null)
+    } catch (error) {
+      console.error("Error al obtener historial de productos agotados:", error)
+      setError("Error al cargar el historial. Por favor, intente nuevamente.")
+      toast.error("Error al cargar el historial de productos agotados")
+    } finally {
+      setLoading(false)
     }
-    
-    fetchHistorial()
-  }, [])
+  }
   
-  // Filtrar productos cuando cambia el término de búsqueda o los filtros
-  useEffect(() => {
-    let filtered = productos.filter(producto => {
-      const matchesSearch = searchTerm === '' || 
-        producto.payload.codigo.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        producto.payload.descripcion.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        producto.payload.marca.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        producto.payload.lote.toLowerCase().includes(searchTerm.toLowerCase())
+  // Función para cargar los productos expirados
+  const fetchProductosExpirados = async () => {
+    try {
+      setLoading(true)
+      const response = await fetch('/api/historial/expirados', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        cache: 'no-store'
+      })
       
-      const matchesDivision = filterDivision === 'all' || 
-        producto.payload.division === filterDivision
-        
-      // Filtrar por fecha si se ha seleccionado una
-      let matchesDate = true
-      if (filterDate) {
-        try {
-          // Convertir la fecha del producto a formato ISO para comparación
-          const fechaProducto = parseISO(producto.payload.fechaEliminacion)
-          // Convertir la fecha del filtro a objeto Date
-          const fechaFiltro = parseISO(filterDate)
-          
-          // Comparar solo año, mes y día
-          matchesDate = (
-            fechaProducto.getFullYear() === fechaFiltro.getFullYear() &&
-            fechaProducto.getMonth() === fechaFiltro.getMonth() &&
-            fechaProducto.getDate() === fechaFiltro.getDate()
-          )
-        } catch (error) {
-          matchesDate = false
-        }
+      if (!response.ok) {
+        throw new Error(`Error: ${response.status}`)
       }
       
-      return matchesSearch && matchesDivision && matchesDate
-    })
-    
-    // Ordenar por fecha
-    filtered = [...filtered].sort((a, b) => {
-      const dateA = parseISO(a.payload.fechaEliminacion)
-      const dateB = parseISO(b.payload.fechaEliminacion)
-      
-      if (!isValid(dateA) || !isValid(dateB)) return 0
-      
-      return sortDirection === 'asc' 
-        ? compareAsc(dateA, dateB) 
-        : compareDesc(dateA, dateB)
-    })
-    
-    setFilteredProductos(filtered)
-    setCurrentPage(1) // Resetear a la primera página cuando cambian los filtros
-  }, [searchTerm, filterDivision, filterDate, sortDirection, productos])
+      const data = await response.json()
+      setProductosExpirados(Array.isArray(data) ? data : [])
+      setError(null)
+    } catch (error) {
+      console.error("Error al obtener historial de productos expirados:", error)
+      setError("Error al cargar el historial. Por favor, intente nuevamente.")
+      toast.error("Error al cargar el historial de productos expirados")
+    } finally {
+      setLoading(false)
+    }
+  }
   
-  // Calcular índices para paginación
+  // Cargar datos iniciales
+  
+  // Función para formatear fechas, manejando valores nulos o indefinidos
+  const formatDate = (dateString: string | null | undefined): string => {
+    if (!dateString) return 'N/A';
+    try {
+      const date = parseISO(dateString);
+      if (!isValid(date)) return 'Fecha inválida';
+      return format(date, "d 'de' MMMM 'de' yyyy", { locale: es });
+    } catch (error) {
+      return 'Fecha inválida';
+    }
+  }
+  
+  // Efecto para actualizar tipoHistorial cuando cambia la prop
+  useEffect(() => {
+    setTipoHistorial(tipoHistorialSeleccionado)
+  }, [tipoHistorialSeleccionado])
+  
+  // Efecto para cargar datos según el tipo seleccionado
+  useEffect(() => {
+    // Cargar datos según el tipo seleccionado
+    if (tipoHistorial === 'agotados') {
+      fetchProductosAgotados()
+    } else {
+      fetchProductosExpirados()
+    }
+    // Resetear la página al cambiar de tipo
+    setCurrentPage(1)
+  }, [tipoHistorial])
+  
+  // Filtrar productos agotados cuando cambia el término de búsqueda o los filtros
+  useEffect(() => {
+    if (tipoHistorial === 'agotados') {
+      let filtered = productosAgotados.filter(producto => {
+        const matchesSearch = searchTerm === '' || 
+          producto.payload.codigo.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          producto.payload.descripcion.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          producto.payload.division.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          producto.payload.linea.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          producto.payload.sublinea.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          producto.payload.lote.toLowerCase().includes(searchTerm.toLowerCase())
+        
+        const matchesDivision = filterDivision === 'all' || 
+          producto.payload.division === filterDivision
+        
+        const matchesLinea = filterLinea === 'all' || 
+          producto.payload.linea === filterLinea
+        
+        const matchesDate = filterDate === '' || 
+          (producto.payload.fechaEliminacion && 
+           isValid(parseISO(producto.payload.fechaEliminacion)) && 
+           format(parseISO(producto.payload.fechaEliminacion), 'yyyy-MM-dd') === filterDate)
+        
+        return matchesSearch && matchesDivision && matchesLinea && matchesDate
+      })
+      
+      // Ordenar por fecha de eliminación
+      filtered = filtered.sort((a, b) => {
+        if (!a.payload.fechaEliminacion) return 1
+        if (!b.payload.fechaEliminacion) return -1
+        
+        const dateA = parseISO(a.payload.fechaEliminacion)
+        const dateB = parseISO(b.payload.fechaEliminacion)
+        
+        if (!isValid(dateA)) return 1
+        if (!isValid(dateB)) return -1
+        
+        return sortDirection === 'desc' ? 
+          compareDesc(dateA, dateB) : 
+          compareAsc(dateA, dateB)
+      })
+      
+      setFilteredProductosAgotados(filtered)
+    }
+  }, [productosAgotados, searchTerm, filterDivision, filterLinea, filterDate, sortDirection, tipoHistorial])
+  
+  // Filtrar productos expirados cuando cambia el término de búsqueda o los filtros
+  useEffect(() => {
+    if (tipoHistorial === 'expirados') {
+      let filtered = productosExpirados.filter(producto => {
+        const matchesSearch = searchTerm === '' || 
+          producto.payload.codigo.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          producto.payload.descripcion.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          producto.payload.division.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          producto.payload.linea.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          producto.payload.sublinea.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          producto.payload.lote.toLowerCase().includes(searchTerm.toLowerCase())
+        
+        const matchesDivision = filterDivision === 'all' || 
+          producto.payload.division === filterDivision
+        
+        const matchesLinea = filterLinea === 'all' || 
+          producto.payload.linea === filterLinea
+        
+        const matchesDate = filterDate === '' || 
+          (producto.payload.fechaExpiracion && 
+           isValid(parseISO(producto.payload.fechaExpiracion)) && 
+           format(parseISO(producto.payload.fechaExpiracion), 'yyyy-MM-dd') === filterDate)
+        
+        return matchesSearch && matchesDivision && matchesLinea && matchesDate
+      })
+      
+      // Ordenar por fecha de expiración
+      filtered = filtered.sort((a, b) => {
+        if (!a.payload.fechaExpiracion) return 1
+        if (!b.payload.fechaExpiracion) return -1
+        
+        const dateA = parseISO(a.payload.fechaExpiracion)
+        const dateB = parseISO(b.payload.fechaExpiracion)
+        
+        if (!isValid(dateA)) return 1
+        if (!isValid(dateB)) return -1
+        
+        return sortDirection === 'desc' ? 
+          compareDesc(dateA, dateB) : 
+          compareAsc(dateA, dateB)
+      })
+      
+      setFilteredProductosExpirados(filtered)
+    }
+  }, [productosExpirados, searchTerm, filterDivision, filterLinea, filterDate, sortDirection, tipoHistorial])
+  
+  // Calcular índices para paginación según el tipo de historial
   const indexOfLastItem = currentPage * itemsPerPage
   const indexOfFirstItem = indexOfLastItem - itemsPerPage
+  
+  // Determinar qué lista filtrada usar según el tipo de historial
+  const filteredProductos = tipoHistorial === 'agotados' ? filteredProductosAgotados : filteredProductosExpirados
   const currentItems = filteredProductos.slice(indexOfFirstItem, indexOfLastItem)
   const totalPages = Math.ceil(filteredProductos.length / itemsPerPage)
   
-  // Obtener valores únicos para los filtros
-  const divisiones = [...new Set(productos.map(p => p.payload.division))].filter(Boolean)
-  const lineas = [...new Set(productos.map(p => p.payload.linea))].filter(Boolean)
+  // Obtener valores únicos para los filtros según el tipo de historial
+  const productos = tipoHistorial === 'agotados' ? productosAgotados : productosExpirados
+  const divisiones = [...new Set(productos.map((p: any) => p.payload.division))].filter(Boolean)
+  const lineas = [...new Set(productos.map((p: any) => p.payload.linea))].filter(Boolean)
   
   // Lista de divisiones en el orden correcto según la imagen
   const divisionesOrdenadas = [
@@ -242,25 +333,20 @@ export default function HistorialSalidas() {
     return {bg: "bg-gray-50", text: "text-gray-700", border: "border-gray-100", color: "#D3D3D3"};
   };
   
-  // Formatear fecha
-  const formatDate = (dateString: string) => {
-    try {
-      const date = parseISO(dateString)
-      return format(date, "d 'de' MMMM 'de' yyyy", { locale: es })
-    } catch (error) {
-      return dateString
-    }
-  }
+  // Esta función formatDate ha sido movida arriba para evitar duplicación
   
   // Generar PDF para un solo producto
-  const generateProductPDF = (producto: ProductoAgotado) => {
+  const generateProductPDF = (producto: ProductoAgotado | ProductoExpirado) => {
     setGeneratingPDF(true)
     try {
       const doc = new jsPDF()
       
+      // Determinar el tipo de producto
+      const esAgotado = tipoHistorial === 'agotados';
+      
       // Título
       doc.setFontSize(18)
-      doc.text("Informe de Producto Agotado", 14, 22)
+      doc.text(`Informe de Producto ${esAgotado ? 'Agotado' : 'Expirado'}`, 14, 22)
       
       // Fecha del informe
       doc.setFontSize(11)
@@ -270,15 +356,37 @@ export default function HistorialSalidas() {
       doc.setFontSize(14)
       doc.text("Datos del Producto", 14, 45)
       
-      const productData = [
-        ["Código", producto.payload.codigo],
-        ["Descripción", producto.payload.descripcion],
-        ["Marca", producto.payload.marca],
-        ["División", producto.payload.division],
-        ["Línea", producto.payload.linea],
-        ["Lote", producto.payload.lote],
-        ["Fecha de eliminación", formatDate(producto.payload.fechaEliminacion)]
-      ]
+      // Crear datos según el tipo de producto
+      let productData: Array<[string, string]> = [];
+      
+      if (esAgotado) {
+        // Es un producto agotado
+        const productoAgotado = producto as ProductoAgotado;
+        productData = [
+          ["Código", productoAgotado.payload.codigo],
+          ["Descripción", productoAgotado.payload.descripcion],
+          ["Marca", productoAgotado.payload.marca],
+          ["División", productoAgotado.payload.division],
+          ["Línea", productoAgotado.payload.linea],
+          ["Unidad", productoAgotado.payload.unidadBase || "CAJA"],
+          ["Lote", productoAgotado.payload.lote],
+          ["Fecha de eliminación", formatDate(productoAgotado.payload.fechaEliminacion)]
+        ];
+      } else {
+        // Es un producto expirado
+        const productoExpirado = producto as ProductoExpirado;
+        productData = [
+          ["Código", productoExpirado.payload.codigo],
+          ["Descripción", productoExpirado.payload.descripcion],
+          ["División", productoExpirado.payload.division],
+          ["Línea", productoExpirado.payload.linea],
+          ["Lote", productoExpirado.payload.lote],
+          ["Fecha de expiración", formatDate(productoExpirado.payload.fechaExpiracion)],
+          ["Fecha de eliminación", productoExpirado.payload.fechaEliminacion ? formatDate(productoExpirado.payload.fechaEliminacion) : 'N/A'],
+          ["Motivo", productoExpirado.payload.motivo || 'N/A'],
+          ["Eliminado por", productoExpirado.payload.eliminadoPor || 'N/A']
+        ];
+      }
       
       // Usar autoTable como función independiente
       autoTable(doc, {
@@ -304,26 +412,30 @@ export default function HistorialSalidas() {
   const generateDailyPDF = (date: string) => {
     setGeneratingPDF(true)
     try {
-      // Filtrar productos por la fecha seleccionada
-      const productosPorDia = filteredProductos.filter(p => {
-        if (!p.payload.fechaEliminacion) return false
-        
-        try {
-          // Convertir la fecha del producto a formato ISO
-          const fechaProducto = parseISO(p.payload.fechaEliminacion)
-          // Convertir la fecha del filtro
-          const fechaFiltro = parseISO(date)
-          
-          // Comparar solo año, mes y día
-          return (
-            fechaProducto.getFullYear() === fechaFiltro.getFullYear() &&
-            fechaProducto.getMonth() === fechaFiltro.getMonth() &&
-            fechaProducto.getDate() === fechaFiltro.getDate()
-          )
-        } catch (error) {
-          return false
-        }
-      })
+      // Filtrar productos por la fecha seleccionada según el tipo de historial
+      const productosPorDia = tipoHistorial === 'agotados'
+        ? filteredProductosAgotados.filter(p => {
+            if (!p.payload.fechaEliminacion) return false;
+            
+            try {
+              const fechaProducto = format(parseISO(p.payload.fechaEliminacion), 'yyyy-MM-dd');
+              return fechaProducto === date;
+            } catch (error) {
+              return false;
+            }
+          })
+        : filteredProductosExpirados.filter(p => {
+            // Para productos expirados, usar fechaExpiracion o fechaEliminacion
+            const fechaAComparar = p.payload.fechaExpiracion || p.payload.fechaEliminacion;
+            if (!fechaAComparar) return false;
+            
+            try {
+              const fechaProducto = format(parseISO(fechaAComparar), 'yyyy-MM-dd');
+              return fechaProducto === date;
+            } catch (error) {
+              return false;
+            }
+          });
       
       if (productosPorDia.length === 0) {
         toast.error("No hay productos para la fecha seleccionada")
@@ -333,29 +445,55 @@ export default function HistorialSalidas() {
       
       const doc = new jsPDF()
       
-      // Título
+      // Título según tipo de historial
       doc.setFontSize(18)
-      doc.text(`Informe de Productos Agotados - ${date}`, 14, 22)
+      doc.text(`Informe de Productos ${tipoHistorial === 'agotados' ? 'Agotados' : 'Expirados'} - ${date}`, 14, 22)
       
       // Fecha del informe
       doc.setFontSize(11)
       doc.text(`Fecha del informe: ${format(new Date(), "d 'de' MMMM 'de' yyyy", { locale: es })}`, 14, 32)
       doc.text(`Total de productos: ${productosPorDia.length}`, 14, 38)
       
-      // Datos para la tabla
-      const tableData = productosPorDia.map(p => [
-        p.payload.codigo,
-        p.payload.descripcion.length > 30 ? p.payload.descripcion.substring(0, 30) + '...' : p.payload.descripcion,
-        p.payload.marca,
-        p.payload.division,
-        p.payload.unidadBase || "CAJA",
-        p.payload.lote
-      ])
+      // Definir encabezados y datos para la tabla según tipo de historial
+      let headers: string[] = [];
+      let tableData: string[][] = [];
+      
+      if (tipoHistorial === 'agotados') {
+        // Encabezados para productos agotados
+        headers = ["Código", "Descripción", "Marca", "División", "Unidad", "Lote"];
+        
+        // Datos para productos agotados
+        tableData = productosPorDia.map(p => {
+          const producto = p as ProductoAgotado;
+          return [
+            producto.payload.codigo,
+            producto.payload.descripcion.length > 30 ? producto.payload.descripcion.substring(0, 30) + '...' : producto.payload.descripcion,
+            producto.payload.marca,
+            producto.payload.division,
+            producto.payload.unidadBase || "CAJA",
+            producto.payload.lote
+          ];
+        });
+      } else {
+        // Encabezados para productos expirados (sin columnas Unidad ni Marca)
+        headers = ["Código", "Descripción", "División", "Lote"];
+        
+        // Datos para productos expirados
+        tableData = productosPorDia.map(p => {
+          const producto = p as ProductoExpirado;
+          return [
+            producto.payload.codigo,
+            producto.payload.descripcion.length > 30 ? producto.payload.descripcion.substring(0, 30) + '...' : producto.payload.descripcion,
+            producto.payload.division,
+            producto.payload.lote
+          ];
+        });
+      }
       
       // Usar autoTable como función independiente
       autoTable(doc, {
         startY: 45,
-        head: [["Código", "Descripción", "Marca", "División", "Unidad", "Lote"]],
+        head: [headers],
         body: tableData,
         theme: 'striped',
         headStyles: { fillColor: [0, 48, 87] },
@@ -371,8 +509,8 @@ export default function HistorialSalidas() {
         }
       })
       
-      // Guardar el PDF
-      doc.save(`Productos_Agotados_${date}.pdf`)
+      // Guardar el PDF con nombre según tipo de historial
+      doc.save(`Productos_${tipoHistorial === 'agotados' ? 'Agotados' : 'Expirados'}_${date}.pdf`)
       toast.success("PDF generado correctamente")
     } catch (error) {
       console.error("Error al generar PDF:", error)
@@ -412,11 +550,22 @@ export default function HistorialSalidas() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todas las divisiones</SelectItem>
-                {divisiones.map((division) => (
-                  <SelectItem key={division} value={division}>
-                    {division}
-                  </SelectItem>
-                ))}
+                <div className="max-h-[300px] overflow-y-auto">
+                  {divisionesOrdenadas.map((division) => {
+                    const colorStyle = getColorDivision(division);
+                    return (
+                      <SelectItem key={division} value={division}>
+                        <div className="flex items-center gap-2">
+                          <div 
+                            className="w-3 h-3 rounded-full" 
+                            style={{ backgroundColor: colorStyle.color }}
+                          />
+                          <span>{division}</span>
+                        </div>
+                      </SelectItem>
+                    );
+                  })}
+                </div>
               </SelectContent>
             </Select>
           </div>
@@ -476,10 +625,19 @@ export default function HistorialSalidas() {
             Reintentar
           </Button>
         </div>
-      ) : filteredProductos.length === 0 ? (
+      ) : (tipoHistorial === 'agotados' ? filteredProductosAgotados : filteredProductosExpirados).length === 0 ? (
         <div className="text-center py-8 text-muted-foreground">
-          <PackageOpen className="mx-auto h-12 w-12 text-muted-foreground/50" />
-          <p className="mt-2">No se encontraron registros de productos agotados.</p>
+          {tipoHistorial === 'agotados' ? (
+            <>
+              <PackageOpen className="mx-auto h-12 w-12 text-muted-foreground/50" />
+              <p className="mt-2">No se encontraron registros de productos agotados.</p>
+            </>
+          ) : (
+            <>
+              <AlertTriangle className="mx-auto h-12 w-12 text-muted-foreground/50" />
+              <p className="mt-2">No se encontraron registros de productos expirados.</p>
+            </>
+          )}
         </div>
       ) : (
         <>
@@ -488,10 +646,14 @@ export default function HistorialSalidas() {
             <Table>
               <TableHeader>
                 <TableRow className="bg-naval-50">
-                  <TableHead className="font-semibold text-naval-800">Unidad</TableHead>
+                  {tipoHistorial === 'agotados' && (
+                    <TableHead className="font-semibold text-naval-800">Unidad</TableHead>
+                  )}
                   <TableHead className="font-semibold text-naval-800">Código</TableHead>
                   <TableHead className="font-semibold text-naval-800">Lote</TableHead>
-                  <TableHead className="font-semibold text-naval-800">Marca</TableHead>
+                  {tipoHistorial === 'agotados' && (
+                    <TableHead className="font-semibold text-naval-800">Marca</TableHead>
+                  )}
                   <TableHead className="font-semibold text-naval-800">Division</TableHead>
                   <TableHead className="font-semibold text-naval-800">Descripción</TableHead>
                   <TableHead className="font-semibold text-naval-800">Fecha</TableHead>
@@ -499,45 +661,59 @@ export default function HistorialSalidas() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {currentItems.map((producto, index) => (
-                  <TableRow key={`${producto.payload.codigo}-${producto.payload.lote}-${index}`}>
-                    <TableCell>
-                      {producto.payload.unidadBase || "CAJA"}
-                    </TableCell>
-                    <TableCell>{producto.payload.codigo}</TableCell>
-                    <TableCell>{producto.payload.lote}</TableCell>
-                    <TableCell>{producto.payload.marca}</TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <div 
-                          className="h-3 w-3 rounded-full" 
-                          style={{ backgroundColor: getColorDivision(producto.payload.division).color }}
-                        />
-                        <span>{producto.payload.division}</span>
-                      </div>
-                    </TableCell>
-                    <TableCell className="max-w-[250px] truncate" title={producto.payload.descripcion}>
-                      {producto.payload.descripcion}
-                    </TableCell>
-                    <TableCell>
-                      <div className="whitespace-nowrap">
-                        {formatDate(producto.payload.fechaEliminacion)}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        className="h-8 w-8" 
-                        onClick={() => generateProductPDF(producto)}
-                        disabled={generatingPDF}
-                        title="Descargar informe de este producto"
-                      >
-                        <FileDown className="h-4 w-4 text-blue-600" />
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
+                {currentItems.map((producto, index) => {
+                  // Determinar si es producto agotado o expirado
+                  const esAgotado = tipoHistorial === 'agotados';
+                  const fechaMostrar = esAgotado 
+                    ? producto.payload.fechaEliminacion 
+                    : ((producto as ProductoExpirado).payload.fechaExpiracion || (producto as ProductoExpirado).payload.fechaEliminacion || '');
+                  
+                  return (
+                    <TableRow key={`${producto.payload.codigo}-${producto.payload.lote}-${index}`}>
+                      {esAgotado && (
+                        <TableCell>
+                          {(producto as ProductoAgotado).payload.unidadBase || "CAJA"}
+                        </TableCell>
+                      )}
+                      <TableCell>{producto.payload.codigo}</TableCell>
+                      <TableCell>{producto.payload.lote}</TableCell>
+                      {esAgotado && (
+                        <TableCell>
+                          {(producto as ProductoAgotado).payload.marca}
+                        </TableCell>
+                      )}
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <div 
+                            className="h-3 w-3 rounded-full" 
+                            style={{ backgroundColor: getColorDivision(producto.payload.division).color }}
+                          />
+                          <span>{producto.payload.division}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell className="max-w-[250px] truncate" title={producto.payload.descripcion}>
+                        {producto.payload.descripcion}
+                      </TableCell>
+                      <TableCell>
+                        <div className="whitespace-nowrap">
+                          {formatDate(fechaMostrar)}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="h-8 w-8" 
+                          onClick={() => generateProductPDF(producto)}
+                          disabled={generatingPDF}
+                          title="Descargar informe de este producto"
+                        >
+                          <FileDown className="h-4 w-4 text-blue-600" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
               </TableBody>
             </Table>
           </div>

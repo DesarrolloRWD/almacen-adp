@@ -36,7 +36,10 @@ export default function ProductosPage() {
         <TabsContent value="listado" className="space-y-4 mt-6">
           <Card className="naval-card">
             <CardHeader className="pb-3">
-              <CardTitle className="text-naval-800">Insumos en Inventario</CardTitle>
+              <div className="flex justify-between items-center">
+                <CardTitle className="text-naval-800">Insumos en Inventario</CardTitle>
+                <div className="leyenda-semaforo" id="leyenda-semaforo"></div>
+              </div>
               <CardDescription>Listado completo de insumos médicos registrados en el sistema</CardDescription>
             </CardHeader>
             <CardContent>

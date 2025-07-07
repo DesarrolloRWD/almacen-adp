@@ -1,6 +1,7 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useLayoutEffect } from "react"
+import { createPortal } from "react-dom"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -21,8 +22,15 @@ import {
   MoreHorizontal,
   Search,
   AlertTriangle,
+  Clock,
+  CheckCircle,
+  AlertCircle,
+  AlertOctagon,
+  Trash2,
 } from "lucide-react"
 import { EditarProductoDialog } from "./editar-producto-dialog"
+import { EliminarProductoDialog } from "./eliminar-producto-dialog"
+import { toast } from "sonner"
 
 // Definimos las divisiones con sus colores correspondientes
 const divisiones = [
@@ -41,6 +49,7 @@ const divisiones = [
 
 // Definimos la interfaz para los productos según la estructura de la API
 interface ProductoAPI {
+  id?: string
   codigo: string
   descripcion: string
   marca: string
@@ -55,10 +64,12 @@ interface ProductoAPI {
   cantidadNeta: number
   creadoPor: string
   estado?: string
+  estadoInventario?: string
 }
 
 // Interfaz para los componentes de diálogo - Ahora coincide con la estructura de la API
 interface Producto {
+  id?: string
   codigo: string
   descripcion: string
   marca: string
@@ -73,6 +84,45 @@ interface Producto {
   cantidadNeta: number
   creadoPor: string
   estado?: string
+  estadoInventario?: string
+}
+
+// Componente para la leyenda del semáforo
+function LeyendaSemaforo() {
+  return (
+    <div className="flex items-center gap-4 text-xs">
+      <div className="flex items-center gap-2">
+        <span className="font-medium">Fecha:</span>
+        <div className="flex items-center gap-1">
+          <AlertOctagon className="h-3 w-3 text-red-600" />
+          <span>Expirado</span>
+        </div>
+        <div className="flex items-center gap-1">
+          <Clock className="h-3 w-3 text-amber-600" />
+          <span>Por expirar</span>
+        </div>
+        <div className="flex items-center gap-1">
+          <CheckCircle className="h-3 w-3 text-green-600" />
+          <span>Disponible</span>
+        </div>
+      </div>
+      <div className="flex items-center gap-2">
+        <span className="font-medium">Stock:</span>
+        <div className="flex items-center gap-1">
+          <AlertOctagon className="h-3 w-3 text-red-600" />
+          <span>Mínimo</span>
+        </div>
+        <div className="flex items-center gap-1">
+          <AlertTriangle className="h-3 w-3 text-amber-600" />
+          <span>Cerca del mínimo</span>
+        </div>
+        <div className="flex items-center gap-1">
+          <CheckCircle className="h-3 w-3 text-green-600" />
+          <span>Normal</span>
+        </div>
+      </div>
+    </div>
+  )
 }
 
 export default function ProductosTable() {
@@ -81,9 +131,20 @@ export default function ProductosTable() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [editarDialogOpen, setEditarDialogOpen] = useState(false)
+  const [eliminarDialogOpen, setEliminarDialogOpen] = useState(false)
   const [productoSeleccionado, setProductoSeleccionado] = useState<Producto | null>(null)
+  const [productoAEliminar, setProductoAEliminar] = useState<Producto | null>(null)
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage] = useState(10)
+  const [leyendaPortalElement, setLeyendaPortalElement] = useState<HTMLElement | null>(null)
+  
+  // Efecto para encontrar el elemento donde renderizar el semáforo
+  useEffect(() => {
+    const leyendaElement = document.getElementById('leyenda-semaforo')
+    if (leyendaElement) {
+      setLeyendaPortalElement(leyendaElement)
+    }
+  }, [])
 
   // Función para obtener los productos de la API usando el proxy local
   const fetchProductos = async () => {
@@ -108,7 +169,7 @@ export default function ProductosTable() {
       
       //////console.log('Datos recibidos:', data.length, 'productos')
       
-      // Procesar los datos para agregar el estado basado en la fecha de expiración
+      // Procesar los datos para agregar el estado basado en la fecha de expiración y nivel de inventario
       const productosConEstado = data.map((producto: ProductoAPI) => {
         // Extraer la fecha sin la hora para evitar problemas de zona horaria
         const fechaStr = producto.fechaExpiracion.split('T')[0];
@@ -124,9 +185,22 @@ export default function ProductosTable() {
         // Calcular diferencia en días
         const diferenciaDias = Math.ceil((fechaExp.getTime() - hoy.getTime()) / (1000 * 60 * 60 * 24))
         
+        // Determinar el estado basado en la fecha de expiración
+        let estado = diferenciaDias <= 0 ? 'expirado' : diferenciaDias <= 30 ? 'porExpirar' : 'normal';
+        
+        // Determinar el estado de inventario
+        let estadoInventario = 'normal';
+        if (producto.cantidadNeta <= producto.minimos) {
+          estadoInventario = 'minimo';
+        } else if (producto.cantidadNeta <= producto.minimos * 1.2) {
+          // Si está dentro del 20% por encima del mínimo, considerarlo "por llegar al mínimo"
+          estadoInventario = 'porLlegarAlMinimo';
+        }
+        
         return {
           ...producto,
-          estado: diferenciaDias <= 30 ? 'porExpirar' : 'normal'
+          estado,
+          estadoInventario
         }
       })
       
@@ -164,12 +238,21 @@ export default function ProductosTable() {
   const handleEditarProducto = (productoAPI: ProductoAPI) => {
     // Pasar directamente el producto de la API al diálogo de edición
     // ya que ahora el formulario espera la misma estructura que la API
-    //////console.log('Editando producto:', productoAPI)
     setProductoSeleccionado(productoAPI as unknown as Producto)
     setEditarDialogOpen(true)
   }
   
-
+  // Función para manejar la acción de abrir el diálogo de eliminación
+  const handleAbrirEliminarProducto = (productoAPI: ProductoAPI) => {
+    if (!productoAPI.id) {
+      toast.error("No se puede eliminar el producto: ID no disponible")
+      return
+    }
+    
+    // Pasar el producto al diálogo de eliminación
+    setProductoAEliminar(productoAPI as unknown as Producto)
+    setEliminarDialogOpen(true)
+  }
   
   // Función para actualizar la lista de productos después de una edición o activación exitosa
   const handleSuccess = () => {
@@ -196,6 +279,12 @@ export default function ProductosTable() {
 
   return (
     <div className="space-y-4">
+      {/* Renderizar el semáforo en el portal */}
+      {leyendaPortalElement && createPortal(
+        <LeyendaSemaforo />,
+        leyendaPortalElement
+      )}
+      
       <div className="flex items-center gap-2">
         <div className="relative flex-1">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -232,7 +321,6 @@ export default function ProductosTable() {
                 <TableHead className="text-naval-700 w-16">Cant</TableHead>
                 <TableHead className="text-naval-700 w-20">Marca</TableHead>
                 <TableHead className="text-naval-700 w-20">Fecha</TableHead>
-                <TableHead className="text-naval-700 w-16">Estado</TableHead>
                 <TableHead className="text-naval-700 w-24 text-center">Acciones</TableHead>
               </TableRow>
             </TableHeader>
@@ -250,7 +338,6 @@ export default function ProductosTable() {
                     <TableCell>{producto.lote || "-"}</TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
-                        {producto.estado === "porExpirar" && <AlertTriangle className="h-4 w-4 text-amber-500" />}
                         {producto.descripcion}
                       </div>
                     </TableCell>
@@ -266,46 +353,113 @@ export default function ProductosTable() {
                       </div>
                     </TableCell>
                     <TableCell>{producto.unidadBase}</TableCell>
-                    <TableCell>{producto.minimos}</TableCell>
-                    <TableCell>{producto.cantidadNeta}</TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        {producto.estadoInventario === "minimo" ? (
+                          <>
+                            <AlertOctagon className="h-4 w-4 text-red-600" />
+                            <span className="text-red-600 font-medium">
+                              {producto.minimos}
+                            </span>
+                          </>
+                        ) : producto.estadoInventario === "porLlegarAlMinimo" ? (
+                          <>
+                            <AlertTriangle className="h-4 w-4 text-amber-600" />
+                            <span className="text-amber-600 font-medium">
+                              {producto.minimos}
+                            </span>
+                          </>
+                        ) : (
+                          <>
+                            <CheckCircle className="h-4 w-4 text-green-600" />
+                            <span className="text-green-600">
+                              {producto.minimos}
+                            </span>
+                          </>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <span className={producto.estadoInventario === "minimo" ? "text-red-600 font-medium" : 
+                                       producto.estadoInventario === "porLlegarAlMinimo" ? "text-amber-600 font-medium" : 
+                                       "text-green-600"}>
+                        {producto.cantidadNeta}
+                      </span>
+                    </TableCell>
                     <TableCell>{producto.marca}</TableCell>
                     <TableCell>
-                      {(() => {
-                        // Extraer solo la fecha sin la hora para evitar problemas de zona horaria
-                        const fechaStr = producto.fechaExpiracion.split('T')[0];
-                        // Crear la fecha usando año, mes y día explícitamente para evitar ajustes de zona horaria
-                        const [año, mes, día] = fechaStr.split('-');
-                        // Crear una fecha local con esos componentes (mes-1 porque en JS los meses van de 0-11)
-                        const fecha = new Date(parseInt(año), parseInt(mes)-1, parseInt(día));
-                        return fecha.toLocaleDateString();
-                      })()}
+                      <div className="flex items-center gap-2">
+                        {producto.estado === "expirado" ? (
+                          <>
+                            <AlertOctagon className="h-4 w-4 text-red-600" />
+                            <span className="text-red-600">
+                              {(() => {
+                                // Extraer solo la fecha sin la hora para evitar problemas de zona horaria
+                                const fechaStr = producto.fechaExpiracion.split('T')[0];
+                                // Crear la fecha usando año, mes y día explícitamente para evitar ajustes de zona horaria
+                                const [año, mes, día] = fechaStr.split('-');
+                                // Crear una fecha local con esos componentes (mes-1 porque en JS los meses van de 0-11)
+                                const fecha = new Date(parseInt(año), parseInt(mes)-1, parseInt(día));
+                                return fecha.toLocaleDateString();
+                              })()}
+                            </span>
+                          </>
+                        ) : producto.estado === "porExpirar" ? (
+                          <>
+                            <Clock className="h-4 w-4 text-amber-600" />
+                            <span className="text-amber-600">
+                              {(() => {
+                                const fechaStr = producto.fechaExpiracion.split('T')[0];
+                                const [año, mes, día] = fechaStr.split('-');
+                                const fecha = new Date(parseInt(año), parseInt(mes)-1, parseInt(día));
+                                return fecha.toLocaleDateString();
+                              })()}
+                            </span>
+                          </>
+                        ) : (
+                          <>
+                            <CheckCircle className="h-4 w-4 text-green-600" />
+                            <span className="text-green-600">
+                              {(() => {
+                                const fechaStr = producto.fechaExpiracion.split('T')[0];
+                                const [año, mes, día] = fechaStr.split('-');
+                                const fecha = new Date(parseInt(año), parseInt(mes)-1, parseInt(día));
+                                return fecha.toLocaleDateString();
+                              })()}
+                            </span>
+                          </>
+                        )}
+                      </div>
                     </TableCell>
-                    <TableCell>
-                      {producto.estado === "porExpirar" ? (
-                        <Badge variant="outline" className="bg-amber-100 text-amber-800 border-amber-200">
-                          Por Expirar
-                        </Badge>
-                      ) : (
-                        <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-                          Disponible
-                        </Badge>
-                      )}
-                    </TableCell>
+
                     <TableCell className="text-center">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" className="h-8 w-8 p-0">
-                            <span className="sr-only">Abrir menú</span>
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuLabel>Acciones</DropdownMenuLabel>
-                          <DropdownMenuItem onClick={() => handleEditarProducto(producto)}>
-                            Editar producto
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                      <div className="flex justify-center items-center gap-2">
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"
+                          onClick={() => handleAbrirEliminarProducto(producto)}
+                          title="Eliminar producto"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                          <span className="sr-only">Eliminar producto</span>
+                        </Button>
+                        
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" className="h-8 w-8 p-0">
+                              <span className="sr-only">Abrir menú</span>
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuLabel>Acciones</DropdownMenuLabel>
+                            <DropdownMenuItem onClick={() => handleEditarProducto(producto)}>
+                              Editar producto
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))
@@ -366,6 +520,15 @@ export default function ProductosTable() {
           producto={productoSeleccionado}
           open={editarDialogOpen}
           onOpenChange={setEditarDialogOpen}
+          onSuccess={handleSuccess}
+        />
+      )}
+      
+      {productoAEliminar && (
+        <EliminarProductoDialog
+          producto={productoAEliminar}
+          open={eliminarDialogOpen}
+          onOpenChange={setEliminarDialogOpen}
           onSuccess={handleSuccess}
         />
       )}

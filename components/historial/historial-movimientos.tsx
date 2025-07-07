@@ -3,6 +3,21 @@
 import { useState, useEffect } from "react"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
+
+// Importar las divisiones del componente de registro de productos
+const divisiones = [
+  { value: "COAGULACIÓN", label: "COAGULACIÓN", color: "#40E0D0" },
+  { value: "FRACCIONAMIENTO", label: "FRACCIONAMIENTO", color: "#87CEEB" },
+  { value: "TOMA DE MUESTRA/SANGRADO", label: "TOMA DE MUESTRA/SANGRADO", color: "#FFD700" },
+  { value: "INMUNOHEMATOLOGIA", label: "INMUNOHEMATOLOGIA", color: "#D3D3D3" },
+  { value: "CONFIRMATORIAS", label: "CONFIRMATORIAS", color: "#FF9999" },
+  { value: "NAT", label: "NAT", color: "#FFA07A" },
+  { value: "NAT PANTHER", label: "NAT PANTHER", color: "#A0522D" },
+  { value: "HEMATOLOGÍA", label: "HEMATOLOGÍA", color: "#90EE90" },
+  { value: "SEROLOGÍA", label: "SEROLOGÍA", color: "#6495ED" },
+  { value: "BIOLOGIA MOLECULAR", label: "BIOLOGIA MOLECULAR", color: "#708090" },
+  { value: "CITOMETRÍA", label: "CITOMETRÍA", color: "#DDA0DD" },
+]
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Search, Plus, X, Trash2, Loader2, Minus, FileText, PackageCheck, MoreVertical, MessageSquare, History, Filter } from "lucide-react"
@@ -807,16 +822,19 @@ export default function HistorialMovimientos() {
         entregadoPor: entregadoPor,
         areaDestino: areaDestino,
         responsableArea: responsableArea,
-        observaciones: observaciones, // Observaciones generales para toda la entrega
+        observaciones: observaciones || '', // Observaciones generales para toda la entrega (aseguramos que no sea null/undefined)
         detalles: entregas.map(entrega => ({
           id: entrega.id,
-          lote: entrega.lote || '', // Agregar campo lote
-          cantidadEntregada: entrega.totalSeleccionado || entrega.cantidad,
-          observaciones: observaciones, // Solo las observaciones generales, no los comentarios específicos
-          nombreProducto: entrega.producto.descripcion
+          lote: entrega.lote || '', // Aseguramos que lote no sea null/undefined
+          cantidadEntregada: entrega.totalSeleccionado || entrega.cantidad || 0, // Aseguramos que la cantidad no sea null/undefined
+          observaciones: observaciones || '', // Solo las observaciones generales, no los comentarios específicos
+          nombreProducto: entrega.producto?.descripcion || ''
           // No incluimos entrega.comentario aquí, ya que es solo para el PDF
         }))
       };
+      
+      // Verificar que todos los campos necesarios estén presentes
+      console.log('Datos de entrega a enviar:', JSON.stringify(datosEntrega, null, 2));
       
    
       
@@ -1948,14 +1966,26 @@ export default function HistorialMovimientos() {
             
             <div className="space-y-2">
               <Label htmlFor="areaDestino" className="font-medium">Área de Destino <span className="text-red-500">*</span></Label>
-              <Input
-                id="areaDestino"
-                placeholder="Área a la que se destina"
-                className="border border-naval-200 focus-visible:ring-naval-500"
-                value={areaDestino}
-                onChange={(e) => setAreaDestino(e.target.value)}
-                required
-              />
+              <Select value={areaDestino} onValueChange={setAreaDestino}>
+                <SelectTrigger className="border border-naval-200 focus-visible:ring-naval-500">
+                  <SelectValue placeholder="Seleccione una división" />
+                </SelectTrigger>
+                <SelectContent>
+                  <div className="max-h-[300px] overflow-y-auto">
+                    {divisiones.map((division) => (
+                      <SelectItem key={division.value} value={division.value}>
+                        <div className="flex items-center gap-2">
+                          <div 
+                            className="w-3 h-3 rounded-full" 
+                            style={{ backgroundColor: division.color }}
+                          />
+                          <span>{division.label}</span>
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </div>
+                </SelectContent>
+              </Select>
             </div>
             
             <div className="space-y-2">

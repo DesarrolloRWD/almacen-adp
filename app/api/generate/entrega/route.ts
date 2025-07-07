@@ -10,45 +10,57 @@ export async function POST(request: Request) {
     // Obtener los datos de la petición
     const datosOriginales = await request.json();
     
+    // Log de los datos originales para depuración
+    console.log('API entrega: Datos originales recibidos:', JSON.stringify(datosOriginales, null, 2));
+    
+    // Validar que los campos requeridos estén presentes
+    if (!datosOriginales.entregadoPor || !datosOriginales.areaDestino || !datosOriginales.responsableArea) {
+      console.error('API entrega: Faltan campos requeridos en la solicitud');
+      return NextResponse.json(
+        { success: false, message: 'Faltan campos requeridos en la solicitud' },
+        { status: 400 }
+      );
+    }
+    
+    // Validar que existan detalles
+    if (!datosOriginales.detalles || !Array.isArray(datosOriginales.detalles) || datosOriginales.detalles.length === 0) {
+      console.error('API entrega: No se proporcionaron detalles de entrega');
+      return NextResponse.json(
+        { success: false, message: 'No se proporcionaron detalles de entrega' },
+        { status: 400 }
+      );
+    }
+    
     // Transformar los datos al formato exacto que espera la API externa
     const datosFormateados = {
-      entregadoPor: datosOriginales.entregadoPor || '',
-      areaDestino: datosOriginales.areaDestino || '',
-      responsableArea: datosOriginales.responsableArea || '',
+      entregadoPor: datosOriginales.entregadoPor,
+      areaDestino: datosOriginales.areaDestino,
+      responsableArea: datosOriginales.responsableArea,
       observaciones: datosOriginales.observaciones || '',
-      lote: datosOriginales.lote || '', // Agregar campo lote a nivel global
       detalles: []
     };
     
-    console.log('API entrega: Agregado campo lote a nivel global:', datosFormateados.lote);
-    
     // Procesar cada detalle y asegurarse de que tenga el formato correcto
-    if (datosOriginales.detalles && Array.isArray(datosOriginales.detalles)) {
-      datosFormateados.detalles = datosOriginales.detalles.map((detalle: { id: string | number; lote?: string; cantidadEntregada: number; observaciones?: string; nombreProducto: string; [key: string]: any }) => {
-        // Convertir el ID a string si es un número
-        const idString = typeof detalle.id === 'number' ? detalle.id.toString() : detalle.id;
-        
-        // Crear un UUID si el ID no parece ser un UUID
-        const idUUID = idString.includes('-') ? idString : `3fa85f64-5717-4562-b3fc-${idString.padStart(12, '0')}`.substring(0, 36);
-        
-        // Asegurarnos de que el campo lote siempre esté presente
-        const detalleFormateado = {
-          id: idUUID,
-          lote: detalle.lote || '', // Si no existe, usar string vacío
-          cantidadEntregada: detalle.cantidadEntregada || 0,
-          observaciones: detalle.observaciones || '',
-          nombreProducto: detalle.nombreProducto || ''
-        };
-        
-        // Verificar explícitamente que lote esté presente
-        if (!detalleFormateado.lote && detalleFormateado.lote !== '') {
-          detalleFormateado.lote = '';
-        }
-        
-        console.log(`API entrega: Detalle formateado con lote: ${JSON.stringify(detalleFormateado)}`);
-        return detalleFormateado;
-      });
-    }
+    datosFormateados.detalles = datosOriginales.detalles.map((detalle: any) => {
+      if (!detalle.id) {
+        console.error('API entrega: Detalle sin ID');
+        throw new Error('Todos los detalles deben tener un ID');
+      }
+      
+      // Convertir el ID a string si es un número
+      const idString = typeof detalle.id === 'number' ? detalle.id.toString() : detalle.id;
+      
+      // Crear un UUID si el ID no parece ser un UUID
+      const idUUID = idString.includes('-') ? idString : `3fa85f64-5717-4562-b3fc-${idString.padStart(12, '0')}`;
+      
+      return {
+        id: idUUID,
+        lote: detalle.lote || '',
+        cantidadEntregada: Number(detalle.cantidadEntregada) || 0,
+        observaciones: detalle.observaciones || '',
+        nombreProducto: detalle.nombreProducto || ''
+      };
+    });
     
     console.log('API entrega: Datos transformados al formato esperado por la API externa');
     

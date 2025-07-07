@@ -408,7 +408,7 @@ const WebSocketNotifications = () => {
                   // Extraer datos relevantes para mostrar
                   const data = notification.data || {};
                   
-                  // Console.log para debugging - mostrar la estructura completa de los datos
+                  // console.log para debugging - mostrar la estructura completa de los datos
                   // console.log('Datos de notificación en componente:', {
                   //   id: notification.id,
                   //   tipo: notification.type,
