@@ -252,12 +252,14 @@ export default function HistorialSalidas({ tipoHistorialSeleccionado = 'agotados
     "TOMA DE MUESTRA/SANGRADO",
     "INMUNOHEMATOLOGIA",
     "CONFIRMATORIAS",
-    "NAT",
+    // "NAT",
     "NAT PANTHER",
     "HEMATOLOGÍA",
     "SEROLOGÍA",
     "BIOLOGIA MOLECULAR",
-    "CITOMETRÍA"
+    "CITOMETRÍA",
+    "LAVADO DE MATERIAL ",
+    "TERAPIA CELULAR"
   ]
   
   // Mapa de colores para divisiones con estilos personalizados
@@ -274,7 +276,7 @@ export default function HistorialSalidas({ tipoHistorialSeleccionado = 'agotados
     // CONFIRMATORIAS - Rosa claro
     "CONFIRMATORIAS": {bg: "bg-[#FF9999]/20", text: "text-[#DC143C]", border: "border-[#FF9999]", color: "#FF9999"},
     // NAT - Salmón
-    "NAT": {bg: "bg-[#FFA07A]/20", text: "text-[#FF4500]", border: "border-[#FFA07A]", color: "#FFA07A"},
+    // "NAT": {bg: "bg-[#FFA07A]/20", text: "text-[#FF4500]", border: "border-[#FFA07A]", color: "#FFA07A"},
     // NAT PANTHER - Marrón
     "NAT PANTHER": {bg: "bg-[#A0522D]/20", text: "text-[#8B4513]", border: "border-[#A0522D]", color: "#A0522D"},
     // HEMATOLOGÍA - Verde claro

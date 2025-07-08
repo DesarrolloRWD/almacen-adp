@@ -40,12 +40,14 @@ const divisiones = [
   { value: "TOMA DE MUESTRA/SANGRADO", label: "TOMA DE MUESTRA/SANGRADO", color: "#FFD700" },
   { value: "INMUNOHEMATOLOGIA", label: "INMUNOHEMATOLOGIA", color: "#D3D3D3" },
   { value: "CONFIRMATORIAS", label: "CONFIRMATORIAS", color: "#FF9999" },
-  { value: "NAT", label: "NAT", color: "#FFA07A" },
+  // { value: "NAT", label: "NAT", color: "#FFA07A" },
   { value: "NAT PANTHER", label: "NAT PANTHER", color: "#A0522D" },
   { value: "HEMATOLOGÍA", label: "HEMATOLOGÍA", color: "#90EE90" },
   { value: "SEROLOGÍA", label: "SEROLOGÍA", color: "#6495ED" },
   { value: "BIOLOGIA MOLECULAR", label: "BIOLOGIA MOLECULAR", color: "#708090" },
   { value: "CITOMETRÍA", label: "CITOMETRÍA", color: "#DDA0DD" },
+  { value: "LAVADO DE MATERIAL ", label: "LAVADO DE MATERIAL ", color: "#FF0000" },
+  { value: "TERAPIA CELULAR", label: "TERAPIA CELULAR", color: "#212f3d" }
 ]
 
 // Esquema para las presentaciones

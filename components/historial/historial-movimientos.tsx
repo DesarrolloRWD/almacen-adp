@@ -11,12 +11,15 @@ const divisiones = [
   { value: "TOMA DE MUESTRA/SANGRADO", label: "TOMA DE MUESTRA/SANGRADO", color: "#FFD700" },
   { value: "INMUNOHEMATOLOGIA", label: "INMUNOHEMATOLOGIA", color: "#D3D3D3" },
   { value: "CONFIRMATORIAS", label: "CONFIRMATORIAS", color: "#FF9999" },
-  { value: "NAT", label: "NAT", color: "#FFA07A" },
+  // { value: "NAT", label: "NAT", color: "#FFA07A" },
   { value: "NAT PANTHER", label: "NAT PANTHER", color: "#A0522D" },
   { value: "HEMATOLOGÍA", label: "HEMATOLOGÍA", color: "#90EE90" },
   { value: "SEROLOGÍA", label: "SEROLOGÍA", color: "#6495ED" },
   { value: "BIOLOGIA MOLECULAR", label: "BIOLOGIA MOLECULAR", color: "#708090" },
   { value: "CITOMETRÍA", label: "CITOMETRÍA", color: "#DDA0DD" },
+  { value: "LAVADO DE MATERIAL ", label: "LAVADO DE MATERIAL ", color: "#FF0000" },
+  { value: "TERAPIA CELULAR", label: "TERAPIA CELULAR", color: "#212f3d" }
+  
 ]
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
@@ -515,12 +518,14 @@ export default function HistorialMovimientos() {
     "TOMA DE MUESTRA/SANGRADO": "#FFD700",
     "INMUNOHEMATOLOGIA": "#D3D3D3",
     "CONFIRMATORIAS": "#FF9999",
-    "NAT": "#FFA07A",
+    // "NAT": "#FFA07A",
     "NAT PANTHER": "#A0522D",
     "HEMATOLOGÍA": "#90EE90",
     "SEROLOGÍA": "#6495ED",
     "BIOLOGIA MOLECULAR": "#708090",
-    "CITOMETRÍA": "#DDA0DD"
+    "CITOMETRÍA": "#DDA0DD",
+    "LAVADO DE MATERIAL ": "#FF0000",
+    "TERAPIA CELULAR": "#212f3d"
   };
   
   // Función para obtener el color hexadecimal de la división
@@ -543,7 +548,7 @@ export default function HistorialMovimientos() {
       // CONFIRMATORIAS - Rosa claro
       "#FF9999": {bg: "bg-rose-50", text: "text-rose-700", border: "border-rose-100"},
       // NAT - Salmón
-      "#FFA07A": {bg: "bg-orange-50", text: "text-orange-700", border: "border-orange-100"},
+      // "#FFA07A": {bg: "bg-orange-50", text: "text-orange-700", border: "border-orange-100"},
       // NAT PANTHER - Marrón
       "#A0522D": {bg: "bg-amber-100", text: "text-amber-800", border: "border-amber-200"},
       // HEMATOLOGÍA - Verde claro
@@ -553,7 +558,11 @@ export default function HistorialMovimientos() {
       // BIOLOGIA MOLECULAR - Gris oscuro
       "#708090": {bg: "bg-slate-100", text: "text-slate-700", border: "border-slate-200"},
       // CITOMETRÍA - Lavanda
-      "#DDA0DD": {bg: "bg-purple-50", text: "text-purple-700", border: "border-purple-100"}
+      "#DDA0DD": {bg: "bg-purple-50", text: "text-purple-700", border: "border-purple-100"},
+      // LAVADO DE MATERIAL - Rojo
+      "#FF0000": {bg: "bg-red-50", text: "text-red-700", border: "border-red-100"},
+      // TERAPIA CELULAR - Azul oscuro
+      "#212f3d": {bg: "bg-blue-50", text: "text-blue-700", border: "border-blue-100"}
     };
     
     // Obtener el color hexadecimal para la división
