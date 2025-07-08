@@ -5,7 +5,7 @@ export const dynamic = 'force-dynamic'; // No cachear esta ruta
 
 export async function POST(request: Request) {
   try {
-    console.log('API users/create: Iniciando procesamiento de solicitud');
+    //console.log('API users/create: Iniciando procesamiento de solicitud');
     
     // Obtener el token de autenticación de las cookies usando el método asíncrono
     const cookieStore = await cookies();
@@ -20,7 +20,7 @@ export async function POST(request: Request) {
       )
     }
     
-    console.log('API users/create: Token de autenticación encontrado');
+    //console.log('API users/create: Token de autenticación encontrado');
     
     // Obtener los datos del usuario a crear
     const userData = await request.json()

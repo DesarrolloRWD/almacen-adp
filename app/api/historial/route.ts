@@ -26,7 +26,7 @@ export async function GET() {
     
     // Agregar el token a los headers si existe
     if (token) {
-      console.log('Token de autenticación encontrado para historial');
+      //console.log('Token de autenticación encontrado para historial');
       headers['Authorization'] = `Bearer ${token}`;
     } else {
       console.warn('No se encontró token de autenticación para historial');

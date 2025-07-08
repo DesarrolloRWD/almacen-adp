@@ -324,7 +324,7 @@ export default function RegistrarProductoForm() {
     setIsSubmitting(true)
     
     // Log para ver la fecha original seleccionada
-    console.log('Fecha seleccionada (original):', values.fechaExpiracion);
+    //console.log('Fecha seleccionada (original):', values.fechaExpiracion);
     
     try {
       // Formatear los valores del formulario según la estructura requerida por la API
@@ -343,22 +343,22 @@ export default function RegistrarProductoForm() {
           const fecha = new Date(values.fechaExpiracion);
           
           // Log para ver la fecha antes del ajuste
-          console.log('Fecha antes del ajuste:', fecha.toISOString());
-          console.log('Fecha local (antes):', fecha.toLocaleDateString());
+          //console.log('Fecha antes del ajuste:', fecha.toISOString());
+          //console.log('Fecha local (antes):', fecha.toLocaleDateString());
           
           // Ajustar la fecha para compensar la zona horaria
           const offset = fecha.getTimezoneOffset();
-          console.log('Offset de zona horaria (minutos):', offset);
+          //console.log('Offset de zona horaria (minutos):', offset);
           
           fecha.setMinutes(fecha.getMinutes() + offset);
           
           // Log para ver la fecha después del ajuste
-          console.log('Fecha después del ajuste:', fecha.toISOString());
-          console.log('Fecha local (después):', fecha.toLocaleDateString());
+          //console.log('Fecha después del ajuste:', fecha.toISOString());
+          //console.log('Fecha local (después):', fecha.toLocaleDateString());
           
           // Formatear la fecha en formato ISO (YYYY-MM-DD)
           const fechaFormateada = fecha.toISOString().split('T')[0];
-          console.log('Fecha formateada enviada al servidor:', fechaFormateada);
+          //console.log('Fecha formateada enviada al servidor:', fechaFormateada);
           
           return fechaFormateada;
         })(),
@@ -383,7 +383,7 @@ export default function RegistrarProductoForm() {
       const token = localStorage.getItem('token')
       
       // Log para mostrar todos los datos que se envían al servidor
-      console.log('Datos completos enviados al servidor:', formattedValues);
+      //console.log('Datos completos enviados al servidor:', formattedValues);
       
       // Usar el proxy local para evitar problemas de CORS
       const response = await fetch(`/api/save/product`, {

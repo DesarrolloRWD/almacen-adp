@@ -18,7 +18,7 @@ export async function GET() {
       )
     }
     
-    console.log('Token de autenticación encontrado para usuarios');
+    //console.log('Token de autenticación encontrado para usuarios');
     
     // URL del endpoint real
     const baseUrl = process.env.NEXT_PUBLIC_USUARIOS_API_URL

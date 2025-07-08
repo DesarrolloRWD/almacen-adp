@@ -20,7 +20,7 @@ export async function POST(req: Request) {
       );
     }
     
-    console.log('Token de autenticación encontrado para presentacion especifica');
+    //console.log('Token de autenticación encontrado para presentacion especifica');
     
     // Construir la URL completa para el microservicio
     const apiUrl = `${process.env.NEXT_PUBLIC_ALMACEN_API_URL}/get/specific/presentacion`

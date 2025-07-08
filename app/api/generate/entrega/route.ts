@@ -5,13 +5,13 @@ export const dynamic = 'force-dynamic'; // Asegura que la ruta no sea cacheada
 
 export async function POST(request: Request) {
   try {
-    console.log('API entrega: Iniciando procesamiento de solicitud');
+    ////console.log('API entrega: Iniciando procesamiento de solicitud');
     
     // Obtener los datos de la petición
     const datosOriginales = await request.json();
     
     // Log de los datos originales para depuración
-    console.log('API entrega: Datos originales recibidos:', JSON.stringify(datosOriginales, null, 2));
+    ////console.log('API entrega: Datos originales recibidos:', JSON.stringify(datosOriginales, null, 2));
     
     // Validar que los campos requeridos estén presentes
     if (!datosOriginales.entregadoPor || !datosOriginales.areaDestino || !datosOriginales.responsableArea) {
@@ -62,10 +62,10 @@ export async function POST(request: Request) {
       };
     });
     
-    console.log('API entrega: Datos transformados al formato esperado por la API externa');
+    ////console.log('API entrega: Datos transformados al formato esperado por la API externa');
     
     // Log para depuración - mostrar los datos completos
-    console.log('API entrega: Datos recibidos (modificados) COMPLETOS:', JSON.stringify(datosFormateados, null, 2));
+    ////console.log('API entrega: Datos recibidos (modificados) COMPLETOS:', JSON.stringify(datosFormateados, null, 2));
     
     // URL del endpoint real
     const baseUrl = process.env.NEXT_PUBLIC_ENTREGAS_API_URL;
@@ -95,12 +95,12 @@ export async function POST(request: Request) {
       );
     }
     
-    console.log('API entrega: Token de autenticación encontrado');
+    ////console.log('API entrega: Token de autenticación encontrado');
     
     // Reenviar la petición al servidor real con el token
-    console.log('API entrega: Enviando petición al servidor externo...');
+    ////console.log('API entrega: Enviando petición al servidor externo...');
     console.log(`API entrega: URL del endpoint: ${entregaUrl}`);
-    console.log('API entrega: Datos a enviar COMPLETOS:', JSON.stringify(datosFormateados, null, 2));
+    ////console.log('API entrega: Datos a enviar COMPLETOS:', JSON.stringify(datosFormateados, null, 2));
     console.log(`API entrega: Token: ${token.substring(0, 10)}...`);
     
     try {
@@ -126,7 +126,7 @@ export async function POST(request: Request) {
       let data;
       try {
         data = JSON.parse(responseText);
-        console.log('API entrega: Respuesta parseada como JSON correctamente');
+        ////console.log('API entrega: Respuesta parseada como JSON correctamente');
       } catch (parseError) {
         console.error('API entrega: Error al parsear la respuesta como JSON:', parseError);
         return NextResponse.json(

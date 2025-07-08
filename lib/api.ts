@@ -146,7 +146,7 @@ export async function getPresentaciones(): Promise<Presentacion[]> {
   try {
     return await authGet(API_ENDPOINTS.GET_PRESENTACIONES)
   } catch (error) {
-    console.error("Error al obtener presentaciones:", error)
+    // console.error("Error al obtener presentaciones:", error)
     return []
   }
 }
@@ -157,7 +157,7 @@ export async function getPresentacionEspecifica(id: number): Promise<Presentacio
     const response = await authPost(API_ENDPOINTS.GET_PRESENTACION_ESPECIFICA, { id })
     return response
   } catch (error) {
-    console.error("Error al obtener presentación específica:", error)
+    // console.error("Error al obtener presentación específica:", error)
     return null
   }
 }
@@ -169,35 +169,35 @@ export async function getPresentacionByCodigoLote(codigo: string, lote: string):
       "codigo": codigo,
       "lote": lote
     };
-    // //console.log('Buscando presentaciones - Payload enviado:', payload);
     
     // Usar authPost para mantener la consistencia con el resto del código
     const response = await authPost(API_ENDPOINTS.GET_PRESENTACION_BY_CODIGO_LOTE, payload);
-    // //console.log('Presentaciones encontradas - Respuesta completa:', JSON.stringify(response, null, 2));
     
     // Verificar la estructura de los datos recibidos
     if (Array.isArray(response)) {
-      // //console.log(`Se encontraron ${response.length} presentaciones`);
       // Mostrar detalles de cada presentación encontrada
       response.forEach((presentacion, index) => {
-        // //console.log(`Presentación ${index + 1}:`, {
-        //   id: presentacion.id,
-        //   tipoPresentacion: presentacion.tipoPresentacion,
-        //   descripcionPresentacion: presentacion.descripcionPresentacion,
-        //   cantidad: presentacion.cantidad,
-        //   equivalenciaEnBase: presentacion.equivalenciaEnBase,
-        //   totalEquivalenciaEnBase: presentacion.totalEquivalenciaEnBase,
-        //   lote: presentacion.lote,
-        //   item: presentacion.item
-        // });
+        // Asegurarnos de que el lote esté presente en cada presentación
+        if (!presentacion.lote && lote) {
+          console.warn(`Presentación ${index + 1} no tiene lote, asignando el lote de la búsqueda:`, lote);
+          presentacion.lote = lote;
+        }
+        
+       
       });
-    } else {
-      // //console.log('La respuesta no es un array:', response);
     }
     
-    return Array.isArray(response) ? response : [];
+    // Asegurarnos de que cada presentación tenga un lote
+    const presentacionesConLote = Array.isArray(response) ? 
+      response.map(p => {
+        if (!p.lote && lote) {
+          return { ...p, lote };
+        }
+        return p;
+      }) : [];
+    
+    return presentacionesConLote;
   } catch (error) {
-    console.error("Error al buscar presentaciones por código y lote:", error);
     return [];
   }
 }
@@ -231,9 +231,6 @@ export async function login(credentials: LoginCredentials): Promise<LoginRespons
 
     const data = await response.json()
     
-    // Log para depuración
-    // //////console.log('Respuesta procesada en api.ts:', data)
-    
     // Verificar si la respuesta contiene un token (con o sin espacio)
     const tokenValue = data && (data.token || data['token ']);
     
@@ -244,7 +241,7 @@ export async function login(credentials: LoginCredentials): Promise<LoginRespons
       }
     } else {
       // Si no hay token, considerar como error
-      console.error('No se encontró token en la respuesta:', data)
+      // console.error('No se encontró token en la respuesta:', data)
       return { 
         token: "", 
         success: false, 
@@ -252,7 +249,7 @@ export async function login(credentials: LoginCredentials): Promise<LoginRespons
       }
     }
   } catch (error) {
-    console.error("Error de autenticación:", error)
+    // console.error("Error de autenticación:", error)
     return { 
       token: "", 
       success: false, 
@@ -268,7 +265,7 @@ export async function getAllUsers(): Promise<User[]> {
     const response = await authGet(API_ENDPOINTS.ALL_USERS)
     return response || []
   } catch (error) {
-    console.error("Error al obtener usuarios:", error)
+    // console.error("Error al obtener usuarios:", error)
     return []
   }
 }
@@ -286,13 +283,12 @@ export async function createUser(user: User): Promise<{ success: boolean; messag
       }
     };
     
-    console.log("authPost - Datos enviados:", JSON.stringify(userWithTenant, null, 2));
     
     // Usar el endpoint proxy local en lugar del servidor externo directamente
     await authPost(API_ENDPOINTS.CREATE_USER, userWithTenant);
     return { success: true, message: "Usuario creado exitosamente" };
   } catch (error) {
-    console.error("Error al crear usuario:", error);
+    // console.error("Error al crear usuario:", error);
     return { success: false, message: "Error al crear el usuario" };
   }
 }
@@ -302,7 +298,7 @@ export const getSpecificUser = async (username: string) => {
     const response = await authPost(API_ENDPOINTS.SPECIFIC_USER, { value: username })
     return response
   } catch (error) {
-    console.error('Error al obtener usuario específico:', error)
+    // console.error('Error al obtener usuario específico:', error)
     throw error
   }
 }
@@ -316,7 +312,7 @@ export const updateUserStatus = async (username: string, status: boolean) => {
     })
     return response
   } catch (error) {
-    console.error('Error al actualizar estado del usuario:', error)
+    // console.error('Error al actualizar estado del usuario:', error)
     throw error
   }
 }
@@ -330,7 +326,7 @@ export const updateUserImage = async (username: string, imageBase64: string) => 
     })
     return response
   } catch (error) {
-    console.error('Error al actualizar imagen del usuario:', error)
+    // console.error('Error al actualizar imagen del usuario:', error)
     throw error
   }
 }
@@ -360,7 +356,7 @@ export const updateUserInformation = async (username: string, userInfo: UserInfo
     })
     return response
   } catch (error) {
-    console.error('Error al actualizar información del usuario:', error)
+    // console.error('Error al actualizar información del usuario:', error)
     throw error
   }
 }
@@ -383,16 +379,11 @@ export interface EntregaData {
 // Función para generar una entrega
 export async function generateEntrega(entregaData: EntregaData): Promise<{ success: boolean; message: string }> {
   try {
-    // Mostrar los datos que se van a enviar
-    console.log('URL del endpoint:', API_ENDPOINTS.GENERATE_ENTREGA);
-    console.log('DATOS ENVIADOS A LA API:', JSON.stringify(entregaData, null, 2));
-    
     const response = await authPost(API_ENDPOINTS.GENERATE_ENTREGA, entregaData);
-    console.log('Respuesta del servidor:', response);
+
     return { success: true, message: "Entrega generada exitosamente" };
   } catch (error: any) {
-    console.error("Error al generar entrega:", error);
-    console.error("Detalles del error:", error.message, error.response);
+    
     // Propagar el error para que podamos verlo en la consola
     throw error;
   }
@@ -429,7 +420,7 @@ export async function getHistorialProductosAgotados(): Promise<ProductoAgotado[]
     const data = await response.json();
     return Array.isArray(data) ? data.map(item => item.payload) : [];
   } catch (error) {
-    console.error("Error al obtener historial de productos agotados:", error);
+    // console.error("Error al obtener historial de productos agotados:", error);
     return [];
   }
 }
@@ -443,12 +434,10 @@ export interface Role {
 export async function getRoles(): Promise<Role[]> {
   try {
     // Usar el endpoint local que actúa como proxy para el servidor externo
-    console.log('Obteniendo roles desde:', API_ENDPOINTS.GET_ROLES);
     const response = await authGet(API_ENDPOINTS.GET_ROLES);
-    console.log('Roles obtenidos:', response);
     return Array.isArray(response) ? response : [];
   } catch (error) {
-    console.error("Error al obtener roles:", error);
+    // console.error("Error al obtener roles:", error);
     return [];
   }
 }

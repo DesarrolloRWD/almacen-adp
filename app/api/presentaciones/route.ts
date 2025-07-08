@@ -18,7 +18,7 @@ export async function POST(request: Request) {
       );
     }
     
-    console.log('Token de autenticación encontrado para presentaciones');
+    //console.log('Token de autenticación encontrado para presentaciones');
     
     // Obtener los datos del cuerpo de la solicitud
     const body = await request.json();

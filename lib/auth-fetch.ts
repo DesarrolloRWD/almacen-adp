@@ -1,7 +1,3 @@
-/**
- * Utilidad para realizar peticiones autenticadas a la API
- */
-
 // Función para obtener el token del localStorage o cookies
 const getAuthToken = (): string | null => {
   // Primero intentar obtener de localStorage (cliente)
@@ -78,8 +74,7 @@ export const authGet = async (url: string, options: RequestInit = {}): Promise<a
 
 // Función para realizar peticiones POST autenticadas
 export const authPost = async (url: string, data: any, options: RequestInit = {}): Promise<any> => {
-  console.log('authPost - URL:', url);
-  console.log('authPost - Datos enviados:', JSON.stringify(data, null, 2));
+  
   
   const response = await authFetch(url, {
     ...options,
@@ -87,7 +82,6 @@ export const authPost = async (url: string, data: any, options: RequestInit = {}
     body: JSON.stringify(data)
   })
   
-  console.log('authPost - Status de respuesta:', response.status, response.statusText);
   
   if (!response.ok) {
     // Intentar obtener el cuerpo de la respuesta para ver el mensaje de error
@@ -101,7 +95,6 @@ export const authPost = async (url: string, data: any, options: RequestInit = {}
   }
   
   const jsonResponse = await response.json();
-  console.log('authPost - Respuesta JSON:', jsonResponse);
   return jsonResponse;
 }
 

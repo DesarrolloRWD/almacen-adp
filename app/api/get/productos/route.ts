@@ -17,7 +17,7 @@ export async function GET() {
     }
     
     const apiUrl = `${baseUrl}/get/products`;
-    console.log('Intentando conectar a:', apiUrl);
+    //////console.log('Intentando conectar a:', apiUrl);
     
     // Configurar los headers para la petición
     const headers: HeadersInit = {
@@ -33,7 +33,7 @@ export async function GET() {
       // Si hay token, añadirlo a los headers
       if (token) {
         headers['Authorization'] = `Bearer ${token}`;
-        console.log('Token de autenticación añadido a la petición');
+        ////console.log('Token de autenticación añadido a la petición');
       } else {
         console.warn('No se encontró token de autenticación en las cookies');
       }
@@ -64,7 +64,7 @@ export async function GET() {
 
     // Obtener los datos de la respuesta
     const data = await response.json();
-    console.log('Datos recibidos correctamente de la API');
+    ////console.log('Datos recibidos correctamente de la API');
 
     // Devolver los datos como respuesta
     return NextResponse.json(data);

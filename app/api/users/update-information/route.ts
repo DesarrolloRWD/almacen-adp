@@ -8,7 +8,7 @@ export const runtime = 'nodejs' // Usar Node.js runtime
 // Método POST para actualizar la información del usuario
 export async function POST(request: NextRequest) {
   try {
-    console.log('API users/update-information: Iniciando procesamiento de solicitud');
+    //console.log('API users/update-information: Iniciando procesamiento de solicitud');
     
     const body = await request.json()
     
@@ -24,7 +24,7 @@ export async function POST(request: NextRequest) {
       )
     }
     
-    console.log('API users/update-information: Token de autenticación encontrado');
+    //console.log('API users/update-information: Token de autenticación encontrado');
 
     // Obtener la URL del endpoint desde las variables de entorno
     const baseUrl = process.env.NEXT_PUBLIC_USUARIOS_API_URL

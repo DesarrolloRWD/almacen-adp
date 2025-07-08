@@ -4,7 +4,7 @@ export async function DELETE(request: Request) {
   try {
     // Obtener los datos del producto a eliminar del cuerpo de la solicitud
     const requestData = await request.json();
-    console.log('Datos recibidos en el endpoint:', requestData);
+    // console.log('Datos recibidos en el endpoint:', requestData);
     
     // Validar que se proporcione el ID del producto
     if (!requestData.id) {
@@ -17,11 +17,11 @@ export async function DELETE(request: Request) {
       ? process.env.NEXT_PUBLIC_ALMACEN_API_URL.slice(0, -1) 
       : process.env.NEXT_PUBLIC_ALMACEN_API_URL;
     const apiUrl = `${baseUrl}/delete/product`;
-    console.log('URL del API externo:', apiUrl);
+    // console.log('URL del API externo:', apiUrl);
     
     // Obtener el token de autenticación del header de la solicitud original
     const authHeader = request.headers.get('authorization');
-    console.log('Token de autenticación:', authHeader ? 'Presente' : 'No presente');
+    // console.log('Token de autenticación:', authHeader ? 'Presente' : 'No presente');
     
     // Preparar los headers para la solicitud al API externo
     const headers: HeadersInit = {
@@ -33,8 +33,8 @@ export async function DELETE(request: Request) {
       headers['Authorization'] = authHeader;
     }
     
-    console.log('Headers para la solicitud:', headers);
-    console.log('Datos enviados al API externo:', requestData);
+    // console.log('Headers para la solicitud:', headers);
+    // console.log('Datos enviados al API externo:', requestData);
     
     // Realizar la solicitud al API externo
     const response = await fetch(apiUrl, {
@@ -43,7 +43,7 @@ export async function DELETE(request: Request) {
       body: JSON.stringify(requestData)
     });
     
-    console.log('Respuesta del API externo - Status:', response.status);
+    // console.log('Respuesta del API externo - Status:', response.status);
     
     // Verificar si la respuesta es exitosa
     if (!response.ok) {
@@ -74,7 +74,7 @@ export async function DELETE(request: Request) {
     try {
       data = responseText ? JSON.parse(responseText) : { success: true };
     } catch (e) {
-      console.log('Respuesta no JSON pero exitosa:', responseText);
+      // console.log('Respuesta no JSON pero exitosa:', responseText);
       data = { success: true, message: responseText || 'Producto eliminado correctamente' };
     }
     

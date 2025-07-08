@@ -18,7 +18,7 @@ export async function POST(request: Request) {
       )
     }
     
-    console.log('Token de autenticación encontrado para usuarios/specific');
+    //console.log('Token de autenticación encontrado para usuarios/specific');
     
     // Obtener el nombre de usuario de la solicitud
     const body = await request.json()

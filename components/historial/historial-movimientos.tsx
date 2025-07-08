@@ -97,6 +97,7 @@ interface Entrega {
 
 // Función para convertir una Presentación de la API a nuestro formato ResultadoBusqueda
 const convertirPresentacionAResultado = (presentacion: Presentacion): ResultadoBusqueda => {
+  
   return {
     id: presentacion.id,
     producto: {
@@ -106,7 +107,8 @@ const convertirPresentacionAResultado = (presentacion: Presentacion): ResultadoB
         ? `${presentacion.item.descripcion} - ${presentacion.tipoPresentacion} ${presentacion.descripcionPresentacion}` 
         : `${presentacion.tipoPresentacion} ${presentacion.descripcionPresentacion}`,
     },
-    lote: presentacion.lote || '',
+    // Aseguramos que el lote se capture correctamente, sin usar el operador || que puede causar problemas
+    lote: presentacion.lote,
     cantidad: presentacion.cantidad || 0,
     fechaExpiracion: new Date().toISOString(), // La API no proporciona fecha de expiración, usamos la fecha actual
     tipoPresentacion: presentacion.tipoPresentacion || '',
@@ -275,9 +277,11 @@ export default function HistorialMovimientos() {
       // Formateamos los datos exactamente como se muestra en Swagger
       const codigoFormateado = codigo.trim();
       const loteFormateado = lote.trim();
-    
+      
+  
       
       // Llamada a la API para buscar presentaciones por código y lote
+      // Aseguramos que ambos parámetros se pasen correctamente
       const presentaciones = await api.getPresentacionByCodigoLote(codigoFormateado, loteFormateado);
       
       
@@ -409,14 +413,7 @@ export default function HistorialMovimientos() {
   
   // Función para aplicar filtros al historial de productos
   const aplicarFiltros = () => {
-    console.log("Aplicando filtros:", { 
-      filtroUnidad, 
-      filtroMarca, 
-      filtroDivision, 
-      filtroFechaInicio, 
-      filtroFechaFin,
-      totalProductos: productosAgotados.length
-    });
+   
     
     let resultadosFiltrados = [...productosAgotados];
     
@@ -460,16 +457,7 @@ export default function HistorialMovimientos() {
         resultadosFiltrados = resultadosFiltrados.filter((p: ProductoAgotado) => {
           const fechaProducto = new Date(p.fechaEliminacion);
           const resultado = fechaProducto >= inicioDia && fechaProducto <= finDia;
-          
-          // Log para depuración
-          if (resultado) {
-            console.log("Producto coincide con la fecha:", {
-              codigo: p.codigo,
-              fechaProducto: fechaProducto.toISOString(),
-              coincide: resultado
-            });
-          }
-          
+
           return resultado;
         });
       } else {
@@ -478,7 +466,6 @@ export default function HistorialMovimientos() {
           const [year, month, day] = filtroFechaInicio.split('-').map(num => parseInt(num));
           const fechaInicio = new Date(year, month - 1, day, 0, 0, 0, 0);
           
-          console.log("Filtrando desde:", fechaInicio.toISOString());
           
           resultadosFiltrados = resultadosFiltrados.filter((p: ProductoAgotado) => {
             const fechaProducto = new Date(p.fechaEliminacion);
@@ -490,7 +477,6 @@ export default function HistorialMovimientos() {
           const [year, month, day] = filtroFechaFin.split('-').map(num => parseInt(num));
           const fechaFin = new Date(year, month - 1, day, 23, 59, 59, 999);
           
-          console.log("Filtrando hasta:", fechaFin.toISOString());
           
           resultadosFiltrados = resultadosFiltrados.filter((p: ProductoAgotado) => {
             const fechaProducto = new Date(p.fechaEliminacion);
@@ -500,9 +486,7 @@ export default function HistorialMovimientos() {
       }
     }
     
-    console.log(`Resultados filtrados: ${resultadosFiltrados.length} de ${productosAgotados.length} productos`);
     if (resultadosFiltrados.length > 0) {
-      console.log("Primer producto filtrado:", resultadosFiltrados[0]);
     }
     
     setProductosFiltrados(resultadosFiltrados);
@@ -639,12 +623,16 @@ export default function HistorialMovimientos() {
       [presentacionKey]: cantidadYaSacada + totalFinal
     });
     
-    // Verificar si ya existe una entrega con el mismo código, tipo y presentación
+    // Verificar si ya existe una entrega con el mismo código, tipo, presentación Y LOTE
+    // Es crucial incluir el lote en esta comparación para evitar combinar productos con diferentes lotes
     const entregaExistente = entregas.find(e => 
       e.producto.codigo === resultado.producto.codigo && 
       e.producto.tipoPresentacion === resultado.tipoPresentacion && 
-      e.producto.descripcionPresentacion === resultado.descripcionPresentacion
+      e.producto.descripcionPresentacion === resultado.descripcionPresentacion &&
+      e.lote === resultado.lote // Agregamos la comparación por lote
     );
+    
+
     
     // Obtener el total original disponible para esta presentación
     const totalOriginalDisponible = resultado.totalEquivalenciaEnBase + cantidadYaSacada;
@@ -694,6 +682,12 @@ export default function HistorialMovimientos() {
     
     // Actualizar los resultados con las nuevas cantidades
     setResultadosBusqueda(resultadosActualizados);
+    
+    // Si estamos en modo de búsqueda por código y lote, limpiamos los campos después de agregar
+    if (tipoBusqueda === 'codigoLote') {
+      setCodigo("");
+      setLote("");
+    }
     
     // Mantenemos el modal abierto para poder seguir agregando presentaciones
     // No llamamos a setModalAbierto(false);
@@ -818,26 +812,33 @@ export default function HistorialMovimientos() {
       // Preparar los datos para el endpoint de entregas
       // IMPORTANTE: Los comentarios específicos de cada presentación (entrega.comentario) 
       // no se envían al microservicio, solo se usan para el PDF
+      
+   
+      
       const datosEntrega: EntregaData = {
         entregadoPor: entregadoPor,
         areaDestino: areaDestino,
         responsableArea: responsableArea,
-        observaciones: observaciones || '', // Observaciones generales para toda la entrega (aseguramos que no sea null/undefined)
-        detalles: entregas.map(entrega => ({
-          id: entrega.id,
-          lote: entrega.lote || '', // Aseguramos que lote no sea null/undefined
-          cantidadEntregada: entrega.totalSeleccionado || entrega.cantidad || 0, // Aseguramos que la cantidad no sea null/undefined
-          observaciones: observaciones || '', // Solo las observaciones generales, no los comentarios específicos
-          nombreProducto: entrega.producto?.descripcion || ''
-          // No incluimos entrega.comentario aquí, ya que es solo para el PDF
-        }))
+        observaciones: observaciones || '', // Observaciones generales para toda la entrega
+        detalles: entregas.map(entrega => {
+         
+          
+          // Si el lote es undefined, imprimir un mensaje de advertencia
+          if (entrega.lote === undefined || entrega.lote === null) {
+            console.warn('ADVERTENCIA: Lote indefinido o nulo para la entrega:', entrega.id);
+          }
+          
+          return {
+            id: entrega.id,
+            // Aseguramos que el lote nunca sea undefined o null
+            lote: typeof entrega.lote === 'string' ? entrega.lote : '',
+            cantidadEntregada: entrega.totalSeleccionado || entrega.cantidad || 0,
+            observaciones: observaciones || '',
+            nombreProducto: entrega.producto?.descripcion || ''
+          };
+        })
       };
-      
-      // Verificar que todos los campos necesarios estén presentes
-      console.log('Datos de entrega a enviar:', JSON.stringify(datosEntrega, null, 2));
-      
-   
-      
+
       // Enviar datos al endpoint
       const resultado = await generateEntrega(datosEntrega);
       

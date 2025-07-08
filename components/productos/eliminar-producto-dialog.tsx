@@ -114,7 +114,7 @@ export function EliminarProductoDialog({
         eliminadoPor: nombreUsuario
       }
       
-      console.log('Datos de eliminación enviados:', datosEliminacion)
+      //console.log('Datos de eliminación enviados:', datosEliminacion)
       
       const response = await fetch('/api/delete/product', {
         method: 'DELETE',
