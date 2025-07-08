@@ -436,16 +436,18 @@ export default function ProductosTable() {
 
                     <TableCell className="text-center">
                       <div className="flex justify-center items-center gap-2">
-                        <Button 
-                          variant="ghost" 
-                          size="icon" 
-                          className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"
-                          onClick={() => handleAbrirEliminarProducto(producto)}
-                          title="Eliminar producto"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                          <span className="sr-only">Eliminar producto</span>
-                        </Button>
+                        {producto.estado === "expirado" && (
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"
+                            onClick={() => handleAbrirEliminarProducto(producto)}
+                            title="Eliminar producto"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                            <span className="sr-only">Eliminar producto</span>
+                          </Button>
+                        )}
                         
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
