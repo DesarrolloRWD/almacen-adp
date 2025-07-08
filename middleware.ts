@@ -1,10 +1,45 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
+// Rutas excluidas del modo mantenimiento
+const excludedRoutes = ['/mantenimiento', '/_next', '/api', '/favicon.ico', '/LG1.jpg', '/images', '/public', '/mantenimiento.html']
+
+// Variable para activar/desactivar el modo mantenimiento
+// Cambiar a false para desactivar el modo mantenimiento
+const MAINTENANCE_MODE = false
+
 // Rutas que no requieren autenticación
 const publicRoutes = ['/login']
 
 export function middleware(request: NextRequest) {
+  // Si el modo mantenimiento está activado
+  if (MAINTENANCE_MODE) {
+    const pathname = request.nextUrl.pathname
+    
+    // Si ya estamos en la página de mantenimiento, no hacer nada
+    if (pathname === '/mantenimiento.html') {
+      return NextResponse.next()
+    }
+    
+    // Permitir acceso a archivos estáticos necesarios para la página de mantenimiento
+    const fileExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.svg', '.ico', '.css', '.js']
+    const isStaticFile = fileExtensions.some(ext => pathname.endsWith(ext))
+    
+    // Comprobar si la ruta actual está excluida del modo mantenimiento
+    const isExcludedRoute = excludedRoutes.some(route => 
+      pathname === route || pathname.startsWith(`${route}/`)
+    )
+    
+    // Si es un archivo estático o una ruta excluida, permitir acceso
+    if (isStaticFile || isExcludedRoute) {
+      return NextResponse.next()
+    }
+    
+    // Para cualquier otra ruta, redirigir al archivo HTML estático de mantenimiento
+    return NextResponse.redirect(new URL('/mantenimiento.html', request.url))
+  }
+  
+  // Código original del middleware cuando no está en modo mantenimiento
   // Obtener el token del localStorage (esto solo funciona en el cliente, no en el middleware)
   // En el middleware, debemos obtener el token de las cookies
   const token = request.cookies.get('token')?.value
@@ -54,7 +89,7 @@ export function middleware(request: NextRequest) {
 // Configurar en qué rutas se ejecutará el middleware
 export const config = {
   matcher: [
-    // Excluir archivos estáticos y API routes
-    '/((?!api|_next/static|_next/image|favicon.ico).*)',
+    // Incluir todas las rutas excepto archivos estáticos y API routes
+    '/((?!api|_next/static|_next/image|_next/data|favicon.ico).*)',
   ],
 }
