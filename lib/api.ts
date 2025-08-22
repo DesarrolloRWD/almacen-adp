@@ -80,7 +80,7 @@ export interface User {
 }
 
 import { authGet, authPost, authPut } from "./auth-fetch"
-import { API_ENDPOINTS } from "./config"
+import { API_ENDPOINTS, ZOQUES_ENDPOINTS } from "./config"
 import { getTenantFromToken } from "./jwt-utils"
 
 // Funciones para interactuar con la API
@@ -402,6 +402,52 @@ export interface ProductoAgotado {
   fechaEliminacion: string;
 }
 
+// Interfaz para productos de zoques (almacén general)
+export interface ProductoZoques {
+  id: string;
+  codigo: string;
+  marca: string;
+  descripcion: string;
+  division: string;
+  unidad: string;
+  lote: string;
+  fechaCreacion: string;
+  linea: string;
+  sublinea: string;
+  temperatura: string;
+  fechaExpiracion?: string;
+  descripcionCorta?: string;
+}
+
+// Interfaz para nuevos productos de zoques
+export interface NuevoProductoZoques {
+  codigo: string;
+  marca: string;
+  descripcion: string;
+  division: string;
+  unidad: string;
+  lote: string;
+  linea: string;
+  sublinea: string;
+  temperatura: string;
+}
+
+// Interfaz para actualizar productos de zoques
+export interface ActualizarProductoZoques {
+  codigoRequest: {
+    codigo: string;
+  };
+  lote?: string;
+  fechaExpiracion?: string;
+  descripcionCorta?: string;
+}
+
+// Interfaz para obtener información detallada de un producto
+export interface DetalleProductoRequest {
+  codigo: string;
+  lote: string;
+}
+
 // Función para obtener el historial de productos agotados
 export async function getHistorialProductosAgotados(): Promise<ProductoAgotado[]> {
   try {
@@ -425,6 +471,57 @@ export async function getHistorialProductosAgotados(): Promise<ProductoAgotado[]
   }
 }
 
+// Función para guardar un nuevo producto en zoques
+export const saveProductoZoques = async (producto: NuevoProductoZoques | NuevoProductoZoques[]): Promise<any> => {
+  try {
+    // Asegurarse de que siempre enviamos un array, incluso si es un solo producto
+    const productosArray = Array.isArray(producto) ? producto : [producto]
+    
+    // Validar que los productos tengan al menos código y descripción
+    const productosValidos = productosArray.filter(p => p.codigo && p.descripcion)
+    
+    if (productosValidos.length === 0) {
+      throw new Error('No hay productos válidos para guardar. Todos los productos deben tener al menos código y descripción.')
+    }
+    
+    // Agregar un timeout para evitar esperas infinitas
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 15000) // 15 segundos de timeout
+    
+    try {
+      const response = await authPost(ZOQUES_ENDPOINTS.SAVE_PRODUCTO, productosValidos)
+      clearTimeout(timeoutId)
+      return response
+    } catch (fetchError) {
+      clearTimeout(timeoutId)
+      
+      // Mejorar el mensaje de error basado en el tipo de error
+      if (fetchError instanceof Error) {
+        if (fetchError.name === 'AbortError') {
+          throw new Error('La solicitud tardó demasiado tiempo en completarse. Intente con menos productos a la vez.')
+        }
+        
+        // Si es un error de red, proporcionar un mensaje más claro
+        if (fetchError.message.includes('Failed to fetch') || fetchError.message.includes('NetworkError')) {
+          throw new Error('Error de conexión. Verifique su conexión a internet o la disponibilidad del servidor.')
+        }
+        
+        // Si es un error de JSON, proporcionar un mensaje más claro
+        if (fetchError.message.includes('JSON')) {
+          throw new Error('Error al procesar la respuesta del servidor. El formato de respuesta no es válido.')
+        }
+      }
+      
+      // Si llegamos aquí, es un error no manejado específicamente
+      throw fetchError
+    }
+  } catch (error) {
+    console.error('[API][Zoques] Error al guardar producto:', 
+      error instanceof Error ? error.message : String(error))
+    throw error
+  }
+}
+
 // Interfaz para los roles de usuario
 export interface Role {
   nombre: string;
@@ -439,6 +536,80 @@ export async function getRoles(): Promise<Role[]> {
   } catch (error) {
     // console.error("Error al obtener roles:", error);
     return [];
+  }
+}
+
+// Función para obtener productos de zoques (almacén general)
+export async function getProductosZoques(): Promise<ProductoZoques[]> {
+  try {
+    const response = await authGet(ZOQUES_ENDPOINTS.GET_PRODUCTOS);
+    return Array.isArray(response) ? response : [];
+  } catch (error) {
+    console.error("[API][Zoques] Error al obtener productos:", 
+      error instanceof Error ? error.message : String(error));
+    return [];
+  }
+}
+
+// Función para actualizar un producto en zoques
+export const updateProductoZoques = async (producto: ActualizarProductoZoques): Promise<any> => {
+  try {
+    // Validar que el producto tenga al menos el código
+    if (!producto.codigoRequest || !producto.codigoRequest.codigo) {
+      throw new Error('El código del producto es obligatorio para actualizar')
+    }
+    
+    // Agregar un timeout para evitar esperas infinitas
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 15000) // 15 segundos de timeout
+    
+    try {
+      const response = await authPut(ZOQUES_ENDPOINTS.UPDATE_PRODUCTO, producto)
+      clearTimeout(timeoutId)
+      return response
+    } catch (fetchError) {
+      clearTimeout(timeoutId)
+      
+      // Mejorar el mensaje de error basado en el tipo de error
+      if (fetchError instanceof Error) {
+        if (fetchError.name === 'AbortError') {
+          throw new Error('La solicitud tardó demasiado tiempo en completarse.')
+        }
+        
+        // Si es un error de red, proporcionar un mensaje más claro
+        if (fetchError.message.includes('Failed to fetch') || fetchError.message.includes('NetworkError')) {
+          throw new Error('Error de conexión. Verifique su conexión a internet o la disponibilidad del servidor.')
+        }
+        
+        // Si es un error de JSON, proporcionar un mensaje más claro
+        if (fetchError.message.includes('JSON')) {
+          throw new Error('Error al procesar la respuesta del servidor. El formato de respuesta no es válido.')
+        }
+      }
+      
+      // Si llegamos aquí, es un error no manejado específicamente
+      throw fetchError
+    }
+  } catch (error) {
+    console.error('[API][Zoques] Error al actualizar producto:', 
+      error instanceof Error ? error.message : String(error))
+    throw error
+  }
+}
+
+// Función para obtener información detallada de un producto por código y lote
+export const getProductoDetalle = async (request: DetalleProductoRequest): Promise<any> => {
+  try {
+    if (!request.codigo || !request.lote) {
+      throw new Error('El código y lote son obligatorios para obtener el detalle del producto')
+    }
+    
+    const response = await authPost(ZOQUES_ENDPOINTS.GET_PRODUCTO_DETALLE, request)
+    return response
+  } catch (error) {
+    console.error('[API][Zoques] Error al obtener detalle del producto:', 
+      error instanceof Error ? error.message : String(error))
+    throw error
   }
 }
 
@@ -463,4 +634,8 @@ export const api = {
   updateUserInformation,
   getHistorialProductosAgotados,
   generateEntrega,
+  getProductosZoques,
+  saveProductoZoques,
+  updateProductoZoques,
+  getProductoDetalle,
 }

@@ -98,15 +98,15 @@ export default function ConfiguracionPage() {
           index === self.findIndex((r) => r.nombre === role.nombre)
         );
         
-        console.log(`Se encontraron ${uniqueRoles.length} roles únicos en el catálogo`)
+        // Se encontraron roles únicos en el catálogo
         setRoles(uniqueRoles)
       } else {
-        console.warn("No se encontraron roles en el catálogo")
+        // No se encontraron roles en el catálogo
         setRoles([]) // No usar roles predefinidos, dejar vacío
         setError("No se pudieron cargar los roles del servidor. Por favor, verifica la conexión e intenta de nuevo.")
       }
     } catch (err) {
-      console.error("Error al obtener roles:", err)
+      // Error al obtener roles
       setError("Error al cargar los roles disponibles. Por favor, verifica la conexión e intenta de nuevo.")
       setRoles([]) // No usar roles predefinidos, dejar vacío
     } finally {
@@ -149,7 +149,7 @@ export default function ConfiguracionPage() {
         setUsers([])
       }
     } catch (err) {
-      console.error("Error al obtener usuarios:", err)
+      // Error al obtener usuarios
       setError("Error al cargar la lista de usuarios. Verifica tu conexión e intenta de nuevo.")
       setUsers([]) // Establecer un array vacío en caso de error
     } finally {
@@ -219,7 +219,7 @@ export default function ConfiguracionPage() {
       setSelectedUser(userData)
       setIsUserDialogOpen(true)
     } catch (err) {
-      console.error("Error al obtener detalles del usuario:", err)
+      // Error al obtener detalles del usuario
       setError("Error al obtener detalles del usuario. Intenta de nuevo.")
     } finally {
       setLoadingUserDetails(false)
@@ -250,7 +250,7 @@ export default function ConfiguracionPage() {
       }))
       setSuccess(`Estado del usuario actualizado correctamente`)
     } catch (err) {
-      console.error("Error al actualizar estado del usuario:", err)
+      // Error al actualizar estado del usuario
       setError("Error al actualizar estado del usuario. Intenta de nuevo.")
     } finally {
       setUpdatingStatus(false)
@@ -294,7 +294,7 @@ export default function ConfiguracionPage() {
       setNewImage(null)
       setSuccess(`Imagen del usuario actualizada correctamente`)
     } catch (err) {
-      console.error("Error al actualizar imagen del usuario:", err)
+      // Error al actualizar imagen del usuario
       setError("Error al actualizar imagen del usuario. Intenta de nuevo.")
     } finally {
       setUpdatingImage(false)
@@ -357,7 +357,7 @@ export default function ConfiguracionPage() {
       setIsEditMode(false) // Salir del modo de edición después de guardar
       setEditForm({}) // Limpiar el formulario
     } catch (err) {
-      console.error("Error al actualizar información del usuario:", err)
+      // Error al actualizar información del usuario
       setError("Error al actualizar información del usuario. Intenta de nuevo.")
     } finally {
       setUpdatingInfo(false)
@@ -407,7 +407,7 @@ export default function ConfiguracionPage() {
       // Recargar lista de usuarios
       fetchUsers()
     } catch (err) {
-      console.error("Error al crear usuario:", err)
+      // Error al crear usuario
       setError("Error al crear el usuario. Intenta de nuevo.")
     } finally {
       setIsLoading(false)

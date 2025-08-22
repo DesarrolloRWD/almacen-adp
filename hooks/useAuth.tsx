@@ -48,7 +48,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             document.cookie = "token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Strict"
           }
         } catch (error) {
-          console.error("Error al verificar el token:", error)
+          // Error al verificar el token
           // En caso de error, limpiar el token
           localStorage.removeItem("token")
           document.cookie = "token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Strict"
@@ -87,11 +87,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         
         return userData;
       } else {
-        console.error('Error al obtener información del usuario, status:', response.status);
+        // Error al obtener información del usuario
         return null;
       }
     } catch (error) {
-      console.error("Error al obtener información del usuario:", error);
+      // Error al obtener información del usuario
       return null;
     }
   };
@@ -103,7 +103,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       
       const result = await apiLogin({ usuario, pswd: password })
       
-    
+      // Verificar el token sin mostrar logs de depuración
+      if (result.token) {
+        try {
+          const tokenParts = result.token.split('.');
+          if (tokenParts.length === 3) {
+            // Decodificar el payload silenciosamente
+            JSON.parse(atob(tokenParts[1]));
+          }
+        } catch (e) {
+          // Error silencioso al decodificar
+        }
+      }
       
       // Guardar el token en localStorage, cookie y en el estado
       if (result.success && result.token) {
@@ -124,11 +135,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         
         return true;
       } else {
-        console.error('Login fallido:', result.message || 'No se proporcionó mensaje de error')
+        // Login fallido
         return false
       }
     } catch (error) {
-      console.error("Error de autenticación:", error)
+      // Error de autenticación
       return false
     }
   }

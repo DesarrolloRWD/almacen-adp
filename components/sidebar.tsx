@@ -2,22 +2,29 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import {
-  LayoutDashboard,
-  Stethoscope,
-  PackageOpen,
-  History,
+  Boxes,
   ChevronLeft,
   ChevronRight,
-  ShieldAlert,
+  FileSpreadsheet,
+  FileText,
+  History,
+  Home,
   Layers,
+  PackageOpen,
+  PlusCircle,
+  Settings,
+  ShieldAlert,
+  Stethoscope,
+  Warehouse,
 } from "lucide-react"
+import { getTenantFromToken } from "@/lib/jwt-utils"
 
 interface NavItem {
   title: string
@@ -25,7 +32,13 @@ interface NavItem {
   icon: React.ReactNode
 }
 
-const navItems: NavItem[] = [
+// Elementos de navegación para usuarios de almacén naval/balbuena
+const navalNavItems: NavItem[] = [
+  {
+    title: "Verificar Remisiones",
+    href: "/verificar/remisiones",
+    icon: <FileText className="h-5 w-5" />,
+  },
   {
     title: "Insumos Médicos",
     href: "/productos",
@@ -46,11 +59,105 @@ const navItems: NavItem[] = [
     href: "/historial-salidas",
     icon: <PackageOpen className="h-5 w-5" />,
   },
+  
+]
+
+// Elementos de navegación para usuarios de almacén general
+const almacenGeneralNavItems: NavItem[] = [
+  {
+    title: "Inventario General",
+    href: "/almacen-general",
+    icon: <Warehouse className="h-5 w-5" />,
+  },
+  // {
+  //   title: "Distribución",
+  //   href: "/almacen-general/distribucion",
+  //   icon: <PackageOpen className="h-5 w-5" />,
+  // },
+  {
+    title: "Registrar Producto",
+    href: "/almacen-general/registrar",
+    icon: <PlusCircle className="h-5 w-5" />,
+  },
+  {
+    title: "Carga Masiva",
+    href: "/almacen-general/carga-masiva",
+    icon: <FileSpreadsheet className="h-5 w-5" />,
+  },
+  {
+    title: "Generar Remisión",
+    href: "/almacen-general/remision",
+    icon: <FileText className="h-5 w-5" />,
+  },
+  {
+    title: "Historial de Remisiones",
+    href: "/historial/remisiones",
+    icon: <History className="h-5 w-5" />,
+  },
+  // {
+  //   title: "Historial",
+  //   href: "/almacen-general-historial",
+  //   icon: <History className="h-5 w-5" />,
+  // },
 ]
 
 export default function Sidebar() {
   const pathname = usePathname()
   const [isCollapsed, setIsCollapsed] = useState(false)
+  const [isAlmacenGeneral, setIsAlmacenGeneral] = useState(false)
+  
+  // Efecto para verificar el tipo de usuario al cargar el componente
+  useEffect(() => {
+    const checkUserType = () => {
+      // Obtener el token directamente del localStorage
+      const token = localStorage.getItem("token") || ""
+      
+      // Intentar decodificar el token manualmente para depuración
+      let issFromManual = ""
+      if (token) {
+        try {
+          const tokenParts = token.split('.')
+          if (tokenParts.length === 3) {
+            const payload = JSON.parse(atob(tokenParts[1]))
+            issFromManual = payload.iss || ""
+          }
+        } catch (e) {
+        }
+      }
+      
+      // Usar la función getTenantFromToken como respaldo
+      const issValue = getTenantFromToken()
+      
+      // Usar el valor obtenido manualmente si está disponible, de lo contrario usar el de la función
+      const finalIssValue = issFromManual || issValue
+      
+      // Si el iss corresponde al almacén general
+      setIsAlmacenGeneral(finalIssValue === "38324f69-8b3b-41f0-949c-821a9534bba0")
+    }
+    
+    checkUserType()
+    
+    // Agregar un listener para cambios en localStorage (por si el token cambia)
+    const handleStorageChange = () => {
+      checkUserType()
+    }
+    
+    // Agregar un listener para cuando la ventana recupera el foco
+    const handleFocus = () => {
+      checkUserType()
+    }
+    
+    window.addEventListener('storage', handleStorageChange)
+    window.addEventListener('focus', handleFocus)
+    
+    return () => {
+      window.removeEventListener('storage', handleStorageChange)
+      window.removeEventListener('focus', handleFocus)
+    }
+  }, [])
+  
+  // Seleccionar los elementos de navegación según el tipo de usuario
+  const navItemsToShow = isAlmacenGeneral ? almacenGeneralNavItems : navalNavItems
 
   return (
     <div className={cn("relative flex flex-col border-r bg-white shadow-sm", isCollapsed ? "w-16" : "w-64")}>
@@ -58,10 +165,16 @@ export default function Sidebar() {
         {!isCollapsed && (
           <Link href="/" className="flex items-center gap-2 font-semibold">
             <ShieldAlert className="h-6 w-6" />
-            <span className="font-bold">Hospital Naval</span>
+            <span className="font-bold">
+              {isAlmacenGeneral ? "Almacén General" : "Hospital Naval"}
+            </span>
           </Link>
         )}
-        {isCollapsed && <ShieldAlert className="h-6 w-6 mx-auto" />}
+        {isCollapsed && (
+          isAlmacenGeneral ? 
+          <Warehouse className="h-6 w-6 mx-auto" /> : 
+          <ShieldAlert className="h-6 w-6 mx-auto" />
+        )}
       </div>
       <Button
         variant="outline"
@@ -74,7 +187,7 @@ export default function Sidebar() {
       </Button>
       <ScrollArea className="flex-1">
         <nav className="grid gap-1 px-2 py-3">
-          {navItems.map((item, index) => (
+          {navItemsToShow.map((item: NavItem, index: number) => (
             <Link
               key={index}
               href={item.href}
@@ -101,6 +214,7 @@ export default function Sidebar() {
               : "bg-blue-100 text-blue-700"
           )}>
             {process.env.NEXT_PUBLIC_APP_ENV === 'production' ? 'PRODUCCIÓN' : 'DESARROLLO'}
+            {isAlmacenGeneral && " - ALMACÉN GENERAL"}
           </div>
         )}
       </div>

@@ -25,15 +25,56 @@ export default function AppLayout({ children }: AppLayoutProps) {
     }
     
     // Si el usuario está autenticado y está en la página de login,
-    // redirigirlo a la página principal y reemplazar la entrada en el historial
+    // redirigirlo a la página correspondiente según su tenant
     if (isAuthenticated && pathname === "/login") {
-      router.replace("/productos")
+      try {
+        // Obtener el token y determinar la ruta correcta
+        const token = localStorage.getItem("token") || ""
+        let redirectPath = "/productos" // Ruta por defecto (Naval/Balbuena)
+        
+        if (token) {
+          const tokenParts = token.split('.')
+          if (tokenParts.length === 3) {
+            const payload = JSON.parse(atob(tokenParts[1]))
+            const issValue = payload.iss
+            
+            // Si el iss corresponde al almacén general, redirigir a esa vista
+            if (issValue === "38324f69-8b3b-41f0-949c-821a9534bba0") {
+              redirectPath = "/almacen-general"
+            }
+          }
+        }
+        
+        router.replace(redirectPath)
+      } catch (e) {
+        // Error al determinar la ruta de redirección
+        router.replace("/productos") // Fallback a la ruta por defecto
+      }
     }
     
     // Prevenir la navegación hacia atrás a la página de login
     const handlePopState = () => {
       if (isAuthenticated && window.location.pathname === "/login") {
-        router.replace("/productos")
+        // Usar la misma lógica de redirección basada en tenant
+        try {
+          const token = localStorage.getItem("token") || ""
+          let redirectPath = "/productos" // Ruta por defecto
+          
+          if (token) {
+            const tokenParts = token.split('.')
+            if (tokenParts.length === 3) {
+              const payload = JSON.parse(atob(tokenParts[1]))
+              if (payload.iss === "38324f69-8b3b-41f0-949c-821a9534bba0") {
+                redirectPath = "/almacen-general"
+              }
+            }
+          }
+          
+          router.replace(redirectPath)
+        } catch (e) {
+          // Error en handlePopState
+          router.replace("/productos") // Fallback
+        }
       }
     }
     

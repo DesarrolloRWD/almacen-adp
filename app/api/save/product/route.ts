@@ -6,7 +6,7 @@ export const dynamic = 'force-dynamic'; // No cachear esta ruta
 // Método POST para guardar un nuevo producto
 export async function POST(request: NextRequest) {
   try {
-    console.log("API save/product: Iniciando procesamiento de solicitud");
+    // Iniciando procesamiento de solicitud
     
     // Obtener el token de autenticación de las cookies usando el método asíncrono
     const cookieStore = await cookies();
@@ -21,7 +21,7 @@ export async function POST(request: NextRequest) {
       )
     }
     
-    console.log("API save/product: Token de autenticación encontrado");
+    // Token de autenticación encontrado
     
     // Obtener los datos del cuerpo de la solicitud
     const body = await request.json()

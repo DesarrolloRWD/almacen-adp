@@ -43,6 +43,14 @@ export const HISTORIAL_ENDPOINTS = {
   GET_HISTORIAL: '/get/historial',
 };
 
+// Endpoints para zoques (almacén general)
+export const ZOQUES_ENDPOINTS = {
+  GET_PRODUCTOS: '/api/zoques/productos',
+  SAVE_PRODUCTO: '/api/zoques/save/information',
+  UPDATE_PRODUCTO: '/api/zoques/update/information',
+  GET_PRODUCTO_DETALLE: '/api/zoques/get/information',
+};
+
 // Exportar todos los endpoints como un objeto
 export const API_ENDPOINTS = {
   ...AUTH_ENDPOINTS,
@@ -50,6 +58,7 @@ export const API_ENDPOINTS = {
   ...ALMACEN_ENDPOINTS,
   ...ENTREGAS_ENDPOINTS,
   ...HISTORIAL_ENDPOINTS,
+  ...ZOQUES_ENDPOINTS,
 };
 
 export default API_ENDPOINTS;

@@ -9,6 +9,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { ShieldAlert } from "lucide-react"
 import { useAuth } from "@/hooks"
 import LoadingOverlay from "@/components/loading-overlay"
+import { getTenantFromToken } from "@/lib/jwt-utils"
 
 export default function LoginPage() {
   const [usuario, setUsuario] = useState("")
@@ -36,11 +37,41 @@ export default function LoginPage() {
         // Mostrar animación de transición
         setShowTransition(true)
         
+        // Determinar la ruta de redirección antes de mostrar cualquier vista
+        const token = localStorage.getItem("token") || ""
+        let redirectPath = "/productos" // Ruta por defecto (Naval/Balbuena)
+        
+        try {
+          if (token) {
+            const tokenParts = token.split('.')
+            if (tokenParts.length === 3) {
+              const payload = JSON.parse(atob(tokenParts[1]))
+              const issValue = payload.iss
+              
+              // Si el iss corresponde al almacén general, redirigir a esa vista
+              if (issValue === "38324f69-8b3b-41f0-949c-821a9534bba0") {
+                // console.log("Preparando redirección a almacén general")
+                redirectPath = "/almacen-general"
+              } else {
+                // console.log("Preparando redirección a productos (Naval/Balbuena)")
+              }
+            }
+          }
+        } catch (e) {
+          console.error("Error al decodificar el token para determinar redirección:", e)
+        }
+        
         // Esperar un momento para que se vea la animación antes de redirigir
         setTimeout(() => {
-          // Reemplazar la entrada actual en el historial con la página de productos
-          // Esto evita que el usuario pueda volver a la página de login con el botón de atrás
-          router.replace("/productos")
+          try {
+            // Reemplazar la entrada actual en el historial con la página correspondiente ya determinada
+            // console.log("Ejecutando redirección a:", redirectPath)
+            router.replace(redirectPath)
+          } catch (error) {
+            console.error("Error durante la redirección:", error)
+            // En caso de error, redirigir a la ruta por defecto
+            router.replace("/productos")
+          }
         }, 1500)
       } else {
         setError("Usuario o contraseña incorrectos")

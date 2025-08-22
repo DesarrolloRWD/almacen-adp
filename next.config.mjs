@@ -18,6 +18,16 @@ const nextConfig = {
         destination: `${process.env.NEXT_PUBLIC_AUTH_API_URL}/login`,
       },
       
+      // Proxy para zoques
+      {
+        source: '/api/zoques/productos',
+        destination: `${process.env.NEXT_PUBLIC_ZOQUES_API_URL}/list/all`,
+      },
+      {
+        source: '/api/zoques/productos/save',
+        destination: `${process.env.NEXT_PUBLIC_ZOQUES_API_URL}/save/information`,
+      },
+      
       // Proxy para usuarios
       {
         source: '/users',
@@ -98,6 +108,24 @@ const nextConfig = {
       {
         source: '/api/get/productos',
         destination: `${process.env.NEXT_PUBLIC_ALMACEN_API_URL}/get/products`,
+      },
+
+      // Proxy para remisiones
+      {
+        source: '/api/remisiones',
+        destination: `${process.env.NEXT_PUBLIC_REMISIONES_API_URL}`,
+      },
+      {
+        source: '/create/remision',
+        destination: `${process.env.NEXT_PUBLIC_REMISIONES_API_URL}`,
+      },
+      {
+        source: '/find/remision',
+        destination: `${process.env.NEXT_PUBLIC_REMISIONES_API_URL}/find/remision`,
+      },
+      {
+        source: '/verificar/remision',
+        destination: `${process.env.NEXT_PUBLIC_CONFIRMACIONES_API_URL}/find/remision`,
       },
     ];
   },

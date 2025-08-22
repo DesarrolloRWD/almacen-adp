@@ -74,28 +74,57 @@ export const authGet = async (url: string, options: RequestInit = {}): Promise<a
 
 // Función para realizar peticiones POST autenticadas
 export const authPost = async (url: string, data: any, options: RequestInit = {}): Promise<any> => {
-  
-  
-  const response = await authFetch(url, {
-    ...options,
-    method: 'POST',
-    body: JSON.stringify(data)
-  })
-  
-  
-  if (!response.ok) {
-    // Intentar obtener el cuerpo de la respuesta para ver el mensaje de error
-    try {
-      const errorBody = await response.text();
-      console.error('authPost - Cuerpo de respuesta de error:', errorBody);
-      throw new Error(`Error: ${response.status} - ${errorBody}`);
-    } catch (e) {
-      throw new Error(`Error: ${response.status}`);
+  try {
+    // Agregar signal para timeout si se proporciona en las opciones
+    const response = await authFetch(url, {
+      ...options,
+      method: 'POST',
+      body: JSON.stringify(data)
+    })
+    
+    if (!response.ok) {
+      // Intentar obtener el cuerpo de la respuesta para ver el mensaje de error
+      try {
+        const errorBody = await response.text();
+        console.error(`authPost - Error ${response.status} en ${url}:`, errorBody);
+        
+        // Intentar parsear el error como JSON si es posible
+        try {
+          const jsonError = JSON.parse(errorBody);
+          const errorMessage = jsonError.message || jsonError.error || errorBody;
+          throw new Error(`Error ${response.status}: ${errorMessage}`);
+        } catch (parseError) {
+          // Si no se puede parsear como JSON, usar el texto del error
+          throw new Error(`Error ${response.status}: ${errorBody || 'Error desconocido'}`);
+        }
+      } catch (textError) {
+        // Si no se puede obtener el texto del error
+        throw new Error(`Error ${response.status}: No se pudo obtener detalles del error`);
+      }
     }
+    
+    // Manejar respuestas vacías
+    const contentType = response.headers.get('content-type');
+    if (contentType && contentType.includes('application/json')) {
+      try {
+        const jsonResponse = await response.json();
+        return jsonResponse;
+      } catch (jsonError) {
+        console.error('Error al parsear respuesta JSON:', jsonError);
+        throw new Error('Error al procesar la respuesta del servidor: formato JSON inválido');
+      }
+    } else {
+      // Si no es JSON, devolver el texto
+      const textResponse = await response.text();
+      return textResponse ? { success: true, message: textResponse } : { success: true };
+    }
+  } catch (error) {
+    // Capturar errores de red y otros errores no manejados
+    if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
+      throw new Error('Error de conexión: No se pudo conectar con el servidor. Verifique su conexión a internet.');
+    }
+    throw error;
   }
-  
-  const jsonResponse = await response.json();
-  return jsonResponse;
 }
 
 // Función para realizar peticiones PUT autenticadas

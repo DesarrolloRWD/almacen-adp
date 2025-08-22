@@ -80,7 +80,7 @@ export async function POST(request: Request) {
     }
     
     const entregaUrl = `${baseUrl}/generate/entrega`;
-    console.log(`API entrega: URL del endpoint: ${entregaUrl}`);
+    // URL del endpoint para generar entrega
     
     // Obtener el token de autenticación de las cookies
     const cookieStore = await cookies();
@@ -99,9 +99,7 @@ export async function POST(request: Request) {
     
     // Reenviar la petición al servidor real con el token
     ////console.log('API entrega: Enviando petición al servidor externo...');
-    console.log(`API entrega: URL del endpoint: ${entregaUrl}`);
-    ////console.log('API entrega: Datos a enviar COMPLETOS:', JSON.stringify(datosFormateados, null, 2));
-    console.log(`API entrega: Token: ${token.substring(0, 10)}...`);
+    // Preparando envío de datos al endpoint externo
     
     try {
       const response = await fetch(entregaUrl, {
@@ -115,12 +113,11 @@ export async function POST(request: Request) {
         next: { revalidate: 0 } // Forzar revalidación en cada petición
       });
       
-      console.log(`API entrega: Respuesta recibida con status: ${response.status} ${response.statusText}`);
+      // Respuesta recibida del servidor externo
       
       // Obtener los datos de la respuesta como texto primero para depurar
       const responseText = await response.text();
-      console.log(`API entrega: Respuesta como texto completa: ${responseText}`);
-      console.log(`API entrega: Código de estado HTTP: ${response.status} ${response.statusText}`);
+      // Procesando respuesta del servidor
       
       // Intentar parsear la respuesta como JSON
       let data;

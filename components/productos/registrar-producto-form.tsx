@@ -195,7 +195,6 @@ export default function RegistrarProductoForm() {
         // Obtener el token del localStorage
         const token = localStorage.getItem('token');
         if (!token) {
-          ////console.log('No hay token disponible');
           setIsLoadingUsers(false);
           return;
         }
@@ -325,8 +324,7 @@ export default function RegistrarProductoForm() {
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     setIsSubmitting(true)
     
-    // Log para ver la fecha original seleccionada
-    //console.log('Fecha seleccionada (original):', values.fechaExpiracion);
+    // Procesar el formulario
     
     try {
       // Formatear los valores del formulario según la estructura requerida por la API
@@ -344,23 +342,13 @@ export default function RegistrarProductoForm() {
           // Crear una copia de la fecha para no modificar la original
           const fecha = new Date(values.fechaExpiracion);
           
-          // Log para ver la fecha antes del ajuste
-          //console.log('Fecha antes del ajuste:', fecha.toISOString());
-          //console.log('Fecha local (antes):', fecha.toLocaleDateString());
-          
           // Ajustar la fecha para compensar la zona horaria
           const offset = fecha.getTimezoneOffset();
-          //console.log('Offset de zona horaria (minutos):', offset);
           
           fecha.setMinutes(fecha.getMinutes() + offset);
           
-          // Log para ver la fecha después del ajuste
-          //console.log('Fecha después del ajuste:', fecha.toISOString());
-          //console.log('Fecha local (después):', fecha.toLocaleDateString());
-          
           // Formatear la fecha en formato ISO (YYYY-MM-DD)
           const fechaFormateada = fecha.toISOString().split('T')[0];
-          //console.log('Fecha formateada enviada al servidor:', fechaFormateada);
           
           return fechaFormateada;
         })(),
@@ -384,8 +372,7 @@ export default function RegistrarProductoForm() {
       // Obtener el token de autenticación del localStorage
       const token = localStorage.getItem('token')
       
-      // Log para mostrar todos los datos que se envían al servidor
-      //console.log('Datos completos enviados al servidor:', formattedValues);
+      // Enviar datos al servidor
       
       // Usar el proxy local para evitar problemas de CORS
       const response = await fetch(`/api/save/product`, {
@@ -588,7 +575,7 @@ export default function RegistrarProductoForm() {
   // Función para procesar los datos del QR escaneado
   const handleQrScanSuccess = (qrData: Record<string, any>) => {
     try {
-      //console.log("Datos QR recibidos:", qrData);
+      // Procesar datos del QR
       
       // Verificar que los datos tienen la estructura esperada
       if (!qrData || typeof qrData !== 'object') {
@@ -614,23 +601,20 @@ export default function RegistrarProductoForm() {
       // Código
       if (qrData.codigo !== undefined) {
         form.setValue("codigo", String(qrData.codigo).trim());
-        //console.log("Campo código actualizado:", qrData.codigo);
       }
       
       // Descripción
       if (qrData.descripcion !== undefined) {
         form.setValue("descripcion", String(qrData.descripcion).trim());
-        //console.log("Campo descripción actualizado:", qrData.descripcion);
       }
       
       // Marca
       if (qrData.marca !== undefined) {
         form.setValue("marca", String(qrData.marca).trim());
-        //console.log("Campo marca actualizado:", qrData.marca);
       }
       
       // Unidad Base - puede venir como unidad o unidadBase
-      //console.log("Buscando campo unidad/unidadBase en datos QR:", qrData);
+      // Verificar unidad base
       
       if (qrData.unidadBase !== undefined || qrData.unidad !== undefined) {
         // Obtener el valor de unidad del QR (de cualquiera de los dos campos posibles)
@@ -647,12 +631,10 @@ export default function RegistrarProductoForm() {
         if (unidadesBaseOptions.includes(unidadFinal)) {
           unidadSeleccionada = unidadFinal;
           form.setValue("unidadBase", unidadFinal);
-          //console.log(`Campo unidadBase actualizado: '${unidadValue}' → '${unidadFinal}'`);
         } else {
           // Si no está en las opciones, usar la primera opción disponible y mostrar advertencia
           unidadSeleccionada = unidadesBaseOptions[0];
           form.setValue("unidadBase", unidadesBaseOptions[0]);
-          //console.log(`Advertencia: La unidad '${unidadFinal}' no está en las opciones disponibles. Se usó '${unidadesBaseOptions[0]}' en su lugar.`);
           sonnerToast.warning("Unidad base adaptada", {
             description: `La unidad '${unidadFinal}' del QR no es válida. Se usó '${unidadesBaseOptions[0]}' en su lugar.`
           });
@@ -664,78 +646,63 @@ export default function RegistrarProductoForm() {
           presentaciones.forEach((_, index) => {
             form.setValue(`presentaciones.${index}.tipoPresentacion`, unidadSeleccionada);
           });
-          //console.log(`Se actualizó el tipo de presentación en ${presentaciones.length} presentaciones a: '${unidadSeleccionada}'`);
         }
       }
       
       // División
       if (qrData.division !== undefined) {
         form.setValue("division", String(qrData.division).trim());
-        //console.log("Campo división actualizado:", qrData.division);
       }
       
       // Línea
       if (qrData.linea !== undefined) {
         form.setValue("linea", String(qrData.linea).trim());
-        //console.log("Campo línea actualizado:", qrData.linea);
       }
       
       // Sublínea
       if (qrData.sublinea !== undefined) {
         form.setValue("sublinea", String(qrData.sublinea).trim());
-        //console.log("Campo sublínea actualizado:", qrData.sublinea);
       }
       
       // Lote - procesamiento simplificado con logs detallados
-      //console.log("Buscando campo lote en datos QR:", qrData);
+      // Procesar campo lote
       
       // Buscar el lote en los campos más comunes
       if (qrData.lote !== undefined) {
         // Limpiar y formatear el valor del lote
         let valorLote = String(qrData.lote).trim();
-        //console.log(`Valor original de lote: '${valorLote}'`);
         
         // Eliminar caracteres especiales que puedan quedar del formato QR
         valorLote = valorLote.replace(/[\[\]\*\u00d1\u00a8]/g, '');
-        //console.log(`Valor de lote después de limpiar: '${valorLote}'`);
         
         // Establecer el valor directamente en el campo de texto
         form.setValue("lote", valorLote);
-        //console.log(`Campo lote actualizado: '${valorLote}'`);
       } 
       // Si no viene en el campo lote, buscar en otros campos comunes
       else if (qrData.lot !== undefined) {
         let valorLote = String(qrData.lot).trim();
-        //console.log(`Valor original de lot: '${valorLote}'`);
         valorLote = valorLote.replace(/[\[\]\*\u00d1\u00a8]/g, '');
         form.setValue("lote", valorLote);
-        //console.log(`Campo lote actualizado desde 'lot': '${valorLote}'`);
       }
       else if (qrData.numerolote !== undefined) {
         let valorLote = String(qrData.numerolote).trim();
-        //console.log(`Valor original de numerolote: '${valorLote}'`);
         valorLote = valorLote.replace(/[\[\]\*\u00d1\u00a8]/g, '');
         form.setValue("lote", valorLote);
-        //console.log(`Campo lote actualizado desde 'numerolote': '${valorLote}'`);
       }
       else if (qrData.numlote !== undefined) {
         let valorLote = String(qrData.numlote).trim();
-        //console.log(`Valor original de numlote: '${valorLote}'`);
         valorLote = valorLote.replace(/[\[\]\*\u00d1\u00a8]/g, '');
         form.setValue("lote", valorLote);
-        //console.log(`Campo lote actualizado desde 'numlote': '${valorLote}'`);
       }
       else {
-        //console.log("No se encontró información de lote en los datos del QR");
+        // No se encontró información de lote
       }
       
       // Creado Por - mantener el valor actual si no viene en el QR
       if (qrData.creadoPor !== undefined) {
         form.setValue("creadoPor", String(qrData.creadoPor).trim());
-        //console.log("Campo creadoPor actualizado:", qrData.creadoPor);
       } else if (nombreUsuario) {
         form.setValue("creadoPor", nombreUsuario);
-        //console.log("Campo creadoPor mantenido como:", nombreUsuario);
       }
       
       // Actualizar campos numéricos - asegurar que sean números
@@ -800,7 +767,7 @@ export default function RegistrarProductoForm() {
         // El lector QR generalmente termina con Enter
         try {
           // Intentar procesar el buffer como datos QR
-          //console.log('Procesando datos del lector QR:', qrBuffer);
+          // Procesar datos del lector QR
           
           // Intentar convertir el formato del lector QR
           let processedData: Record<string, string> = {};
@@ -824,7 +791,6 @@ export default function RegistrarProductoForm() {
               // Asignar el objeto tipado a processedData
               processedData = tempData;
               
-              //console.log('Datos procesados del QR:', processedData);
               
               // Verificar que se extrajeron datos
               if (Object.keys(processedData).length > 0) {

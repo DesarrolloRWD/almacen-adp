@@ -474,7 +474,7 @@ export function EditarProductoForm({ producto, onSuccess, onCancel }: EditarProd
               <FormItem>
                 <FormLabel>Lote</FormLabel>
                 <FormControl>
-                  <Input placeholder="Ej. LOT123456" {...field} disabled />
+                  <Input placeholder="Ej. LOT123456" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
