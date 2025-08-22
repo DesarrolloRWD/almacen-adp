@@ -107,3 +107,12 @@
 .naval-header {
   background: linear-gradient(90deg, #002060 0%, #003080 100%);
 }
+
+/* Ocultar el botón X de cierre en los modales */
+.hide-close-button [role="dialog"] button[class*="absolute"][class*="right-4"][class*="top-4"],
+.hide-close-button button[class*="absolute"][class*="right-4"][class*="top-4"] {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}

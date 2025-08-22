@@ -12,6 +12,30 @@ export interface Producto {
   movimientoArea: string
 }
 
+export interface DetalleProductoRemision {
+  codigo: string
+  cantidad: string
+  unidad: string
+  descripcion: string
+  confirmacionRecibido: boolean
+  fechaConfirmacion: string | null
+  confirmadoPor: string | null
+  observaciones: string | null
+}
+
+export interface Remision {
+  ordenRemision: string
+  fechaSalida: string
+  hospital: string
+  tipoSalida: string
+  almacenProveniente: string
+}
+
+export interface RemisionDetallada {
+  informacion: Remision
+  detalleRemision: DetalleProductoRemision[]
+}
+
 export interface Presentacion {
   id: number
   tipoPresentacion: string
@@ -80,7 +104,7 @@ export interface User {
 }
 
 import { authGet, authPost, authPut } from "./auth-fetch"
-import { API_ENDPOINTS, ZOQUES_ENDPOINTS } from "./config"
+import { API_ENDPOINTS, REMISIONES_ENDPOINTS, ZOQUES_ENDPOINTS } from "./config"
 import { getTenantFromToken } from "./jwt-utils"
 
 // Funciones para interactuar con la API
@@ -614,6 +638,28 @@ export const getProductoDetalle = async (request: DetalleProductoRequest): Promi
 }
 
 // Exportar todas las funciones como un objeto API
+// Función para obtener todas las remisiones
+export async function getAllRemisiones(): Promise<Remision[]> {
+  try {
+    const response = await authGet(REMISIONES_ENDPOINTS.GET_ALL_REMISIONES);
+    return Array.isArray(response) ? response : [];
+  } catch (error) {
+    console.error("Error al obtener remisiones:", error);
+    return [];
+  }
+}
+
+// Función para obtener una remisión específica por número
+export async function getRemisionByNumero(ordenRemision: string): Promise<RemisionDetallada | null> {
+  try {
+    const response = await authPost(REMISIONES_ENDPOINTS.GET_REMISION, { ordenRemision });
+    return response || null;
+  } catch (error) {
+    console.error("Error al obtener remisión específica:", error);
+    return null;
+  }
+}
+
 export const api = {
   getProductos,
   saveProducto,
@@ -638,4 +684,6 @@ export const api = {
   saveProductoZoques,
   updateProductoZoques,
   getProductoDetalle,
+  getAllRemisiones,
+  getRemisionByNumero,
 }

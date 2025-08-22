@@ -27,7 +27,8 @@ export async function POST(request: Request) {
     // Preparar los datos con el tenant del almacén general
     const requestData = {
       ordenRemision: data.ordenRemision,
-      tenant: ALMACEN_GENERAL_TENANT
+      tenant: ALMACEN_GENERAL_TENANT,
+      destino: data.destino || "HospitalNaval"
     }
     
     // Enviar datos a la API externa usando el token fresco del almacén general

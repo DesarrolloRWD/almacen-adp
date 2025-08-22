@@ -39,8 +39,8 @@ export function VerificarRemisionSearch({ onSearchResult, onSearchStart }: Verif
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({ 
-          ordenRemision
-          // No enviamos el tenant, lo establecerá el backend
+          ordenRemision,
+          destino: "HospitalNaval"
         }),
       })
 

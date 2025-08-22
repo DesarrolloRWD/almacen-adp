@@ -90,8 +90,8 @@ const almacenGeneralNavItems: NavItem[] = [
     icon: <FileText className="h-5 w-5" />,
   },
   {
-    title: "Historial de Remisiones",
-    href: "/historial/remisiones",
+    title: "Historial de remisiones",
+    href: "/almacen-general/remision/listar",
     icon: <History className="h-5 w-5" />,
   },
   // {

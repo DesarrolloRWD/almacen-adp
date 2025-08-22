@@ -30,6 +30,7 @@ interface ProductoRemision {
   descripcion: string
   verificado?: boolean
   observaciones?: string
+  confirmacionRecibido?: boolean
 }
 
 interface VerificarRemisionListProps {
@@ -39,7 +40,11 @@ interface VerificarRemisionListProps {
 
 export function VerificarRemisionList({ productos, ordenRemision }: VerificarRemisionListProps) {
   const [productosVerificados, setProductosVerificados] = useState<ProductoRemision[]>(
-    productos ? productos.map(p => ({ ...p, verificado: false, observaciones: "" })) : []
+    productos ? productos.map(p => ({ 
+      ...p, 
+      verificado: p.confirmacionRecibido || false, 
+      observaciones: "" 
+    })) : []
   )
   const [guardando, setGuardando] = useState(false)
   const [verificacionCompletada, setVerificacionCompletada] = useState(false)
@@ -49,7 +54,11 @@ export function VerificarRemisionList({ productos, ordenRemision }: VerificarRem
   // Actualizar productos cuando cambia la prop
   useState(() => {
     if (productos) {
-      setProductosVerificados(productos.map(p => ({ ...p, verificado: false, observaciones: "" })))
+      setProductosVerificados(productos.map(p => ({ 
+        ...p, 
+        verificado: p.confirmacionRecibido || false, 
+        observaciones: "" 
+      })))
       setVerificacionCompletada(false)
     }
   })
@@ -120,7 +129,9 @@ export function VerificarRemisionList({ productos, ordenRemision }: VerificarRem
             confirmadoPor: nombreUsuario,
             observaciones: producto.observaciones && producto.observaciones.trim() !== "" 
               ? producto.observaciones 
-              : "Correcto"
+              : "Correcto",
+            ordenRemision: ordenRemision,
+            destino: "HospitalNaval"
           }
           
           // console.log(`Enviando confirmación para producto ${producto.codigo}:`, confirmacionData);
@@ -290,10 +301,12 @@ export function VerificarRemisionList({ productos, ordenRemision }: VerificarRem
           </TableHeader>
           <TableBody>
             {productosVerificados.map((producto) => (
-              <TableRow key={producto.id} className={producto.verificado ? "bg-green-50" : ""}>
+              <TableRow key={producto.id} className={producto.verificado ? "bg-green-50" : (producto.confirmacionRecibido ? "bg-gray-100" : "")}>
                 <TableCell>
                   {producto.verificado ? (
                     <CheckCircle2 className="h-5 w-5 text-green-600" />
+                  ) : producto.confirmacionRecibido ? (
+                    <CheckCircle2 className="h-5 w-5 text-blue-600" />
                   ) : (
                     <AlertCircle className="h-5 w-5 text-gray-300" />
                   )}
@@ -307,20 +320,31 @@ export function VerificarRemisionList({ productos, ordenRemision }: VerificarRem
                     placeholder="Observaciones"
                     value={producto.observaciones || ""}
                     onChange={(e) => handleUpdateObservaciones(producto.id, e.target.value)}
-                    disabled={producto.verificado}
+                    disabled={producto.verificado || producto.confirmacionRecibido}
                     className="w-full"
                   />
                 </TableCell>
                 <TableCell>
-                  <Button
-                    size="sm"
-                    variant={producto.verificado ? "outline" : "default"}
-                    onClick={() => handleVerificarProducto(producto.id)}
-                    disabled={producto.verificado}
-                    className="w-full"
-                  >
-                    {producto.verificado ? "Verificado" : "Verificar"}
-                  </Button>
+                  {producto.confirmacionRecibido ? (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      disabled={true}
+                      className="w-full text-blue-600"
+                    >
+                      Ya confirmado
+                    </Button>
+                  ) : (
+                    <Button
+                      size="sm"
+                      variant={producto.verificado ? "outline" : "default"}
+                      onClick={() => handleVerificarProducto(producto.id)}
+                      disabled={producto.verificado}
+                      className="w-full"
+                    >
+                      {producto.verificado ? "Verificado" : "Verificar"}
+                    </Button>
+                  )}
                 </TableCell>
               </TableRow>
             ))}

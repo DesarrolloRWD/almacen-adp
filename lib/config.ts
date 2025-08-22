@@ -43,6 +43,13 @@ export const HISTORIAL_ENDPOINTS = {
   GET_HISTORIAL: '/get/historial',
 };
 
+// Endpoints para remisiones
+export const REMISIONES_ENDPOINTS = {
+  GET_ALL_REMISIONES: '/find/all/remision',
+  GET_REMISION: '/find/remision',
+  CREATE_REMISION: '/create/remision',
+};
+
 // Endpoints para zoques (almacén general)
 export const ZOQUES_ENDPOINTS = {
   GET_PRODUCTOS: '/api/zoques/productos',
@@ -58,6 +65,7 @@ export const API_ENDPOINTS = {
   ...ALMACEN_ENDPOINTS,
   ...ENTREGAS_ENDPOINTS,
   ...HISTORIAL_ENDPOINTS,
+  ...REMISIONES_ENDPOINTS,
   ...ZOQUES_ENDPOINTS,
 };
 

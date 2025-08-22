@@ -124,6 +124,10 @@ const nextConfig = {
         destination: `${process.env.NEXT_PUBLIC_REMISIONES_API_URL}/find/remision`,
       },
       {
+        source: '/find/all/remision',
+        destination: `${process.env.NEXT_PUBLIC_REMISIONES_API_URL}/find/all/remision`,
+      },
+      {
         source: '/verificar/remision',
         destination: `${process.env.NEXT_PUBLIC_CONFIRMACIONES_API_URL}/find/remision`,
       },
