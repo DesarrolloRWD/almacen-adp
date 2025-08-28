@@ -571,7 +571,9 @@ export default function ConfiguracionPage() {
                             roles.map((role) => (
                                 <SelectItem key={role.nombre} value={role.nombre}>
                                   {role.nombre === "ROLE_ADMIN" ? "Administrador" : 
-                                   role.nombre === "ROLE_USER" ? "Usuario" : 
+                                   role.nombre === "ROLE_USER" ? "Usuario" :
+                                   role.nombre === "ROLE_CHECKTIME" ? "Asistencia" : 
+                                   role.nombre === "ROLE_RH" ? "RH" : 
                                    role.nombre}
                                 </SelectItem>
                             ))

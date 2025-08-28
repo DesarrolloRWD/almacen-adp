@@ -53,7 +53,7 @@ export default function ProductoQRDialog({
   }, [producto])
 
   // Función para imprimir en impresora Zebra (QR)
-  const handlePrintQR = async () => {
+  const handlePrintQR = async (size: 'normal' | 'large' = 'normal') => {
     if (!producto) return
     
     try {
@@ -93,9 +93,13 @@ export default function ProductoQRDialog({
                 descripcion: producto.descripcionCorta || producto.descripcion,
                 lote: producto.lote || 'N/A',
                 fechaExpiracion: formatDate(producto.fechaExpiracion),
-                temperatura: producto.temperatura || 'N/A'
+                temperatura: producto.temperatura || 'N/A',
+                marca: producto.marca || 'N/A',
+                division: producto.division || 'N/A',
+                sublinea: producto.sublinea || 'N/A',
+                unidad: producto.unidad || 'N/A'
               },
-              type: 'qr'
+              type: size === 'large' ? 'qr-large' : 'qr'
             }
             
             await printZebra(zebraData);
@@ -206,15 +210,20 @@ export default function ProductoQRDialog({
             </div>
             
             <div className="flex flex-col space-y-2 w-full">
-              <Button onClick={handlePrintQR} className="w-full">
+              <Button onClick={() => handlePrintQR('normal')} className="w-full">
                 <Printer className="mr-2 h-4 w-4" />
-                Imprimir QR en Zebra
+                Imprimir QR en Zebra (5x3 cm)
+              </Button>
+              
+              <Button onClick={() => handlePrintQR('large')} className="w-full bg-blue-600 hover:bg-blue-700">
+                <Printer className="mr-2 h-4 w-4" />
+                Imprimir QR Grande (10x10 cm)
               </Button>
               
               {(producto.lote && producto.fechaExpiracion) && (
                 <Button onClick={handlePrintBarcode} variant="outline" className="w-full">
                   <Barcode className="mr-2 h-4 w-4" />
-                  Imprimir Código de Barras
+                  Imprimir Código de Barras (5x3 cm)
                 </Button>
               )}
             </div>
