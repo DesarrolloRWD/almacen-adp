@@ -173,22 +173,32 @@ export default function ProductosTable() {
       
       // Procesar los datos para agregar el estado basado en la fecha de expiración y nivel de inventario
       const productosConEstado = data.map((producto: ProductoAPI) => {
-        // Extraer la fecha sin la hora para evitar problemas de zona horaria
-        const fechaStr = producto.fechaExpiracion.split('T')[0];
-        const [año, mes, día] = fechaStr.split('-');
-        // Crear fecha de expiración sin ajuste de zona horaria
-        const fechaExp = new Date(parseInt(año), parseInt(mes)-1, parseInt(día));
+        // Verificar si existe fechaExpiracion
+        let estado = 'normal';
         
-        // Obtener fecha actual sin componente de hora
-        const hoyStr = new Date().toISOString().split('T')[0];
-        const [añoHoy, mesHoy, díaHoy] = hoyStr.split('-');
-        const hoy = new Date(parseInt(añoHoy), parseInt(mesHoy)-1, parseInt(díaHoy));
-        
-        // Calcular diferencia en días
-        const diferenciaDias = Math.ceil((fechaExp.getTime() - hoy.getTime()) / (1000 * 60 * 60 * 24))
-        
-        // Determinar el estado basado en la fecha de expiración
-        let estado = diferenciaDias <= 0 ? 'expirado' : diferenciaDias <= 30 ? 'porExpirar' : 'normal';
+        if (producto.fechaExpiracion) {
+          try {
+            // Extraer la fecha sin la hora para evitar problemas de zona horaria
+            const fechaStr = producto.fechaExpiracion.split('T')[0];
+            const [año, mes, día] = fechaStr.split('-');
+            // Crear fecha de expiración sin ajuste de zona horaria
+            const fechaExp = new Date(parseInt(año), parseInt(mes)-1, parseInt(día));
+            
+            // Obtener fecha actual sin componente de hora
+            const hoyStr = new Date().toISOString().split('T')[0];
+            const [añoHoy, mesHoy, díaHoy] = hoyStr.split('-');
+            const hoy = new Date(parseInt(añoHoy), parseInt(mesHoy)-1, parseInt(díaHoy));
+            
+            // Calcular diferencia en días
+            const diferenciaDias = Math.ceil((fechaExp.getTime() - hoy.getTime()) / (1000 * 60 * 60 * 24))
+            
+            // Determinar el estado basado en la fecha de expiración
+            estado = diferenciaDias <= 0 ? 'expirado' : diferenciaDias <= 30 ? 'porExpirar' : 'normal';
+          } catch (error) {
+            console.warn('Error al procesar la fecha de expiración:', error);
+            estado = 'normal';
+          }
+        }
         
         // Determinar el estado de inventario
         let estadoInventario = 'normal';
@@ -391,18 +401,26 @@ export default function ProductosTable() {
                     <TableCell>{producto.marca}</TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
-                        {producto.estado === "expirado" ? (
+                        {!producto.fechaExpiracion ? (
+                          <>
+                            <span className="text-gray-500">Sin fecha</span>
+                          </>
+                        ) : producto.estado === "expirado" ? (
                           <>
                             <AlertOctagon className="h-4 w-4 text-red-600" />
                             <span className="text-red-600">
                               {(() => {
-                                // Extraer solo la fecha sin la hora para evitar problemas de zona horaria
-                                const fechaStr = producto.fechaExpiracion.split('T')[0];
-                                // Crear la fecha usando año, mes y día explícitamente para evitar ajustes de zona horaria
-                                const [año, mes, día] = fechaStr.split('-');
-                                // Crear una fecha local con esos componentes (mes-1 porque en JS los meses van de 0-11)
-                                const fecha = new Date(parseInt(año), parseInt(mes)-1, parseInt(día));
-                                return fecha.toLocaleDateString();
+                                try {
+                                  // Extraer solo la fecha sin la hora para evitar problemas de zona horaria
+                                  const fechaStr = producto.fechaExpiracion.split('T')[0];
+                                  // Crear la fecha usando año, mes y día explícitamente para evitar ajustes de zona horaria
+                                  const [año, mes, día] = fechaStr.split('-');
+                                  // Crear una fecha local con esos componentes (mes-1 porque en JS los meses van de 0-11)
+                                  const fecha = new Date(parseInt(año), parseInt(mes)-1, parseInt(día));
+                                  return fecha.toLocaleDateString();
+                                } catch (error) {
+                                  return 'Formato inválido';
+                                }
                               })()}
                             </span>
                           </>
@@ -411,10 +429,14 @@ export default function ProductosTable() {
                             <Clock className="h-4 w-4 text-amber-600" />
                             <span className="text-amber-600">
                               {(() => {
-                                const fechaStr = producto.fechaExpiracion.split('T')[0];
-                                const [año, mes, día] = fechaStr.split('-');
-                                const fecha = new Date(parseInt(año), parseInt(mes)-1, parseInt(día));
-                                return fecha.toLocaleDateString();
+                                try {
+                                  const fechaStr = producto.fechaExpiracion.split('T')[0];
+                                  const [año, mes, día] = fechaStr.split('-');
+                                  const fecha = new Date(parseInt(año), parseInt(mes)-1, parseInt(día));
+                                  return fecha.toLocaleDateString();
+                                } catch (error) {
+                                  return 'Formato inválido';
+                                }
                               })()}
                             </span>
                           </>
@@ -423,10 +445,14 @@ export default function ProductosTable() {
                             <CheckCircle className="h-4 w-4 text-green-600" />
                             <span className="text-green-600">
                               {(() => {
-                                const fechaStr = producto.fechaExpiracion.split('T')[0];
-                                const [año, mes, día] = fechaStr.split('-');
-                                const fecha = new Date(parseInt(año), parseInt(mes)-1, parseInt(día));
-                                return fecha.toLocaleDateString();
+                                try {
+                                  const fechaStr = producto.fechaExpiracion.split('T')[0];
+                                  const [año, mes, día] = fechaStr.split('-');
+                                  const fecha = new Date(parseInt(año), parseInt(mes)-1, parseInt(día));
+                                  return fecha.toLocaleDateString();
+                                } catch (error) {
+                                  return 'Formato inválido';
+                                }
                               })()}
                             </span>
                           </>

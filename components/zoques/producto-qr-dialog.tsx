@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
-import { Printer } from "lucide-react"
+import { Printer, Barcode } from "lucide-react"
 import QRCode from "react-qr-code"
 import { ProductoZoques } from "@/lib/api"
 
@@ -33,26 +33,27 @@ export default function ProductoQRDialog({
 
   useEffect(() => {
     if (producto) {
-      // Crear un objeto con la información relevante para el QR
+      // Crear un objeto JSON con la información relevante para el QR
+      // Usando claves sin acentos para evitar distorsiones
       const qrData = {
-        Código: producto.codigo,
-        Marca: producto.marca,
-        Descripción: producto.descripcionCorta || producto.descripcion,
-        Unidad: producto.unidad,
-        Lote: producto.lote || 'null',
-        'Fecha Expiración': formatDate(producto.fechaExpiracion),
-        Area: producto.division,
-        Sublinea: producto.sublinea,
-        Temperatura: producto.temperatura || 'null'
-      }
+        "Codigo": producto.codigo,
+        "Marca": producto.marca,
+        "Descripcion": producto.descripcionCorta || producto.descripcion,
+        "Unidad": producto.unidad,
+        "Lote": producto.lote || '',
+        "Fecha": formatDate(producto.fechaExpiracion),
+        "Area": producto.division,
+        "Sublinea": producto.sublinea,
+        "Temperatura": producto.temperatura ? `${producto.temperatura}-${producto.temperatura} C` : ''
+      };
       
       // Convertir a JSON string para el QR
-      setQrValue(JSON.stringify(qrData))
+      setQrValue(JSON.stringify(qrData));
     }
   }, [producto])
 
-  // Función para imprimir en impresora Zebra
-  const handlePrint = async () => {
+  // Función para imprimir en impresora Zebra (QR)
+  const handlePrintQR = async () => {
     if (!producto) return
     
     try {
@@ -93,40 +94,80 @@ export default function ProductoQRDialog({
                 lote: producto.lote || 'N/A',
                 fechaExpiracion: formatDate(producto.fechaExpiracion),
                 temperatura: producto.temperatura || 'N/A'
-              }
+              },
+              type: 'qr'
             }
             
-            // Enviar a la API de impresión
-            try {
-              // Aquí iría la llamada a la API de impresión
-              // Por ahora mostramos un mensaje de éxito
-              alert('Enviado a la impresora Zebra')
-              
-              // En una implementación real:
-              // const response = await fetch('/api/print/zebra', {
-              //   method: 'POST',
-              //   headers: { 'Content-Type': 'application/json' },
-              //   body: JSON.stringify(zebraData)
-              // })
-              // 
-              // if (!response.ok) {
-              //   throw new Error('Error al enviar a la impresora')
-              // }
-              // 
-              // const result = await response.json()
-              // console.log('Impresión exitosa:', result)
-            } catch (error) {
-              console.error('Error al imprimir:', error)
-              alert('Error al enviar a la impresora')
-            }
+            await printZebra(zebraData);
           }
           
           img.src = "data:image/svg+xml;base64," + btoa(svgData)
         }
       }
     } catch (error) {
-      console.error('Error al preparar la impresión:', error)
-      alert('Error al preparar la impresión')
+      console.error('Error al preparar la impresión del QR:', error)
+      alert('Error al preparar la impresión del QR')
+    }
+  }
+  
+  // Función para imprimir código de barras
+  const handlePrintBarcode = async () => {
+    if (!producto) return
+    
+    try {
+      // Preparar los datos para la impresora Zebra (solo lote y fecha)
+      const zebraData = {
+        productInfo: {
+          lote: producto.lote || 'N/A',
+          fechaExpiracion: formatDate(producto.fechaExpiracion)
+        },
+        type: 'barcode'
+      }
+      
+      await printZebra(zebraData);
+    } catch (error) {
+      console.error('Error al preparar la impresión del código de barras:', error)
+      alert('Error al preparar la impresión del código de barras')
+    }
+  }
+  
+  // Función común para enviar a la API de impresión
+  const printZebra = async (data: any) => {
+    try {
+      console.log('Enviando datos para impresión...', data);
+      
+      // Abrir una nueva ventana para la impresión
+      const printWindow = window.open('', '_blank');
+      
+      if (!printWindow) {
+        throw new Error('No se pudo abrir la ventana de impresión. Verifica que no esté bloqueada por el navegador.');
+      }
+      
+      // Mostrar mensaje de carga mientras se procesa
+      printWindow.document.write('<html><body><h2>Preparando etiqueta para impresión...</h2></body></html>');
+      
+      const response = await fetch('/api/print/zebra', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+      
+      if (!response.ok) {
+        throw new Error('Error al generar la etiqueta: ' + response.statusText);
+      }
+      
+      // Obtener el HTML de la respuesta
+      const htmlContent = await response.text();
+      
+      // Escribir el HTML en la nueva ventana
+      printWindow.document.open();
+      printWindow.document.write(htmlContent);
+      printWindow.document.close();
+      
+      console.log('Ventana de impresión abierta correctamente');
+    } catch (error) {
+      console.error('Error al preparar la impresión:', error);
+      alert('Error al preparar la impresión: ' + (error instanceof Error ? error.message : 'Error desconocido'));
     }
   }
 
@@ -164,10 +205,19 @@ export default function ProductoQRDialog({
               </div>
             </div>
             
-            <Button onClick={handlePrint} className="w-full">
-              <Printer className="mr-2 h-4 w-4" />
-              Imprimir en Zebra
-            </Button>
+            <div className="flex flex-col space-y-2 w-full">
+              <Button onClick={handlePrintQR} className="w-full">
+                <Printer className="mr-2 h-4 w-4" />
+                Imprimir QR en Zebra
+              </Button>
+              
+              {(producto.lote && producto.fechaExpiracion) && (
+                <Button onClick={handlePrintBarcode} variant="outline" className="w-full">
+                  <Barcode className="mr-2 h-4 w-4" />
+                  Imprimir Código de Barras
+                </Button>
+              )}
+            </div>
           </div>
         ) : (
           <div className="py-4 text-center text-muted-foreground">

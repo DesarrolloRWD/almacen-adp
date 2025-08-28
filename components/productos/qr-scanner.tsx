@@ -35,255 +35,280 @@ export default function QrScanner({ onScanSuccess, onCancel }: QrScannerProps): 
     }
   };
 
+  // Función específica para limpiar y normalizar valores de temperatura
+  const cleanTemperatureValue = (tempValue: string): string => {
+    console.log("Limpiando temperatura original:", tempValue);
+    
+    // Caso específico para el formato "2 - 8 °C-2 - 8 °C C"
+    if (tempValue.includes("2 - 8") && tempValue.includes("°C")) {
+      console.log("Detectado formato específico '2 - 8 °C-2 - 8 °C C'");
+      return "2 - 8 °C";
+    }
+    
+    // Caso general para rangos duplicados
+    if (tempValue.includes('-') && /\d+\s*-\s*\d+/.test(tempValue)) {
+      // Extraer el primer rango de temperatura (X - Y)
+      const firstRangeMatch = tempValue.match(/(\d+)\s*-\s*(\d+)/i);
+      if (firstRangeMatch) {
+        // Reconstruir el formato limpio
+        const cleanTemp = `${firstRangeMatch[1]} - ${firstRangeMatch[2]} °C`;
+        console.log("Temperatura reconstruida desde el primer rango:", cleanTemp);
+        return cleanTemp;
+      }
+    }
+    
+    // Procesamiento normal para otros formatos
+    let cleanTemp = tempValue
+      // Manejar símbolos que aparecen en lugar del símbolo de grados
+      .replace(/[\u25ca\u2666◊♦]/g, '°')
+      .replace(/C C/g, '°C')
+      .replace(/([0-9])\s*C\b/gi, '$1 °C') // Agregar ° antes de C cuando sigue a un número
+      .replace(/C\b/g, '°C') // Reemplazar C sola por °C
+      .replace(/ ' /g, ' - ')
+      .replace(/'/g, '-')
+      .replace(/\s+/g, ' ')
+      .trim();
+    
+    // Eliminar duplicados si existen
+    if (cleanTemp.includes('°C') && cleanTemp.indexOf('°C') !== cleanTemp.lastIndexOf('°C')) {
+      cleanTemp = cleanTemp.substring(0, cleanTemp.indexOf('°C') + 2);
+    }
+    
+    // Si no tiene el símbolo de grados, agregarlo
+    if (!cleanTemp.includes('°') && !cleanTemp.includes('grados')) {
+      const tempMatch = cleanTemp.match(/(\d+(?:[.,]\d+)?\s*-\s*\d+(?:[.,]\d+)?|\d+(?:[.,]\d+)?)\s*C?$/i);
+      if (tempMatch) {
+        cleanTemp = `${tempMatch[1]} °C`;
+      }
+    }
+    
+    console.log("Temperatura procesada final:", cleanTemp);
+    return cleanTemp;
+  };
+
   // Procesar el contenido del QR
   const processQrData = (data: string) => {
     try {
-      //console.log("Contenido QR original:", data);
+      console.log("Contenido QR original:", data);
       setError(null); // Limpiar errores previos
       setProcessedData(null); // Limpiar datos procesados previos
-      
-      // El lector reemplaza caracteres JSON de la siguiente manera:
-      // ¨ (¨) = {
-      // [ = "
-      // Ñ (Ñ) = :
-      // * = }
-      
-      // Verificar si es el formato distorsionado del lector
-      if (data.includes('¨') || data.includes('[') || data.includes('Ñ') || data.includes('*')) {
-        //console.log("Detectado formato distorsionado del lector QR, intentando convertir a JSON");
-        
-        // Convertir el formato distorsionado a JSON
-        let jsonString = data
-          .replace(/¨/g, '{') // ¨ -> {
-          .replace(/\[/g, '"') // [ -> "
-          .replace(/Ñ/g, ':') // Ñ -> :
-          .replace(/\*/g, '}'); // * -> }
-        
-        //console.log("Formato convertido a JSON:", jsonString);
-        
-        try {
-          // Intentar parsear como JSON
-          const jsonData = JSON.parse(jsonString);
-          //console.log("Datos procesados como JSON convertido:", jsonData);
-          setProcessedData(jsonData);
-          return;
-        } catch (convertError) {
-          //console.log("Error al parsear el JSON convertido:", convertError);
-          // Continuar con otros métodos de procesamiento
-        }
-      }
-      
-      // Limpiar el contenido de caracteres especiales al inicio
-      let cleanData = data.trim().replace(/^\s*[¨"'\s]+/, "");
-      
-      // Intentar procesar como JSON válido estándar
-      try {
-        // Verificar si el contenido parece ser JSON (comienza con { y termina con })
-        if (cleanData.startsWith('{') && cleanData.endsWith('}')) {
-          const jsonData = JSON.parse(cleanData);
-          //console.log("Datos procesados como JSON válido:", jsonData);
-          setProcessedData(jsonData);
-          return;
-        }
-      } catch (jsonError) {
-        //console.log("No es un JSON válido, intentando otros formatos...");
-      }
-      
-      // Si no es JSON, intentar procesar como el formato distorsionado
       
       // Crear un objeto para almacenar los datos
       const jsonData = {} as Record<string, string | number>;
       
-      // Formato específico del lector QR externo
-      // Ejemplo: ¨[codigo[Ñ[56535[,[marca[Ñ[ROCHE[,[descripcion[Ñ[ere[,[unidad[Ñ[PZ[,[lote[Ñ[LT001[*
-      //console.log("Intentando procesar formato específico del lector QR con Ñ");
+      // Limpiar el contenido de caracteres especiales
+      let cleanData = data.trim();
       
-      // Eliminar el asterisco final y caracteres especiales al inicio
-      cleanData = cleanData.replace(/^\s*¨/, "").replace(/\*$/, '');
-      //console.log("Datos limpiados:", cleanData);
+      // Log para diagnóstico
+      console.log("Contenido limpio para procesar:", cleanData);
       
-      // Dividir por comas para procesar cada sección
-      const sections = cleanData.split(',').map(s => s.trim()).filter(s => s);
-      //console.log("Secciones separadas por coma:", sections);
-      
-      // Procesar cada sección
-      for (const section of sections) {
-        //console.log("Procesando sección:", section);
-        
-        try {
-          // Extraer el nombre del campo (entre los primeros corchetes)
-          const fieldMatch = section.match(/\[(\w+)\]/);
-          if (!fieldMatch) {
-            //console.log("No se encontró el nombre del campo en:", section);
-            continue;
+      // CASO 1: Formato JSON estándar
+      try {
+        // Intentar parsear como JSON válido
+        if (cleanData.startsWith('{') && cleanData.endsWith('}')) {
+          console.log("Detectado formato JSON estándar");
+          const parsedData = JSON.parse(cleanData);
+          console.log("JSON parseado correctamente:", parsedData);
+          
+          // Mapear los campos del JSON a los campos esperados
+          if (parsedData["Código"]) jsonData['codigo'] = parsedData["Código"];
+          if (parsedData["Marca"]) jsonData['marca'] = parsedData["Marca"];
+          if (parsedData["Descripción"]) jsonData['descripcion'] = parsedData["Descripción"];
+          if (parsedData["Unidad"]) jsonData['unidadBase'] = parsedData["Unidad"];
+          if (parsedData["Lote"]) jsonData['lote'] = parsedData["Lote"];
+          if (parsedData["Fecha Expiración"]) jsonData['fechaExpiracion'] = parsedData["Fecha Expiración"];
+          if (parsedData["Area"]) jsonData['division'] = parsedData["Area"];
+          if (parsedData["Sublinea"]) jsonData['sublinea'] = parsedData["Sublinea"];
+          if (parsedData["Temperatura"]) {
+            // Usar la función especializada para limpiar la temperatura
+            jsonData['temperatura'] = cleanTemperatureValue(parsedData["Temperatura"].toString());
           }
           
-          let key = fieldMatch[1].toLowerCase();
+          // Si se encontraron datos, procesarlos
+          if (Object.keys(jsonData).length > 0) {
+            console.log("Datos procesados del formato JSON:", jsonData);
+            setProcessedData(jsonData);
+            return;
+          }
+        }
+      } catch (jsonError) {
+        console.log("Error al parsear JSON:", jsonError);
+        // Continuar con otros métodos si falla el parseo JSON
+      }
+      
+      // CASO 2: Formato JSON distorsionado
+      try {
+        // El lector puede distorsionar caracteres JSON
+        // ¨ (¨) = {
+        // [ = "
+        // Ñ (Ñ) = :
+        // * = }
+        // ' = -
+        // C C = °C
+        if (cleanData.includes('¨') || cleanData.includes('[') || 
+            cleanData.includes('Ñ') || cleanData.includes('*')) {
+          console.log("Detectado formato JSON distorsionado");
           
-          // Extraer el valor (entre el tercer y cuarto corchete)
-          // Buscamos el patrón [Ñ[valor[
-          const valueMatch = section.match(/\[Ñ\]\[([^\[]+)/);
-          if (!valueMatch) {
-            //console.log("No se encontró el valor para el campo", key);
+          // Convertir el formato distorsionado a JSON
+          let jsonString = cleanData
+            .replace(/¨/g, '{') // ¨ -> {
+            .replace(/\[/g, '"') // [ -> "
+            .replace(/Ñ/g, ':') // Ñ -> :
+            .replace(/\*/g, '}') // * -> }
+            .replace(/'/g, '-') // ' -> -
+            .replace(/C C/g, '°C'); // C C -> °C
+          
+          // Corregir nombres de campos con acentos que se pierden
+          jsonString = jsonString
+            .replace(/"Cdigo":/g, '"Código":') 
+            .replace(/"Descripcin":/g, '"Descripción":') 
+            .replace(/"Fecha Expiracin":/g, '"Fecha Expiración":');
+          
+          console.log("Formato convertido a JSON:", jsonString);
+          
+          try {
+            // Intentar parsear como JSON
+            const parsedData = JSON.parse(jsonString);
+            console.log("JSON distorsionado parseado correctamente:", parsedData);
             
-            // Intentar con un patrón alternativo si no se encuentra el valor con Ñ
-            const altMatch = section.match(/\[(\w+)\]\[.\]\[([^\[]+)/);
-            if (altMatch && altMatch.length >= 3) {
-              key = altMatch[1].toLowerCase();
-              let value = altMatch[2].trim();
-              
-              // Eliminar el corchete final si existe
-              value = value.replace(/\[$/, '');
-              
-              //console.log(`Campo extraído (alt): ${key}, Valor extraído: ${value}`);
-              
-              // Mapeo de campos específicos
-              if (key === 'unidad') {
-                key = 'unidadBase';
-              }
-              
-              // Intentar convertir a número si es posible
-              if (/^\d+$/.test(value)) {
-                jsonData[key] = parseInt(value);
-              } else {
-                jsonData[key] = value;
-              }
-              
-              //console.log(`Campo procesado (alt): ${key} = ${jsonData[key]}`);
+            // Mapear los campos del JSON a los campos esperados
+            // Buscar con y sin acentos para mayor compatibilidad
+            if (parsedData["Código"] || parsedData["Cdigo"] || parsedData["Codigo"]) {
+              jsonData['codigo'] = parsedData["Código"] || parsedData["Cdigo"] || parsedData["Codigo"];
             }
-            continue;
+            
+            if (parsedData["Marca"]) {
+              jsonData['marca'] = parsedData["Marca"];
+            }
+            
+            if (parsedData["Descripción"] || parsedData["Descripcin"] || parsedData["Descripcion"]) {
+              jsonData['descripcion'] = parsedData["Descripción"] || parsedData["Descripcin"] || parsedData["Descripcion"];
+            }
+            
+            if (parsedData["Unidad"]) {
+              jsonData['unidadBase'] = parsedData["Unidad"];
+            }
+            
+            if (parsedData["Lote"]) {
+              jsonData['lote'] = parsedData["Lote"];
+            }
+            
+            if (parsedData["Fecha Expiración"] || parsedData["Fecha Expiracin"] || parsedData["Fecha"]) {
+              jsonData['fechaExpiracion'] = parsedData["Fecha Expiración"] || parsedData["Fecha Expiracin"] || parsedData["Fecha"];
+            }
+            
+            if (parsedData["Area"] || parsedData["Área"]) {
+              jsonData['division'] = parsedData["Area"] || parsedData["Área"];
+            }
+            
+            if (parsedData["Sublinea"]) {
+              jsonData['sublinea'] = parsedData["Sublinea"];
+            }
+            
+            if (parsedData["Temperatura"] || parsedData["Temp"]) {
+              // Obtener el valor de temperatura de cualquiera de las claves posibles
+              let temp = parsedData["Temperatura"] || parsedData["Temp"] || "";
+              
+              // Usar la función especializada para limpiar la temperatura
+              jsonData['temperatura'] = cleanTemperatureValue(temp.toString());
+            }
+            
+            // Si se encontraron datos, procesarlos
+            if (Object.keys(jsonData).length > 0) {
+              console.log("Datos procesados del formato JSON distorsionado:", jsonData);
+              setProcessedData(jsonData);
+              return;
+            }
+          } catch (convertError) {
+            console.log("Error al parsear el JSON convertido:", convertError);
+            // Continuar con otros métodos si falla el parseo JSON
           }
-          
-          let value = valueMatch[1].trim();
-          
-          // Eliminar el corchete final si existe
-          value = value.replace(/\[$/, '');
-          
-          //console.log(`Campo extraído: ${key}, Valor extraído: ${value}`);
-          
-          // Mapeo de campos específicos
-          if (key === 'unidad') {
-            key = 'unidadBase';
+        }
+      } catch (distortedError) {
+        console.log("Error al procesar formato distorsionado:", distortedError);
+        // Continuar con otros métodos
+      }
+      
+      // CASO 3: Formato específico reportado por el usuario
+      // "CdigoÑ '02MarcaÑ fenDescripciWÑ nidadÑ 888Fecha cinÑ '08'29AreaÑ atorioSublineaÑ Ñ"
+      if (cleanData.includes('digo') && cleanData.includes('arca') && 
+          (cleanData.includes('scripciW') || cleanData.includes('nidad'))) {
+        console.log("Procesando formato específico reportado por el usuario");
+        
+        // Extraer código
+        const codigoMatch = cleanData.match(/[Cc]digo\s*[Ñ]?\s*([^A-Z]+)/);
+        if (codigoMatch) jsonData['codigo'] = codigoMatch[1].replace(/'/g, '-').trim();
+        
+        // Extraer marca
+        const marcaMatch = cleanData.match(/[Mm]arca\s*[Ñ]?\s*([^A-Z]+)/);
+        if (marcaMatch) jsonData['marca'] = marcaMatch[1].trim();
+        
+        // Extraer descripción
+        const descMatch = cleanData.match(/[Dd]escripci[WÑ]?\s*[Ñ]?\s*([^A-Z]+)/);
+        if (descMatch) jsonData['descripcion'] = descMatch[1].replace(/'/g, '-').trim();
+        
+        // Extraer unidad
+        const unidadMatch = cleanData.match(/[Uu]nidad\s*[Ñ]?\s*([^A-Z]+)/);
+        if (unidadMatch) {
+          const unidadValue = unidadMatch[1].trim();
+          jsonData['unidadBase'] = unidadValue;
+        }
+        
+        // Extraer fecha
+        const fechaMatch = cleanData.match(/[Ff]echa\s*[cC]in\s*[Ñ]?\s*([^A-Z]+)/);
+        if (fechaMatch) {
+          let fechaValue = fechaMatch[1].replace(/'/g, '-').trim();
+          // Si es formato '08'29, convertir a 2025-08-29
+          if (fechaValue.match(/^\d{2}'\d{2}$/)) {
+            fechaValue = `2025-${fechaValue.replace("'", "-")}`;
           }
-          
-          // Intentar convertir a número si es posible
-          if (/^\d+$/.test(value)) {
-            jsonData[key] = parseInt(value);
+          jsonData['fechaExpiracion'] = fechaValue;
+        }
+        
+        // Extraer área
+        const areaMatch = cleanData.match(/[Aa]rea\s*[Ñ]?\s*([^A-Z]+)/);
+        if (areaMatch) {
+          const areaValue = areaMatch[1].trim();
+          if (areaValue.includes('atorio')) {
+            jsonData['division'] = 'Laboratorio';
           } else {
-            jsonData[key] = value;
+            jsonData['division'] = areaValue;
           }
-          
-          //console.log(`Campo procesado: ${key} = ${jsonData[key]}`);
-        } catch (error) {
-          //console.log("Error procesando sección:", section, error);
         }
-      }
-      
-      // Si se encontraron datos, procesarlos
-      if (Object.keys(jsonData).length > 0) {
-        //console.log("Datos procesados del formato específico:", jsonData);
-        setProcessedData(jsonData);
-        return;
-      }
-      
-      // Método 1: Intentar dividir por comas (formato distorsionado)
-      if (cleanData.includes(',')) {
-        const parts = cleanData.split(',').map(part => part.trim()).filter(part => part);
-        //console.log("Partes separadas por coma:", parts);
         
-        // Procesar cada parte
-        for (const part of parts) {
-          // Buscar patrones como [codigo[Ñ [PROD'001[ o [codigo[Ñ [PROD'001[
-          const textMatch = part.match(/\[(\w+)\][\[ÑÑ]\s*\[([^\[\]]+)\[/);
-          
-          if (textMatch) {
-            // Mapear los nombres de campos a los nombres esperados por el formulario
-            let key = textMatch[1].toLowerCase();
-            let value = textMatch[2];
-            
-            // Mapeo de campos específicos
-            if (key === 'unidad') {
-              key = 'unidadBase'; // Mapear 'unidad' a 'unidadBase' para el formulario
-            }
-            
-            // Limpiar el valor
-            value = value.replace(/'/g, '-');
-            value = value.replace(/«/g, 'o');
-            
-            jsonData[key] = value;
-            //console.log(`Campo de texto encontrado: ${key} = ${value}`);
-            continue;
-          }
-          
-          // Buscar patrones numéricos
-          const numMatch = part.match(/\[(\w+)\][\[ÑÑ]\s*(\d+)/);
-          
-          if (numMatch) {
-            // Mapear los nombres de campos a los nombres esperados por el formulario
-            let key = numMatch[1].toLowerCase();
-            const value = parseInt(numMatch[2]);
-            
-            // Mapeo de campos específicos
-            if (key === 'unidad') {
-              key = 'unidadBase'; // Mapear 'unidad' a 'unidadBase' para el formulario
-            }
-            
-            jsonData[key] = value;
-            //console.log(`Campo numérico encontrado: ${key} = ${value}`);
-            continue;
-          }
-          
-          // Patrón genérico
-          const genericMatch = part.match(/\[(\w+)\][^\[]*([^\[,]+)/);
-          
-          if (genericMatch) {
-            // Mapear los nombres de campos a los nombres esperados por el formulario
-            let key = genericMatch[1].toLowerCase();
-            const valueStr = genericMatch[2].trim();
-            
-            // Mapeo de campos específicos
-            if (key === 'unidad') {
-              key = 'unidadBase'; // Mapear 'unidad' a 'unidadBase' para el formulario
-            }
-            
-            // Intentar convertir a número si es posible
-            const numValue = parseInt(valueStr);
-            const value = isNaN(numValue) ? valueStr : numValue;
-            
-            jsonData[key] = value;
-            //console.log(`Campo genérico encontrado: ${key} = ${value}`);
-          }
+        // Extraer sublínea
+        const sublineaMatch = cleanData.match(/[Ss]ublinea\s*[Ñ]?\s*([^A-Z]+)/);
+        if (sublineaMatch) jsonData['sublinea'] = sublineaMatch[1].trim();
+        
+        // Extraer temperatura
+        const tempMatch = cleanData.match(/[Tt]emperatura\s*[Ñ]?\s*([^A-Z]+)/);
+        if (tempMatch) {
+          // Usar la función especializada para limpiar la temperatura
+          jsonData['temperatura'] = cleanTemperatureValue(tempMatch[1].trim());
+        }
+        
+        // Si se encontraron datos, procesarlos
+        if (Object.keys(jsonData).length > 0) {
+          console.log("Datos procesados del formato específico reportado:", jsonData);
+          setProcessedData(jsonData);
+          return;
         }
       }
       
-      // Método 2: Si no se encontraron datos con el método 1, intentar extraer líneas clave-valor
+      // CASO 4: Formato de texto plano con pares clave-valor
       if (Object.keys(jsonData).length === 0) {
-        // Buscar todos los pares clave-valor usando una expresión regular más general
-        const keyValuePattern = /["']?(\w+)["']?\s*[:\[ÑÑ]\s*["']?([^,\[\]{}]+)["']?/g;
+        console.log("Intentando procesar como texto plano con pares clave-valor");
+        
+        // Buscar pares clave-valor en el texto
+        const keyValuePattern = /([A-Za-z\u00f3\u00e1\u00e9\u00ed\u00fa\u00f1]+)[:\s]+([^,\n\r]+)/g;
         let match;
         
         while ((match = keyValuePattern.exec(cleanData)) !== null) {
-          // Mapear los nombres de campos a los nombres esperados por el formulario
-          let key = match[1].toLowerCase();
+          let key = match[1].trim().toLowerCase();
           let value = match[2].trim();
           
-          // Mapeo de campos específicos
-          if (key === 'unidad') {
-            key = 'unidadBase'; // Mapear 'unidad' a 'unidadBase' para el formulario
-          }
-          
-          // Limpiar el valor
-          value = value.replace(/'/g, '-');
-          value = value.replace(/«/g, 'o');
-          
-          // Intentar convertir a número si es posible
-          if (/^\d+$/.test(value)) {
-            jsonData[key] = parseInt(value);
-          } else {
-            jsonData[key] = value;
-          }
-          
-          //console.log(`Par clave-valor encontrado: ${key} = ${jsonData[key]}`);
+          // Usar la función processKeyValuePair para procesar cada par clave-valor
+          processKeyValuePair(key, value, jsonData);
         }
       }
       
@@ -291,18 +316,50 @@ export default function QrScanner({ onScanSuccess, onCancel }: QrScannerProps): 
       if (Object.keys(jsonData).length === 0) {
         // Último intento: mostrar el contenido original y pedir al usuario que lo verifique
         setError("No se pudo extraer información del código QR automáticamente. Por favor verifica el formato o intenta copiar y pegar nuevamente.");
-        //console.log("No se pudo procesar el contenido del QR en ningún formato conocido");
+        console.log("No se pudo procesar el contenido del QR en ningún formato conocido");
         return;
       }
       
-      //console.log("Datos procesados del QR:", jsonData);
+      console.log("Datos procesados del QR:", jsonData);
       setProcessedData(jsonData);
     } catch (err) {
       console.error("Error al procesar el QR:", err);
       setError("Error al procesar el código QR: " + (err as Error).message);
     }
   };
+  
 
+  // Función para procesar un par clave-valor y agregarlo al objeto JSON
+  const processKeyValuePair = (key: string, value: string, jsonData: Record<string, string | number>) => {
+    // Normalizar la clave
+    let normalizedKey = key.toLowerCase();
+    
+    // Mapear claves específicas a nombres estandarizados
+    if (key === 'CODIGO' || key === 'COD') normalizedKey = 'codigo';
+    else if (key === 'DESCRIPCION' || key === 'DESC') normalizedKey = 'descripcion';
+    else if (key === 'MARCA') normalizedKey = 'marca';
+    else if (key === 'AREA') normalizedKey = 'division';
+    else if (key === 'SUBLINEA') normalizedKey = 'sublinea';
+    else if (key === 'TEMP' || key === 'TEMPERATURA') normalizedKey = 'temperatura';
+    else normalizedKey = key.toLowerCase();
+    
+    // Limpiar el valor
+    let cleanValue = value.replace(/'/g, '-');
+    
+    // Procesamiento especial para temperatura
+    if (normalizedKey === 'temperatura') {
+      jsonData[normalizedKey] = cleanTemperatureValue(cleanValue);
+    }
+    // Intentar convertir a número si es posible y no es temperatura
+    else if (/^\d+$/.test(cleanValue)) {
+      jsonData[normalizedKey] = parseInt(cleanValue);
+    } else {
+      jsonData[normalizedKey] = cleanValue;
+    }
+    
+    console.log(`Par clave-valor procesado: ${normalizedKey} = ${jsonData[normalizedKey]}`);
+  };
+  
   // Función para formatear valores para mostrarlos
   const formatValue = (value: any): string => {
     if (value === null || value === undefined) return "-";
